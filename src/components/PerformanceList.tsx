@@ -1,35 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Calendar, Filter, Trash2, Edit2, Save, X, Users, Megaphone } from 'lucide-react';
-import { storage } from '../utils/storage';
+import { useFirebaseData } from '../hooks/useFirebaseData';
 import { useToast } from '../hooks/useToast';
 import { Performance, FilterState } from '../types';
 
 const PerformanceList: React.FC = () => {
   const { addToast } = useToast();
-  const [performances, setPerformances] = useState<Performance[]>([]);
+  const { performances, demands, updatePerformance, deletePerformance } = useFirebaseData();
   const [filteredPerformances, setFilteredPerformances] = useState<Performance[]>([]);
-  const [organizationNames, setOrganizationNames] = useState<string[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Performance>>({});
   const [filters, setFilters] = useState<FilterState>({});
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  // 파이어베이스에서 단체명 목록 가져오기
+  const organizationNames = Array.from(new Set(demands.map(d => d.organizationName))).sort();
 
   useEffect(() => {
     applyFilters();
   }, [performances, filters, searchTerm]);
-
-  const loadData = () => {
-    const allPerformances = storage.getPerformances();
-    const demands = storage.getDemands();
-    const uniqueNames = Array.from(new Set(demands.map(d => d.organizationName))).sort();
-    
-    setPerformances(allPerformances);
-    setOrganizationNames(uniqueNames);
-  };
 
   const applyFilters = () => {
     let filtered = [...performances];
@@ -83,7 +72,7 @@ const PerformanceList: React.FC = () => {
     });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editingId || !editForm.date || !editForm.organizationName) {
       addToast({
         type: 'error',
@@ -107,10 +96,9 @@ const PerformanceList: React.FC = () => {
     }
 
     try {
-      storage.updatePerformance(editingId, editForm);
+      await updatePerformance(editingId, editForm);
       setEditingId(null);
       setEditForm({});
-      loadData();
       
       addToast({
         type: 'success',
@@ -131,12 +119,11 @@ const PerformanceList: React.FC = () => {
     setEditForm({});
   };
 
-  const handleDelete = (id: string, organizationName: string, date?: Date) => {
+  const handleDelete = async (id: string, organizationName: string, date?: Date) => {
     const dateStr = date ? date.toLocaleDateString('ko-KR') : '날짜 없음';
     if (window.confirm(`"${organizationName}"의 ${dateStr} 실적 데이터를 삭제하시겠습니까?`)) {
       try {
-        storage.deletePerformance(id);
-        loadData();
+        await deletePerformance(id);
         
         addToast({
           type: 'success',
