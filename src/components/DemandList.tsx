@@ -13,7 +13,7 @@ const CITIES = [
 
 const DemandList: React.FC = () => {
   const { addToast } = useToast();
-  const { demands } = useFirebaseData();
+  const { demands, updateDemand, deleteDemand } = useFirebaseData();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [editForm, setEditForm] = useState<Partial<Demand>>({});
@@ -29,7 +29,7 @@ const DemandList: React.FC = () => {
     setEditForm(demand);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editingId || !editForm.city || !editForm.organizationName || !editForm.contactPerson || !editForm.phoneNumber) {
       addToast({
         type: 'error',
@@ -40,7 +40,7 @@ const DemandList: React.FC = () => {
     }
 
     try {
-      // Assuming storage.updateDemand is called elsewhere in the code
+      await updateDemand(editingId, editForm);
       setEditingId(null);
       setEditForm({});
       
@@ -63,10 +63,10 @@ const DemandList: React.FC = () => {
     setEditForm({});
   };
 
-  const handleDelete = (id: string, organizationName: string) => {
+  const handleDelete = async (id: string, organizationName: string) => {
     if (window.confirm(`"${organizationName}"의 수요처 정보를 삭제하시겠습니까?`)) {
       try {
-        // Assuming storage.deleteDemand is called elsewhere in the code
+        await deleteDemand(id);
         
         addToast({
           type: 'success',

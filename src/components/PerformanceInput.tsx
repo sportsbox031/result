@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Save, Users, Megaphone, CheckCircle } from 'lucide-react';
-import { storage } from '../utils/storage';
+import { useFirebaseData } from '../hooks/useFirebaseData';
 import { useToast } from '../hooks/useToast';
 
 interface PerformanceFormData {
@@ -14,7 +14,7 @@ interface PerformanceFormData {
 
 const PerformanceInput: React.FC = () => {
   const { addToast } = useToast();
-  const [organizationNames, setOrganizationNames] = useState<string[]>([]);
+  const { demands, addPerformance } = useFirebaseData();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [formData, setFormData] = useState<PerformanceFormData>({
     date: new Date().toISOString().split('T')[0],
@@ -25,12 +25,8 @@ const PerformanceInput: React.FC = () => {
     notes: ''
   });
 
-  useEffect(() => {
-    // 수요처에서 단체명 목록 불러오기
-    const demands = storage.getDemands();
-    const uniqueNames = Array.from(new Set(demands.map(d => d.organizationName))).sort();
-    setOrganizationNames(uniqueNames);
-  }, []);
+  // 파이어베이스에서 단체명 목록 가져오기
+  const organizationNames = Array.from(new Set(demands.map(d => d.organizationName))).sort();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -43,7 +39,7 @@ const PerformanceInput: React.FC = () => {
     return male + female;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.date || !formData.organizationName) {
@@ -69,7 +65,7 @@ const PerformanceInput: React.FC = () => {
     }
 
     try {
-      storage.addPerformance({
+      await addPerformance({
         date: new Date(formData.date),
         organizationName: formData.organizationName,
         maleCount: maleCount,
@@ -77,9 +73,6 @@ const PerformanceInput: React.FC = () => {
         promotionCount: promotionCount,
         notes: formData.notes || undefined
       });
-
-      // 데이터 업데이트 이벤트 발생
-      window.dispatchEvent(new Event('dataUpdated'));
 
       setShowSuccessModal(true);
 
