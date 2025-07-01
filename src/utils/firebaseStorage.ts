@@ -34,11 +34,14 @@ export const firebaseStorage = {
   async addDemand(demand: Omit<Demand, 'id' | 'createdAt' | 'updatedAt'>): Promise<Demand> {
     try {
       const now = Timestamp.now();
-      const docRef = await addDoc(collection(db, 'demands'), {
+      // email 필드가 undefined인 경우 빈 문자열로 처리
+      const demandData = {
         ...demand,
+        email: demand.email || '',
         createdAt: now,
         updatedAt: now
-      });
+      };
+      const docRef = await addDoc(collection(db, 'demands'), demandData);
       
       return {
         id: docRef.id,

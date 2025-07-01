@@ -17,7 +17,7 @@ export const parseExcelData = (csvContent: string): Omit<Demand, 'id' | 'created
         organizationName: columns[1] || '',
         contactPerson: columns[2] || '',
         phoneNumber: columns[3] || '',
-        email: columns[4] || undefined
+        email: columns[4] || ''
       });
     }
   }

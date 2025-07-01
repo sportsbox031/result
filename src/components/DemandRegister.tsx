@@ -60,7 +60,7 @@ const DemandRegister: React.FC = () => {
         organizationName: formData.organizationName,
         contactPerson: formData.contactPerson,
         phoneNumber: formData.phoneNumber,
-        email: formData.email || undefined
+        email: formData.email || ''
       });
 
       setShowSuccessModal(true);

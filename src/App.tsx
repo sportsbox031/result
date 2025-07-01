@@ -13,39 +13,10 @@ import { Loader2 } from 'lucide-react';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
-  const [isFirebaseConfigured, setIsFirebaseConfigured] = useState(false);
   const { toasts, addToast, removeToast } = useToast();
   const { loading, error } = useFirebaseData();
 
-  useEffect(() => {
-    // Firebase 설정 확인
-    const savedConfig = localStorage.getItem('firebaseConfig');
-    if (savedConfig) {
-      setIsFirebaseConfigured(true);
-    }
-  }, []);
-
-  const handleFirebaseConfigSave = (config: any) => {
-    localStorage.setItem('firebaseConfig', JSON.stringify(config));
-    setIsFirebaseConfigured(true);
-    
-    addToast({
-      type: 'success',
-      title: 'Firebase 설정 완료',
-      message: 'Firebase 연결이 완료되었습니다. 페이지를 새로고침해주세요.'
-    });
-  };
-
   const renderCurrentPage = () => {
-    if (!isFirebaseConfigured) {
-      return (
-        <FirebaseSetup 
-          onConfigSave={handleFirebaseConfigSave}
-          isConfigured={isFirebaseConfigured}
-        />
-      );
-    }
-
     if (loading) {
       return (
         <div className="flex items-center justify-center h-64">
