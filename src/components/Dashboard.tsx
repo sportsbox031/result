@@ -18,7 +18,7 @@ const Dashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    const calculatedStats = calculateStatistics(performances);
+    const calculatedStats = calculateStatistics(performances, demands);
     setStats({
       ...calculatedStats,
       totalOrganizations: demands.length

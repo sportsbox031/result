@@ -100,7 +100,7 @@ export const firebaseStorage = {
       const now = Timestamp.now();
       const docRef = await addDoc(collection(db, 'performances'), {
         ...performance,
-        notes: typeof performance.notes === 'string' ? performance.notes : '',
+        notes: performance.notes ? performance.notes.trim() : '',
         date: Timestamp.fromDate(performance.date),
         createdAt: now,
         updatedAt: now
@@ -123,7 +123,7 @@ export const firebaseStorage = {
       const docRef = doc(db, 'performances', id);
       const updateData: any = {
         ...updates,
-        notes: updates.notes ?? '',
+        notes: updates.notes ? updates.notes.trim() : '',
         updatedAt: Timestamp.now()
       };
       
