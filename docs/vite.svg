@@ -2,3 +2,10 @@
   <rect width="32" height="32" fill="#fff"/>
   <text x="16" y="22" font-size="16" text-anchor="middle" fill="#333">V</text>
 </svg>
+<<<<<<< HEAD
+=======
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <text y="50%" x="50%" text-anchor="middle" font-size="80">📊</text>
+</svg> 
+>>>>>>> 1cc758e (정상 SVG로 vite.svg 파일 교체 (404 및 Invalid image source 해결))
