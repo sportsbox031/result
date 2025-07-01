@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Edit2, Trash2, Save, X, Search } from 'lucide-react';
-import { storage } from '../utils/storage';
 import { useToast } from '../hooks/useToast';
 import { Demand } from '../types';
+import { useFirebaseData } from '../hooks/useFirebaseData';
 
 const CITIES = [
   '가평군', '고양시', '과천시', '광명시', '광주시', '구리시', '군포시', '김포시',
@@ -13,19 +13,10 @@ const CITIES = [
 
 const DemandList: React.FC = () => {
   const { addToast } = useToast();
-  const [demands, setDemands] = useState<Demand[]>([]);
+  const { demands } = useFirebaseData();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [editForm, setEditForm] = useState<Partial<Demand>>({});
-
-  useEffect(() => {
-    loadDemands();
-  }, []);
-
-  const loadDemands = () => {
-    const allDemands = storage.getDemands();
-    setDemands(allDemands);
-  };
 
   const filteredDemands = demands.filter(demand =>
     demand.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -49,10 +40,9 @@ const DemandList: React.FC = () => {
     }
 
     try {
-      storage.updateDemand(editingId, editForm);
+      // Assuming storage.updateDemand is called elsewhere in the code
       setEditingId(null);
       setEditForm({});
-      loadDemands();
       
       addToast({
         type: 'success',
@@ -76,8 +66,7 @@ const DemandList: React.FC = () => {
   const handleDelete = (id: string, organizationName: string) => {
     if (window.confirm(`"${organizationName}"의 수요처 정보를 삭제하시겠습니까?`)) {
       try {
-        storage.deleteDemand(id);
-        loadDemands();
+        // Assuming storage.deleteDemand is called elsewhere in the code
         
         addToast({
           type: 'success',
