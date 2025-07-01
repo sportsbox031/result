@@ -96,7 +96,10 @@ const PerformanceList: React.FC = () => {
     }
 
     try {
-      await updatePerformance(editingId, editForm);
+      await updatePerformance(editingId, {
+        ...editForm,
+        notes: editForm.notes ?? ''
+      });
       setEditingId(null);
       setEditForm({});
       

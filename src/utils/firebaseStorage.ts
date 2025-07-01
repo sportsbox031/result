@@ -123,6 +123,7 @@ export const firebaseStorage = {
       const docRef = doc(db, 'performances', id);
       const updateData: any = {
         ...updates,
+        notes: updates.notes ?? '',
         updatedAt: Timestamp.now()
       };
       
