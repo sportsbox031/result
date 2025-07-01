@@ -71,7 +71,7 @@ const PerformanceInput: React.FC = () => {
         maleCount: maleCount,
         femaleCount: femaleCount,
         promotionCount: promotionCount,
-        notes: formData.notes || undefined
+        notes: formData.notes || ''
       });
 
       setShowSuccessModal(true);
