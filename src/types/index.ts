@@ -51,16 +51,13 @@ export interface StatisticsData {
   }>;
   organizationData: Array<{
     name: string;
-    male: number;
-    female: number;
     total: number;
-    promotions: number;
+    count: number;
+    city: string;
   }>;
   cityData: Array<{
     name: string;
-    male: number;
-    female: number;
     total: number;
-    promotions: number;
+    count: number;
   }>;
 }

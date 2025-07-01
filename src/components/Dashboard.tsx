@@ -88,7 +88,7 @@ const Dashboard: React.FC = () => {
   };
 
   const OrganizationTable: React.FC<{ 
-    data: Array<{ name: string; total: number; count: number }>;
+    data: Array<{ name: string; total: number; count: number; city: string }>;
   }> = ({ data }) => (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <h2 className="text-xl font-semibold text-gray-900 mb-6">수요처별 참여 현황</h2>
@@ -99,6 +99,7 @@ const Dashboard: React.FC = () => {
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">순위</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">수요처명</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">시/군</th>
                 <th className="px-4 py-3 text-right text-sm font-medium text-gray-900">횟수</th>
                 <th className="px-4 py-3 text-right text-sm font-medium text-gray-900">총 참여인원</th>
               </tr>
@@ -113,6 +114,9 @@ const Dashboard: React.FC = () => {
                   </td>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900 max-w-[200px] truncate" title={item.name}>
                     {item.name}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-600">
+                    {item.city || '-'}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900 text-right font-mono">
                     {item.count}회

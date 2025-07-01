@@ -45,12 +45,14 @@ export const calculateStatistics = (performances: Performance[], demands: Demand
   }
 
   // 수요처별 데이터 (전체 표시)
-  const orgMap = new Map<string, { total: number; count: number }>();
+  const orgMap = new Map<string, { total: number; count: number; city: string }>();
   performances.forEach(p => {
-    const existing = orgMap.get(p.organizationName) || { total: 0, count: 0 };
+    const existing = orgMap.get(p.organizationName) || { total: 0, count: 0, city: '' };
+    const demand = demands.find(d => d.organizationName === p.organizationName);
     orgMap.set(p.organizationName, {
       total: existing.total + (p.maleCount || 0) + (p.femaleCount || 0),
-      count: existing.count + 1
+      count: existing.count + 1,
+      city: demand?.city || existing.city || ''
     });
   });
   
@@ -58,7 +60,8 @@ export const calculateStatistics = (performances: Performance[], demands: Demand
     .map(([name, data]) => ({ 
       name, 
       total: data.total,
-      count: data.count
+      count: data.count,
+      city: data.city
     }))
     .sort((a, b) => b.total - a.total);
 

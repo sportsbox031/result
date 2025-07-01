@@ -98,9 +98,15 @@ export const firebaseStorage = {
   async addPerformance(performance: Omit<Performance, 'id' | 'createdAt' | 'updatedAt'>): Promise<Performance> {
     try {
       const now = Timestamp.now();
+      
+      // notes 필드를 안전하게 처리
+      const safeNotes = performance.notes !== undefined && performance.notes !== null 
+        ? performance.notes.toString().trim() 
+        : '';
+      
       const docRef = await addDoc(collection(db, 'performances'), {
         ...performance,
-        notes: performance.notes ? performance.notes.trim() : '',
+        notes: safeNotes,
         date: Timestamp.fromDate(performance.date),
         createdAt: now,
         updatedAt: now
@@ -109,6 +115,7 @@ export const firebaseStorage = {
       return {
         id: docRef.id,
         ...performance,
+        notes: safeNotes,
         createdAt: now.toDate(),
         updatedAt: now.toDate()
       };
@@ -121,11 +128,21 @@ export const firebaseStorage = {
   async updatePerformance(id: string, updates: Partial<Performance>): Promise<void> {
     try {
       const docRef = doc(db, 'performances', id);
+      
+      // notes 필드를 안전하게 처리
+      const safeNotes = updates.notes !== undefined && updates.notes !== null 
+        ? updates.notes.toString().trim() 
+        : undefined;
+      
       const updateData: any = {
         ...updates,
-        notes: updates.notes ? updates.notes.trim() : '',
         updatedAt: Timestamp.now()
       };
+      
+      // notes가 있는 경우에만 추가
+      if (safeNotes !== undefined) {
+        updateData.notes = safeNotes;
+      }
       
       if (updates.date) {
         updateData.date = Timestamp.fromDate(updates.date);
