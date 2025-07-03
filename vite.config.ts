@@ -9,6 +9,7 @@ export default defineConfig({
     exclude: ['lucide-react'],
   },
   build: {
+    outDir: 'docs',
     rollupOptions: {
       input: {
         main: 'index.html'
