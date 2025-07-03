@@ -17,6 +17,17 @@ const Dashboard: React.FC = () => {
     cityData: []
   });
 
+  const SOUTH_CITIES = [
+    '과천시','광명시','광주시','군포시','김포시','부천시','성남시','수원시','시흥시','안산시','안성시','안양시','여주시','오산시','용인시','의왕시','이천시','평택시','하남시','화성시','양평군'
+  ];
+  const NORTH_CITIES = [
+    '고양시','구리시','남양주시','동두천시','양주시','의정부시','파주시','포천시','가평군','연천군'
+  ];
+
+  const [regionFilter, setRegionFilter] = useState<'전체'|'남부'|'북부'>('전체');
+  const [selectedCity, setSelectedCity] = useState<string|null>(null);
+  const [showPopup, setShowPopup] = useState(false);
+
   useEffect(() => {
     const calculatedStats = calculateStatistics(performances, demands);
     setStats({
@@ -46,16 +57,30 @@ const Dashboard: React.FC = () => {
 
   const CityBarChart: React.FC<{ 
     data: Array<{ name: string; total: number; count: number }>;
-  }> = ({ data }) => {
+    onBarClick?: (cityName: string) => void;
+  }> = ({ data, onBarClick }) => {
     const maxTotal = Math.max(...data.map(d => d.total), 1);
     
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-6">시/군별 참여 현황</h2>
+        <div className="flex gap-2 mb-4">
+          {['전체','남부','북부'].map(region => (
+            <button
+              key={region}
+              className={`px-4 py-2 rounded-full border font-semibold transition-colors duration-200 ${regionFilter===region ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}
+              onClick={() => setRegionFilter(region as any)}
+            >
+              {region}
+            </button>
+          ))}
+        </div>
         {data.length > 0 ? (
           <div className="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto">
             {data.map((item, index) => (
-              <div key={index} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+              <div key={index} className={`flex items-center space-x-4 p-3 bg-gray-50 rounded-lg transition cursor-pointer hover:shadow-md ${onBarClick ? 'hover:bg-blue-100' : ''}`}
+                onClick={onBarClick ? () => onBarClick(item.name) : undefined}
+              >
                 <div className="text-sm font-medium text-gray-700 min-w-[70px] text-center">
                   {item.name}
                 </div>
@@ -137,6 +162,15 @@ const Dashboard: React.FC = () => {
     </div>
   );
 
+  const filteredCityData = stats.cityData.filter(item => {
+    if(regionFilter === '전체') return true;
+    if(regionFilter === '남부') return SOUTH_CITIES.includes(item.name);
+    if(regionFilter === '북부') return NORTH_CITIES.includes(item.name);
+    return true;
+  });
+
+  const selectedCityOrganizations = stats.organizationData.filter(org => org.city === selectedCity);
+
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-8">
@@ -174,11 +208,39 @@ const Dashboard: React.FC = () => {
 
       {/* 시/군별 통계 - 전체 화면 너비 사용 */}
       <div className="mb-8">
-        <CityBarChart data={stats.cityData} />
+        <CityBarChart data={filteredCityData} onBarClick={cityName => { setSelectedCity(cityName); setShowPopup(true); }} />
       </div>
 
-      {/* 수요처별 상세 통계 */}
-      <OrganizationTable data={stats.organizationData} />
+      {showPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 relative animate-fadeIn">
+            <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" onClick={()=>setShowPopup(false)}>&times;</button>
+            <h3 className="text-2xl font-bold mb-4 text-blue-700">{selectedCity} 수요처별 참여 현황</h3>
+            {selectedCityOrganizations.length > 0 ? (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="px-2 py-2 text-left">수요처명</th>
+                    <th className="px-2 py-2 text-right">횟수</th>
+                    <th className="px-2 py-2 text-right">총 참여인원</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedCityOrganizations.map((org, idx) => (
+                    <tr key={idx} className="hover:bg-blue-50">
+                      <td className="px-2 py-2 font-medium text-gray-900">{org.name}</td>
+                      <td className="px-2 py-2 text-right">{org.count}회</td>
+                      <td className="px-2 py-2 text-right">{org.total.toLocaleString()}명</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="text-gray-500 text-center py-8">데이터가 없습니다</div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
