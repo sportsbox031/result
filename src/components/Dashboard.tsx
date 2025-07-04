@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Users, BarChart3, Calendar, Building2 } from 'lucide-react';
 import { useFirebaseData } from '../hooks/useFirebaseData';
 import { calculateStatistics } from '../utils/statistics';
-import { StatisticsData } from '../types';
+import { StatisticsData, BudgetItem, BudgetUsage } from '../types';
 
 const Dashboard: React.FC = () => {
   const { demands, performances } = useFirebaseData();
@@ -17,6 +17,12 @@ const Dashboard: React.FC = () => {
     cityData: []
   });
 
+  const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
+  const [budgetUsages, setBudgetUsages] = useState<BudgetUsage[]>([]);
+  const [editingBudgetId, setEditingBudgetId] = useState<string|null>(null);
+  const [editingBudgetName, setEditingBudgetName] = useState<string>('');
+  const [editingBudgetAmount, setEditingBudgetAmount] = useState<number>(0);
+
   const SOUTH_CITIES = [
     '과천시','광명시','광주시','군포시','김포시','부천시','성남시','수원시','시흥시','안산시','안성시','안양시','여주시','오산시','용인시','의왕시','이천시','평택시','하남시','화성시','양평군'
   ];
@@ -27,6 +33,35 @@ const Dashboard: React.FC = () => {
   const [regionFilter, setRegionFilter] = useState<'전체'|'남부'|'북부'>('전체');
   const [selectedCity, setSelectedCity] = useState<string|null>(null);
   const [showPopup, setShowPopup] = useState(false);
+
+  // 예산명/예산액 인라인 수정 핸들러
+  const handleEditBudget = (item: BudgetItem) => {
+    setEditingBudgetId(item.id);
+    setEditingBudgetName(item.name);
+    setEditingBudgetAmount(item.amount);
+  };
+  const handleSaveBudget = (id: string) => {
+    setBudgetItems(items => items.map(b => b.id === id ? { ...b, name: editingBudgetName, amount: editingBudgetAmount } : b));
+    setEditingBudgetId(null);
+  };
+
+  // 예산 사용 내역 추가/수정/삭제 핸들러
+  const handleAddUsage = () => {
+    setBudgetUsages(usages => [
+      ...usages,
+      { id: Date.now().toString(), budgetItemId: budgetItems[0]?.id || '', description: '', vendor: '', amount: 0, date: '', paymentMethod: '', note: '' }
+    ]);
+  };
+  const handleUsageChange = (id: string, field: keyof BudgetUsage, value: any) => {
+    setBudgetUsages(usages => usages.map(u => u.id === id ? { ...u, [field]: value } : u));
+  };
+  const handleDeleteUsage = (id: string) => {
+    setBudgetUsages(usages => usages.filter(u => u.id !== id));
+  };
+
+  // 예산명별 사용액 집계
+  const getBudgetUsageSum = (budgetItemId: string) =>
+    budgetUsages.filter(u => u.budgetItemId === budgetItemId).reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
 
   useEffect(() => {
     const calculatedStats = calculateStatistics(performances, demands);
@@ -204,6 +239,124 @@ const Dashboard: React.FC = () => {
           icon={BarChart3}
           color="bg-orange-500"
         />
+      </div>
+
+      {/* 예산 사용 현황 테이블 */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-gray-900">예산 사용 현황</h2>
+          <button className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700" onClick={() => setBudgetItems(items => [...items, { id: Date.now().toString(), name: '', amount: 0 }])}>+ 예산 항목 추가</button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-2 py-2 text-left">예산명</th>
+                <th className="px-2 py-2 text-right">예산액</th>
+                <th className="px-2 py-2 text-right">사용액</th>
+                <th className="px-2 py-2 text-right">잔액</th>
+                <th className="px-2 py-2 text-right">집행율(%)</th>
+                <th className="px-2 py-2 text-center">수정</th>
+              </tr>
+            </thead>
+            <tbody>
+              {budgetItems.map(item => {
+                const used = getBudgetUsageSum(item.id);
+                const remain = item.amount - used;
+                const rate = item.amount > 0 ? (used / item.amount) * 100 : 0;
+                return (
+                  <tr key={item.id} className="hover:bg-blue-50">
+                    <td className="px-2 py-2">
+                      {editingBudgetId === item.id ? (
+                        <input className="border rounded px-2 py-1 w-32" value={editingBudgetName} onChange={e => setEditingBudgetName(e.target.value)} />
+                      ) : (
+                        <span>{item.name}</span>
+                      )}
+                    </td>
+                    <td className="px-2 py-2 text-right">
+                      {editingBudgetId === item.id ? (
+                        <input type="number" className="border rounded px-2 py-1 w-24 text-right" value={editingBudgetAmount} onChange={e => setEditingBudgetAmount(Number(e.target.value))} />
+                      ) : (
+                        item.amount.toLocaleString()
+                      )}
+                    </td>
+                    <td className="px-2 py-2 text-right">{used.toLocaleString()}</td>
+                    <td className="px-2 py-2 text-right">{remain.toLocaleString()}</td>
+                    <td className="px-2 py-2 text-right">{rate.toFixed(2)}</td>
+                    <td className="px-2 py-2 text-center">
+                      {editingBudgetId === item.id ? (
+                        <>
+                          <button className="px-2 py-1 text-green-600 hover:underline" onClick={() => handleSaveBudget(item.id)}>저장</button>
+                          <button className="px-2 py-1 text-gray-500 hover:underline" onClick={() => setEditingBudgetId(null)}>취소</button>
+                        </>
+                      ) : (
+                        <button className="px-2 py-1 text-blue-600 hover:underline" onClick={() => handleEditBudget(item)}>수정</button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 예산 사용 내역 리스트 */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-gray-900">예산 사용 내역</h2>
+          <button className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700" onClick={handleAddUsage}>+ 내역 추가</button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-2 py-2 text-left">예산명</th>
+                <th className="px-2 py-2 text-left">적요</th>
+                <th className="px-2 py-2 text-left">채주</th>
+                <th className="px-2 py-2 text-right">집행액</th>
+                <th className="px-2 py-2 text-center">회계일자</th>
+                <th className="px-2 py-2 text-center">결제방법</th>
+                <th className="px-2 py-2 text-left">비고</th>
+                <th className="px-2 py-2 text-center">삭제</th>
+              </tr>
+            </thead>
+            <tbody>
+              {budgetUsages.map((usage, idx) => (
+                <tr key={usage.id} className="hover:bg-blue-50">
+                  <td className="px-2 py-2">
+                    <select className="border rounded px-2 py-1 w-32" value={usage.budgetItemId} onChange={e => handleUsageChange(usage.id, 'budgetItemId', e.target.value)}>
+                      {budgetItems.map(item => (
+                        <option key={item.id} value={item.id}>{item.name}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="px-2 py-2">
+                    <input className="border rounded px-2 py-1 w-32" value={usage.description} onChange={e => handleUsageChange(usage.id, 'description', e.target.value)} />
+                  </td>
+                  <td className="px-2 py-2">
+                    <input className="border rounded px-2 py-1 w-24" value={usage.vendor} onChange={e => handleUsageChange(usage.id, 'vendor', e.target.value)} />
+                  </td>
+                  <td className="px-2 py-2 text-right">
+                    <input type="number" className="border rounded px-2 py-1 w-20 text-right" value={usage.amount} onChange={e => handleUsageChange(usage.id, 'amount', Number(e.target.value))} />
+                  </td>
+                  <td className="px-2 py-2 text-center">
+                    <input type="date" className="border rounded px-2 py-1 w-32" value={usage.date} onChange={e => handleUsageChange(usage.id, 'date', e.target.value)} />
+                  </td>
+                  <td className="px-2 py-2 text-center">
+                    <input className="border rounded px-2 py-1 w-20" value={usage.paymentMethod} onChange={e => handleUsageChange(usage.id, 'paymentMethod', e.target.value)} />
+                  </td>
+                  <td className="px-2 py-2">
+                    <input className="border rounded px-2 py-1 w-32" value={usage.note || ''} onChange={e => handleUsageChange(usage.id, 'note', e.target.value)} />
+                  </td>
+                  <td className="px-2 py-2 text-center">
+                    <button className="px-2 py-1 text-red-500 hover:underline" onClick={() => handleDeleteUsage(usage.id)}>삭제</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* 시/군별 통계 - 전체 화면 너비 사용 */}

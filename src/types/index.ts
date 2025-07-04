@@ -61,3 +61,22 @@ export interface StatisticsData {
     count: number;
   }>;
 }
+
+// 예산 사용 현황 테이블용 타입
+export interface BudgetItem {
+  id: string;
+  name: string; // 예산명 (수정 가능)
+  amount: number; // 예산액 (수정 가능)
+}
+
+// 예산 사용 내역 리스트용 타입
+export interface BudgetUsage {
+  id: string;
+  budgetItemId: string; // 연결된 예산 항목 id
+  description: string; // 적요
+  vendor: string; // 채주
+  amount: number; // 집행액
+  date: string; // 회계일자 (YYYY-MM-DD)
+  paymentMethod: string; // 결제방법
+  note?: string; // 비고
+}
