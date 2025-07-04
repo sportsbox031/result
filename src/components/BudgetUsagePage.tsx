@@ -61,15 +61,23 @@ const BudgetUsagePage: React.FC = () => {
           <tbody>
             {budgetUsages.map((usage) => (
               <tr key={usage.id} className="hover:bg-blue-50 transition">
-                <td className="px-4 py-2">
+                <td className="px-4 py-3 flex items-center gap-2 min-w-[160px]">
                   {editingId === usage.id ? (
-                    <select className="border rounded px-2 py-1 w-32" value={editForm.budgetItemId} onChange={e => handleChange('budgetItemId', e.target.value)}>
+                    <select className="border rounded px-2 py-1 w-40" value={editForm.budgetItemId} onChange={e => handleChange('budgetItemId', e.target.value)}>
                       {budgetItems.map(item => (
-                        <option key={item.id} value={item.id}>{item.name}</option>
+                        <option key={item.id} value={item.id}>{item.name} ({item.region || '미지정'})</option>
                       ))}
                     </select>
                   ) : (
-                    budgetItems.find(b => b.id === usage.budgetItemId)?.name || '-'
+                    <>
+                      <span>{budgetItems.find(b => b.id === usage.budgetItemId)?.name || '-'}</span>
+                      {(() => {
+                        const region = budgetItems.find(b => b.id === usage.budgetItemId)?.region;
+                        if (region === '남부') return <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">남부</span>;
+                        if (region === '북부') return <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">북부</span>;
+                        return null;
+                      })()}
+                    </>
                   )}
                 </td>
                 <td className="px-4 py-2">
@@ -88,7 +96,7 @@ const BudgetUsagePage: React.FC = () => {
                 </td>
                 <td className="px-4 py-2 text-right">
                   {editingId === usage.id ? (
-                    <input type="number" className="border rounded px-2 py-1 w-20 text-right" value={editForm.amount || 0} onChange={e => handleChange('amount', Number(e.target.value))} />
+                    <input type="number" className="border rounded px-2 py-1 w-32 text-right" value={editForm.amount || 0} onChange={e => handleChange('amount', Number(e.target.value))} />
                   ) : (
                     usage.amount.toLocaleString()
                   )}
