@@ -419,11 +419,19 @@ function BudgetRow({ item, editingBudgetId, editingBudgetName, editingBudgetAmou
   return (
     <tr ref={setNodeRef} style={style} {...attributes}>
       <td className="px-2 py-2 text-center cursor-grab" {...listeners}><GripVertical className="w-4 h-4 text-gray-400" /></td>
-      <td className="px-2 py-2">
+      <td className="px-2 py-2 flex items-center gap-2">
         {editingBudgetId === item.id ? (
           <input className="border rounded px-2 py-1 w-32" value={editingBudgetName} onChange={e => setEditingBudgetName(e.target.value)} />
         ) : (
-          <span>{item.name}</span>
+          <>
+            <span>{item.name}</span>
+            {item.region === '남부' && (
+              <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">남부</span>
+            )}
+            {item.region === '북부' && (
+              <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">북부</span>
+            )}
+          </>
         )}
       </td>
       <td className="px-2 py-2 text-right">
