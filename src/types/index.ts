@@ -67,6 +67,8 @@ export interface BudgetItem {
   id: string;
   name: string; // 예산명 (수정 가능)
   amount: number; // 예산액 (수정 가능)
+  order?: number; // 정렬 순서
+  region?: '남부' | '북부'; // 지역 구분
 }
 
 // 예산 사용 내역 리스트용 타입

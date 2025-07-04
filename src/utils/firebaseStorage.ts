@@ -236,6 +236,15 @@ export const firebaseStorage = {
     }
   },
 
+  async updateBudgetOrder(budgets: BudgetItem[]): Promise<void> {
+    const batch = [];
+    for (const b of budgets) {
+      const docRef = doc(db, 'budgets', b.id);
+      batch.push(updateDoc(docRef, { order: b.order ?? 0 }));
+    }
+    await Promise.all(batch);
+  },
+
   subscribeToBudgets(callback: (budgets: BudgetItem[]) => void): () => void {
     const q = query(collection(db, 'budgets'));
     return onSnapshot(q, (querySnapshot) => {

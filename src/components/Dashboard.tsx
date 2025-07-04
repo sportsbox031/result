@@ -49,6 +49,29 @@ const Dashboard: React.FC = () => {
     };
   }, []);
 
+  // 기간 필터 상태
+  const [dateFilter, setDateFilter] = useState<{ startDate?: Date; endDate?: Date }>({});
+
+  // 기준일자 필터가 변경될 때마다 실적, 예산 사용 현황 데이터가 필터링되어 반영되도록 useEffect 및 집계 로직 개선
+  useEffect(() => {
+    const filteredPerformances = performances.filter(p => {
+      if (dateFilter.startDate && new Date(p.date) < dateFilter.startDate) return false;
+      if (dateFilter.endDate && new Date(p.date) > dateFilter.endDate) return false;
+      return true;
+    });
+    const filteredBudgetUsages = budgetUsages.filter(u => {
+      if (dateFilter.startDate && new Date(u.date) < dateFilter.startDate) return false;
+      if (dateFilter.endDate && new Date(u.date) > dateFilter.endDate) return false;
+      return true;
+    });
+
+    const calculatedStats = calculateStatistics(filteredPerformances, demands);
+    setStats({
+      ...calculatedStats,
+      totalOrganizations: demands.length
+    });
+  }, [demands, performances, dateFilter.startDate, dateFilter.endDate]);
+
   // 예산명/예산액 인라인 수정 핸들러 (파이어베이스 연동)
   const handleEditBudget = (item: BudgetItem) => {
     setEditingBudgetId(item.id);
@@ -76,9 +99,6 @@ const Dashboard: React.FC = () => {
   const handleDeleteUsage = async (id: string) => {
     await firebaseStorage.deleteBudgetUsage(id);
   };
-
-  // 기간 필터 상태
-  const [dateFilter, setDateFilter] = useState<{ startDate?: Date; endDate?: Date }>({});
 
   // 드래그 센서
   const sensors = useSensors(useSensor(PointerSensor));
