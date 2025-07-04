@@ -10,6 +10,7 @@ import ToastContainer from './components/ToastContainer';
 import { useToast } from './hooks/useToast';
 import { useFirebaseData } from './hooks/useFirebaseData';
 import { Loader2 } from 'lucide-react';
+import BudgetUsagePage from './components/BudgetUsagePage';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -56,6 +57,8 @@ function App() {
         return <PerformanceInput />;
       case 'performance-list':
         return <PerformanceList />;
+      case 'budget-usage':
+        return <BudgetUsagePage />;
       default:
         return <Dashboard />;
     }

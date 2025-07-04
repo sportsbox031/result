@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Users, BarChart3, Calendar, Building2 } from 'lucide-react';
+import { GripVertical, Trash2 } from 'lucide-react';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useFirebaseData } from '../hooks/useFirebaseData';
 import { calculateStatistics } from '../utils/statistics';
 import { StatisticsData, BudgetItem, BudgetUsage } from '../types';
@@ -73,10 +77,38 @@ const Dashboard: React.FC = () => {
     await firebaseStorage.deleteBudgetUsage(id);
   };
 
-  // 예산명별 사용액 집계
-  const getBudgetUsageSum = (budgetItemId: string) =>
-    budgetUsages.filter(u => u.budgetItemId === budgetItemId).reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
+  // 기간 필터 상태
+  const [dateFilter, setDateFilter] = useState<{ startDate?: Date; endDate?: Date }>({});
 
+  // 드래그 센서
+  const sensors = useSensors(useSensor(PointerSensor));
+
+  // 드래그&드롭 핸들러
+  const handleDragEnd = async (event: any) => {
+    const { active, over } = event;
+    if (active.id !== over.id) {
+      const oldIndex = budgetItems.findIndex(b => b.id === active.id);
+      const newIndex = budgetItems.findIndex(b => b.id === over.id);
+      const newItems = arrayMove(budgetItems, oldIndex, newIndex).map((b, idx) => ({ ...b, order: idx }));
+      await firebaseStorage.updateBudgetOrder(newItems);
+    }
+  };
+
+  // 필터링된 예산/실적 데이터 계산 (기간 필터 적용)
+  const filteredBudgetUsages = budgetUsages.filter(u => {
+    if (dateFilter.startDate && new Date(u.date) < dateFilter.startDate) return false;
+    if (dateFilter.endDate && new Date(u.date) > dateFilter.endDate) return false;
+    return true;
+  });
+  const getBudgetUsageSum = (budgetItemId: string) =>
+    filteredBudgetUsages.filter(u => u.budgetItemId === budgetItemId).reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
+
+  // 예산 항목 삭제 핸들러
+  const handleDeleteBudget = async (id: string) => {
+    await firebaseStorage.deleteBudget(id);
+  };
+
+  // 예산명별 사용액 집계
   useEffect(() => {
     const calculatedStats = calculateStatistics(performances, demands);
     setStats({
@@ -255,123 +287,65 @@ const Dashboard: React.FC = () => {
         />
       </div>
 
-      {/* 예산 사용 현황 테이블 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">예산 사용 현황</h2>
-          <button className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700" onClick={handleAddBudget}>+ 예산 항목 추가</button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-2 py-2 text-left">예산명</th>
-                <th className="px-2 py-2 text-right">예산액</th>
-                <th className="px-2 py-2 text-right">사용액</th>
-                <th className="px-2 py-2 text-right">잔액</th>
-                <th className="px-2 py-2 text-right">집행율(%)</th>
-                <th className="px-2 py-2 text-center">수정</th>
-              </tr>
-            </thead>
-            <tbody>
-              {budgetItems.map(item => {
-                const used = getBudgetUsageSum(item.id);
-                const remain = item.amount - used;
-                const rate = item.amount > 0 ? (used / item.amount) * 100 : 0;
-                return (
-                  <tr key={item.id} className="hover:bg-blue-50">
-                    <td className="px-2 py-2">
-                      {editingBudgetId === item.id ? (
-                        <input className="border rounded px-2 py-1 w-32" value={editingBudgetName} onChange={e => setEditingBudgetName(e.target.value)} />
-                      ) : (
-                        <span>{item.name}</span>
-                      )}
-                    </td>
-                    <td className="px-2 py-2 text-right">
-                      {editingBudgetId === item.id ? (
-                        <input type="number" className="border rounded px-2 py-1 w-24 text-right" value={editingBudgetAmount} onChange={e => setEditingBudgetAmount(Number(e.target.value))} />
-                      ) : (
-                        item.amount.toLocaleString()
-                      )}
-                    </td>
-                    <td className="px-2 py-2 text-right">{used.toLocaleString()}</td>
-                    <td className="px-2 py-2 text-right">{remain.toLocaleString()}</td>
-                    <td className="px-2 py-2 text-right">{rate.toFixed(2)}</td>
-                    <td className="px-2 py-2 text-center">
-                      {editingBudgetId === item.id ? (
-                        <>
-                          <button className="px-2 py-1 text-green-600 hover:underline" onClick={() => handleSaveBudget(item.id)}>저장</button>
-                          <button className="px-2 py-1 text-gray-500 hover:underline" onClick={() => setEditingBudgetId(null)}>취소</button>
-                        </>
-                      ) : (
-                        <button className="px-2 py-1 text-blue-600 hover:underline" onClick={() => handleEditBudget(item)}>수정</button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      {/* 기간 필터 UI */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <label className="block text-sm font-medium text-gray-700">시작 날짜</label>
+          <input type="date" className="border rounded px-2 py-1" value={dateFilter.startDate ? dateFilter.startDate.toISOString().split('T')[0] : ''} onChange={e => setDateFilter(f => ({ ...f, startDate: e.target.value ? new Date(e.target.value) : undefined }))} />
+          <label className="block text-sm font-medium text-gray-700">종료 날짜</label>
+          <input type="date" className="border rounded px-2 py-1" value={dateFilter.endDate ? dateFilter.endDate.toISOString().split('T')[0] : ''} onChange={e => setDateFilter(f => ({ ...f, endDate: e.target.value ? new Date(e.target.value) : undefined }))} />
+          <button className="ml-2 px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-sm" onClick={() => setDateFilter({})}>전체 초기화</button>
         </div>
       </div>
 
-      {/* 예산 사용 내역 리스트 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">예산 사용 내역</h2>
-          <button className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700" onClick={handleAddUsage}>+ 내역 추가</button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-2 py-2 text-left">예산명</th>
-                <th className="px-2 py-2 text-left">적요</th>
-                <th className="px-2 py-2 text-left">채주</th>
-                <th className="px-2 py-2 text-right">집행액</th>
-                <th className="px-2 py-2 text-center">회계일자</th>
-                <th className="px-2 py-2 text-center">결제방법</th>
-                <th className="px-2 py-2 text-left">비고</th>
-                <th className="px-2 py-2 text-center">삭제</th>
-              </tr>
-            </thead>
-            <tbody>
-              {budgetUsages.map((usage, idx) => (
-                <tr key={usage.id} className="hover:bg-blue-50">
-                  <td className="px-2 py-2">
-                    <select className="border rounded px-2 py-1 w-32" value={usage.budgetItemId} onChange={e => handleUsageChange(usage.id, 'budgetItemId', e.target.value)}>
-                      {budgetItems.map(item => (
-                        <option key={item.id} value={item.id}>{item.name}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-2 py-2">
-                    <input className="border rounded px-2 py-1 w-32" value={usage.description} onChange={e => handleUsageChange(usage.id, 'description', e.target.value)} />
-                  </td>
-                  <td className="px-2 py-2">
-                    <input className="border rounded px-2 py-1 w-24" value={usage.vendor} onChange={e => handleUsageChange(usage.id, 'vendor', e.target.value)} />
-                  </td>
-                  <td className="px-2 py-2 text-right">
-                    <input type="number" className="border rounded px-2 py-1 w-20 text-right" value={usage.amount} onChange={e => handleUsageChange(usage.id, 'amount', Number(e.target.value))} />
-                  </td>
-                  <td className="px-2 py-2 text-center">
-                    <input type="date" className="border rounded px-2 py-1 w-32" value={usage.date} onChange={e => handleUsageChange(usage.id, 'date', e.target.value)} />
-                  </td>
-                  <td className="px-2 py-2 text-center">
-                    <input className="border rounded px-2 py-1 w-20" value={usage.paymentMethod} onChange={e => handleUsageChange(usage.id, 'paymentMethod', e.target.value)} />
-                  </td>
-                  <td className="px-2 py-2">
-                    <input className="border rounded px-2 py-1 w-32" value={usage.note || ''} onChange={e => handleUsageChange(usage.id, 'note', e.target.value)} />
-                  </td>
-                  <td className="px-2 py-2 text-center">
-                    <button className="px-2 py-1 text-red-500 hover:underline" onClick={() => handleDeleteUsage(usage.id)}>삭제</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* 예산 사용 현황 테이블 (드래그&드롭, 삭제, UI 개선) */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={budgetItems.map(b => b.id)} strategy={verticalListSortingStrategy}>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">예산 사용 현황</h2>
+              <button className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700" onClick={handleAddBudget}>+ 예산 항목 추가</button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-2 py-2 text-center"></th>
+                    <th className="px-2 py-2 text-left">예산명</th>
+                    <th className="px-2 py-2 text-right">예산액</th>
+                    <th className="px-2 py-2 text-right">사용액</th>
+                    <th className="px-2 py-2 text-right">잔액</th>
+                    <th className="px-2 py-2 text-right">집행율(%)</th>
+                    <th className="px-2 py-2 text-center">수정</th>
+                    <th className="px-2 py-2 text-center">삭제</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {budgetItems.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map(item => (
+                    <BudgetRow
+                      key={item.id}
+                      item={item}
+                      editingBudgetId={editingBudgetId}
+                      editingBudgetName={editingBudgetName}
+                      editingBudgetAmount={editingBudgetAmount}
+                      setEditingBudgetName={setEditingBudgetName}
+                      setEditingBudgetAmount={setEditingBudgetAmount}
+                      setEditingBudgetId={setEditingBudgetId}
+                      handleEditBudget={handleEditBudget}
+                      handleSaveBudget={handleSaveBudget}
+                      handleDeleteBudget={handleDeleteBudget}
+                      used={getBudgetUsageSum(item.id)}
+                      isDragging={false}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </SortableContext>
+      </DndContext>
+
+      {/* 예산 사용 내역 리스트 UI 제거 */}
 
       {/* 시/군별 통계 - 전체 화면 너비 사용 */}
       <div className="mb-8">
@@ -411,5 +385,52 @@ const Dashboard: React.FC = () => {
     </div>
   );
 };
+
+// BudgetRow 컴포넌트 정의 (드래그핸들, 삭제, 수정, UI 개선)
+function BudgetRow({ item, editingBudgetId, editingBudgetName, editingBudgetAmount, setEditingBudgetName, setEditingBudgetAmount, setEditingBudgetId, handleEditBudget, handleSaveBudget, handleDeleteBudget, used, isDragging }: any) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging: dndDragging } = useSortable({ id: item.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    background: dndDragging ? '#e0f2fe' : undefined
+  };
+  const remain = item.amount - used;
+  const rate = item.amount > 0 ? (used / item.amount) * 100 : 0;
+  return (
+    <tr ref={setNodeRef} style={style} {...attributes}>
+      <td className="px-2 py-2 text-center cursor-grab" {...listeners}><GripVertical className="w-4 h-4 text-gray-400" /></td>
+      <td className="px-2 py-2">
+        {editingBudgetId === item.id ? (
+          <input className="border rounded px-2 py-1 w-32" value={editingBudgetName} onChange={e => setEditingBudgetName(e.target.value)} />
+        ) : (
+          <span>{item.name}</span>
+        )}
+      </td>
+      <td className="px-2 py-2 text-right">
+        {editingBudgetId === item.id ? (
+          <input type="number" className="border rounded px-2 py-1 w-24 text-right" value={editingBudgetAmount} onChange={e => setEditingBudgetAmount(Number(e.target.value))} />
+        ) : (
+          item.amount.toLocaleString()
+        )}
+      </td>
+      <td className="px-2 py-2 text-right">{used.toLocaleString()}</td>
+      <td className="px-2 py-2 text-right">{remain.toLocaleString()}</td>
+      <td className="px-2 py-2 text-right">{rate.toFixed(2)}</td>
+      <td className="px-2 py-2 text-center">
+        {editingBudgetId === item.id ? (
+          <>
+            <button className="px-2 py-1 text-green-600 hover:underline" onClick={() => handleSaveBudget(item.id)}>저장</button>
+            <button className="px-2 py-1 text-gray-500 hover:underline" onClick={() => setEditingBudgetId(null)}>취소</button>
+          </>
+        ) : (
+          <button className="px-2 py-1 text-blue-600 hover:underline" onClick={() => handleEditBudget(item)}>수정</button>
+        )}
+      </td>
+      <td className="px-2 py-2 text-center">
+        <button className="px-2 py-1 text-red-500 hover:underline" onClick={() => handleDeleteBudget(item.id)}><Trash2 className="inline w-4 h-4" /></button>
+      </td>
+    </tr>
+  );
+}
 
 export default Dashboard;

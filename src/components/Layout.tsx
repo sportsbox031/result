@@ -14,6 +14,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onPageChange }) 
     { id: 'demand-list', name: '수요처 관리', icon: FileText },
     { id: 'performance-input', name: '실적 입력', icon: TrendingUp },
     { id: 'performance-list', name: '실적 조회', icon: Users },
+    { id: 'budget-usage', name: '예산 사용 내역', icon: FileText },
   ];
 
   return (
