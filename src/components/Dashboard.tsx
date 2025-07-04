@@ -318,7 +318,12 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 예산 사용 현황 테이블 (드래그&드롭, 삭제, UI 개선) */}
+      {/* 시/군별 참여 현황 섹션을 예산 사용 현황 위로 이동 */}
+      <div className="mb-8">
+        <CityBarChart data={filteredCityData} onBarClick={cityName => { setSelectedCity(cityName); setShowPopup(true); }} />
+      </div>
+
+      {/* 예산 사용 현황 테이블 */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={budgetItems.map(b => b.id)} strategy={verticalListSortingStrategy}>
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
@@ -368,10 +373,6 @@ const Dashboard: React.FC = () => {
       {/* 예산 사용 내역 리스트 UI 제거 */}
 
       {/* 시/군별 통계 - 전체 화면 너비 사용 */}
-      <div className="mb-8">
-        <CityBarChart data={filteredCityData} onBarClick={cityName => { setSelectedCity(cityName); setShowPopup(true); }} />
-      </div>
-
       {showPopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
           <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 relative animate-fadeIn">

@@ -123,7 +123,7 @@ const BudgetUsagePage: React.FC = () => {
                 <label className="block text-sm font-medium mb-1">예산명</label>
                 <select className="border rounded px-2 py-1 w-full" value={editForm.budgetItemId} onChange={e => setEditForm(f => ({ ...f, budgetItemId: e.target.value }))}>
                   {budgetItems.map(item => (
-                    <option key={item.id} value={item.id}>{item.name} ({item.region || '미지정'})</option>
+                    <option key={item.id} value={item.id}>{item.name}</option>
                   ))}
                 </select>
               </div>
@@ -137,7 +137,15 @@ const BudgetUsagePage: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">집행액</label>
-                <input type="number" className="border rounded px-2 py-1 w-full text-right" value={editForm.amount || 0} onChange={e => setEditForm(f => ({ ...f, amount: Number(e.target.value) }))} />
+                <input
+                  type="text"
+                  className="border rounded px-2 py-1 w-full text-right"
+                  value={editForm.amount !== undefined && editForm.amount !== null ? Number(editForm.amount).toLocaleString() : ''}
+                  onChange={e => {
+                    const raw = e.target.value.replace(/,/g, '');
+                    if (!isNaN(Number(raw))) setEditForm(f => ({ ...f, amount: Number(raw) }));
+                  }}
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">회계일자</label>
