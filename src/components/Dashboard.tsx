@@ -3,6 +3,7 @@ import { Users, BarChart3, Calendar, Building2 } from 'lucide-react';
 import { useFirebaseData } from '../hooks/useFirebaseData';
 import { calculateStatistics } from '../utils/statistics';
 import { StatisticsData, BudgetItem, BudgetUsage } from '../types';
+import { firebaseStorage } from '../utils/firebaseStorage';
 
 const Dashboard: React.FC = () => {
   const { demands, performances } = useFirebaseData();
@@ -34,29 +35,42 @@ const Dashboard: React.FC = () => {
   const [selectedCity, setSelectedCity] = useState<string|null>(null);
   const [showPopup, setShowPopup] = useState(false);
 
-  // 예산명/예산액 인라인 수정 핸들러
+  // 예산 데이터 실시간 구독
+  useEffect(() => {
+    const unsubBudgets = firebaseStorage.subscribeToBudgets(setBudgetItems);
+    const unsubUsages = firebaseStorage.subscribeToBudgetUsages(setBudgetUsages);
+    return () => {
+      unsubBudgets();
+      unsubUsages();
+    };
+  }, []);
+
+  // 예산명/예산액 인라인 수정 핸들러 (파이어베이스 연동)
   const handleEditBudget = (item: BudgetItem) => {
     setEditingBudgetId(item.id);
     setEditingBudgetName(item.name);
     setEditingBudgetAmount(item.amount);
   };
-  const handleSaveBudget = (id: string) => {
-    setBudgetItems(items => items.map(b => b.id === id ? { ...b, name: editingBudgetName, amount: editingBudgetAmount } : b));
+  const handleSaveBudget = async (id: string) => {
+    await firebaseStorage.updateBudget(id, { name: editingBudgetName, amount: editingBudgetAmount });
     setEditingBudgetId(null);
   };
+  const handleAddBudget = async () => {
+    await firebaseStorage.addBudget({ name: '', amount: 0 });
+  };
 
-  // 예산 사용 내역 추가/수정/삭제 핸들러
-  const handleAddUsage = () => {
-    setBudgetUsages(usages => [
-      ...usages,
-      { id: Date.now().toString(), budgetItemId: budgetItems[0]?.id || '', description: '', vendor: '', amount: 0, date: '', paymentMethod: '', note: '' }
-    ]);
+  // 예산 사용 내역 추가/수정/삭제 핸들러 (파이어베이스 연동)
+  const handleAddUsage = async () => {
+    if (!budgetItems[0]) return;
+    await firebaseStorage.addBudgetUsage({ budgetItemId: budgetItems[0].id, description: '', vendor: '', amount: 0, date: '', paymentMethod: '', note: '' });
   };
-  const handleUsageChange = (id: string, field: keyof BudgetUsage, value: any) => {
-    setBudgetUsages(usages => usages.map(u => u.id === id ? { ...u, [field]: value } : u));
+  const handleUsageChange = async (id: string, field: keyof BudgetUsage, value: any) => {
+    const usage = budgetUsages.find(u => u.id === id);
+    if (!usage) return;
+    await firebaseStorage.updateBudgetUsage(id, { ...usage, [field]: value });
   };
-  const handleDeleteUsage = (id: string) => {
-    setBudgetUsages(usages => usages.filter(u => u.id !== id));
+  const handleDeleteUsage = async (id: string) => {
+    await firebaseStorage.deleteBudgetUsage(id);
   };
 
   // 예산명별 사용액 집계
@@ -245,7 +259,7 @@ const Dashboard: React.FC = () => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900">예산 사용 현황</h2>
-          <button className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700" onClick={() => setBudgetItems(items => [...items, { id: Date.now().toString(), name: '', amount: 0 }])}>+ 예산 항목 추가</button>
+          <button className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700" onClick={handleAddBudget}>+ 예산 항목 추가</button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

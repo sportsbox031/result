@@ -11,7 +11,7 @@ import {
   Timestamp 
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { Demand, Performance } from '../types';
+import { Demand, Performance, BudgetItem, BudgetUsage } from '../types';
 
 export const firebaseStorage = {
   // 수요처 관련 작업
@@ -189,6 +189,116 @@ export const firebaseStorage = {
         updatedAt: doc.data().updatedAt?.toDate() || new Date()
       })) as Performance[];
       callback(performances);
+    });
+  },
+
+  // 예산 항목 관련 작업
+  async getBudgets(): Promise<BudgetItem[]> {
+    try {
+      const q = query(collection(db, 'budgets'));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as BudgetItem[];
+    } catch (error) {
+      console.error('예산 항목 데이터 로드 실패:', error);
+      throw error;
+    }
+  },
+
+  async addBudget(budget: Omit<BudgetItem, 'id'>): Promise<BudgetItem> {
+    try {
+      const docRef = await addDoc(collection(db, 'budgets'), budget);
+      return { id: docRef.id, ...budget };
+    } catch (error) {
+      console.error('예산 항목 추가 실패:', error);
+      throw error;
+    }
+  },
+
+  async updateBudget(id: string, updates: Partial<BudgetItem>): Promise<void> {
+    try {
+      const docRef = doc(db, 'budgets', id);
+      await updateDoc(docRef, updates);
+    } catch (error) {
+      console.error('예산 항목 수정 실패:', error);
+      throw error;
+    }
+  },
+
+  async deleteBudget(id: string): Promise<void> {
+    try {
+      await deleteDoc(doc(db, 'budgets', id));
+    } catch (error) {
+      console.error('예산 항목 삭제 실패:', error);
+      throw error;
+    }
+  },
+
+  subscribeToBudgets(callback: (budgets: BudgetItem[]) => void): () => void {
+    const q = query(collection(db, 'budgets'));
+    return onSnapshot(q, (querySnapshot) => {
+      const budgets = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as BudgetItem[];
+      callback(budgets);
+    });
+  },
+
+  // 예산 사용 내역 관련 작업
+  async getBudgetUsages(): Promise<BudgetUsage[]> {
+    try {
+      const q = query(collection(db, 'budgetUsages'));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as BudgetUsage[];
+    } catch (error) {
+      console.error('예산 사용 내역 데이터 로드 실패:', error);
+      throw error;
+    }
+  },
+
+  async addBudgetUsage(usage: Omit<BudgetUsage, 'id'>): Promise<BudgetUsage> {
+    try {
+      const docRef = await addDoc(collection(db, 'budgetUsages'), usage);
+      return { id: docRef.id, ...usage };
+    } catch (error) {
+      console.error('예산 사용 내역 추가 실패:', error);
+      throw error;
+    }
+  },
+
+  async updateBudgetUsage(id: string, updates: Partial<BudgetUsage>): Promise<void> {
+    try {
+      const docRef = doc(db, 'budgetUsages', id);
+      await updateDoc(docRef, updates);
+    } catch (error) {
+      console.error('예산 사용 내역 수정 실패:', error);
+      throw error;
+    }
+  },
+
+  async deleteBudgetUsage(id: string): Promise<void> {
+    try {
+      await deleteDoc(doc(db, 'budgetUsages', id));
+    } catch (error) {
+      console.error('예산 사용 내역 삭제 실패:', error);
+      throw error;
+    }
+  },
+
+  subscribeToBudgetUsages(callback: (usages: BudgetUsage[]) => void): () => void {
+    const q = query(collection(db, 'budgetUsages'));
+    return onSnapshot(q, (querySnapshot) => {
+      const usages = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as BudgetUsage[];
+      callback(usages);
     });
   }
 };
