@@ -294,22 +294,22 @@ const PerformanceList: React.FC = () => {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">날짜</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">단체명</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">시/군</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">프로그램</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">남성</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">여성</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">총 인원</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">홍보횟수</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">메모</th>
-                <th className="px-6 py-4 text-right text-sm font-medium text-gray-900">작업</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-900 w-32">날짜</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-900 w-48">단체명</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-900 w-24">시/군</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-900 w-32">프로그램</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-900 w-20">남성</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-900 w-20">여성</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-900 w-20">총 인원</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-900 w-24">홍보횟수</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-900 min-w-32">메모</th>
+                <th className="px-6 py-4 text-right text-sm font-medium text-gray-900 w-24">작업</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredPerformances.map((performance) => (
                 <tr key={performance.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 w-32">
                     {editingId === performance.id ? (
                       <input
                         type="date"
@@ -323,7 +323,7 @@ const PerformanceList: React.FC = () => {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 w-48">
                     {editingId === performance.id ? (
                       <select
                         value={editForm.organizationName || ''}
@@ -339,10 +339,10 @@ const PerformanceList: React.FC = () => {
                       <span className="text-sm font-medium text-gray-900">{performance.organizationName}</span>
                     )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 w-24">
                     <span className="text-sm text-gray-600">{performance.city || '-'}</span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 w-32">
                     {editingId === performance.id ? (
                       <select
                         value={editForm.program || performance.program || '스포츠교실'}
@@ -357,7 +357,7 @@ const PerformanceList: React.FC = () => {
                       <span className="text-sm text-purple-600 font-medium">{performance.program || '스포츠교실'}</span>
                     )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 w-20">
                     {editingId === performance.id ? (
                       <input
                         type="number"
@@ -373,7 +373,7 @@ const PerformanceList: React.FC = () => {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 w-20">
                     {editingId === performance.id ? (
                       <input
                         type="number"
@@ -389,12 +389,12 @@ const PerformanceList: React.FC = () => {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 w-20">
                     <span className="text-sm text-gray-900 font-bold">
                       {((performance.maleCount || 0) + (performance.femaleCount || 0)).toLocaleString()}명
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 w-24">
                     {editingId === performance.id ? (
                       <input
                         type="number"
@@ -410,7 +410,7 @@ const PerformanceList: React.FC = () => {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 min-w-32">
                     {editingId === performance.id ? (
                       <textarea
                         value={editForm.notes || ''}
@@ -424,7 +424,7 @@ const PerformanceList: React.FC = () => {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-6 py-4 text-right w-24">
                     {editingId === performance.id ? (
                       <div className="flex items-center justify-end space-x-2">
                         <button
