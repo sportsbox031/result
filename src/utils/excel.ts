@@ -81,7 +81,26 @@ export const downloadPerformanceExcel = (performances: Performance[]) => {
   window.URL.revokeObjectURL(url);
 };
 
-// 실적 데이터를 파싱하는 함수
+// 실적 업로드용 템플릿 다운로드
+export const downloadPerformanceTemplate = () => {
+  // UTF-8 BOM을 추가하여 한글 인코딩 문제 해결
+  const csvContent = '\uFEFF날짜,단체명,시군,프로그램,남성,여성,홍보횟수,메모\n' +
+    '2024-01-15,예시 단체,수원시,스포츠교실,10,15,5,샘플 메모\n' +
+    '2024-01-16,샘플 그룹,성남시,스포츠체험존,8,12,3,테스트 데이터\n' +
+    '2024-01-17,테스트 단체,안양시,스포츠이벤트,5,10,2,이벤트 데이터';
+  
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '실적_업로드_템플릿.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+};
+
+// 실적 데이터를 파싱하는 함수 (날짜 파싱 개선)
 export const parsePerformanceExcelData = (csvContent: string): Omit<Performance, 'id' | 'createdAt' | 'updatedAt'>[] => {
   const lines = csvContent.split('\n');
   const data: Omit<Performance, 'id' | 'createdAt' | 'updatedAt'>[] = [];
@@ -95,7 +114,28 @@ export const parsePerformanceExcelData = (csvContent: string): Omit<Performance,
     
     if (columns.length >= 8) {
       const dateStr = columns[0];
-      const date = dateStr ? new Date(dateStr) : new Date();
+      let date: Date;
+      
+      // 날짜 파싱 개선
+      try {
+        if (dateStr.includes('-')) {
+          // YYYY-MM-DD 형식
+          date = new Date(dateStr);
+        } else if (dateStr.includes('/')) {
+          // MM/DD/YYYY 또는 YYYY/MM/DD 형식
+          date = new Date(dateStr);
+        } else {
+          // 기타 형식은 현재 날짜로 설정
+          date = new Date();
+        }
+        
+        // 유효하지 않은 날짜인 경우 현재 날짜로 설정
+        if (isNaN(date.getTime())) {
+          date = new Date();
+        }
+      } catch {
+        date = new Date();
+      }
       
       data.push({
         date: date,
@@ -111,22 +151,4 @@ export const parsePerformanceExcelData = (csvContent: string): Omit<Performance,
   }
   
   return data;
-};
-
-// 실적 업로드용 템플릿 다운로드
-export const downloadPerformanceTemplate = () => {
-  // UTF-8 BOM을 추가하여 한글 인코딩 문제 해결
-  const csvContent = '\uFEFF날짜,단체명,시군,프로그램,남성,여성,홍보횟수,메모\n' +
-    '2024-01-15,예시 단체,수원시,스포츠교실,10,15,5,샘플 메모\n' +
-    '2024-01-16,샘플 그룹,성남시,스포츠체험존,8,12,3,테스트 데이터';
-  
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = '실적_업로드_템플릿.csv';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  window.URL.revokeObjectURL(url);
 };

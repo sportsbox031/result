@@ -389,61 +389,76 @@ const PerformanceInput: React.FC = () => {
       )}
 
       {activeTab === 'bulk' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-          <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-            <FileText className="w-5 h-5 mr-2 text-blue-600" />
-            실적 데이터 일괄 업로드
-          </h3>
-          <p className="text-gray-600 mb-4">
-            엑셀 파일을 드롭하거나 클릭하여 실적 데이터를 업로드할 수 있습니다.
-            업로드 전에 템플릿을 다운로드하여 데이터 형식을 확인해주세요.
-          </p>
-
-          <div
-            className={`border-2 border-dashed rounded-lg p-12 text-center ${
-              isDragOver ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-            }`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileSelect}
-              className="hidden"
-              accept=".xlsx, .xls"
-            />
-            <p className="text-gray-500">
-              파일을 여기에 드롭하거나 클릭하여 선택하세요
-            </p>
-            <p className="text-sm text-gray-500">
-              파일 형식: .xlsx 또는 .xls
-            </p>
+        <div className="space-y-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start">
+              <FileText className="w-5 h-5 text-blue-500 mt-0.5 mr-3" />
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-blue-800">파일 형식 안내</h3>
+                <p className="text-sm text-blue-700 mt-1">
+                  CSV 파일을 업로드하세요. 열 순서: 날짜, 단체명, 시군, 프로그램, 남성, 여성, 홍보횟수, 메모
+                </p>
+                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                  <p className="text-sm text-yellow-800">
+                    <strong>중요:</strong> 날짜는 YYYY-MM-DD 형식으로 입력하세요 (예: 2024-01-15)
+                  </p>
+                </div>
+                <div className="flex items-center space-x-4 mt-3">
+                  <button
+                    onClick={downloadPerformanceTemplate}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
+                  >
+                    <Download className="w-4 h-4 mr-1" />
+                    템플릿 다운로드
+                  </button>
+                  <button
+                    onClick={() => setShowInstructionModal(true)}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
+                  >
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    저장 방법 보기
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {uploadResult.success > 0 && (
-            <div className="mt-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg relative" role="alert">
-              <strong className="font-bold">성공!</strong>
-              <span className="block sm:inline"> {uploadResult.success}개의 데이터가 성공적으로 저장되었습니다.</span>
-              <span className="absolute top-0 bottom-0 right-0 px-4 py-3">
-                <button onClick={() => setShowUploadSuccessModal(false)} className="text-green-800">
-                  <span>&times;</span>
-                </button>
-              </span>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+            <div
+              className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
+                isDragOver
+                  ? 'border-blue-500 bg-blue-50'
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+            >
+              <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-lg font-medium text-gray-900 mb-2">
+                CSV 파일을 여기에 드롭하거나 클릭하여 선택하세요
+              </p>
+              <p className="text-gray-500 mb-2">최대 10MB까지 지원합니다</p>
+              <p className="text-sm text-amber-600 mb-6">
+                한글이 깨지는 경우 "저장 방법 보기"를 참고하세요
+              </p>
+              
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,.txt"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                파일 선택
+              </button>
             </div>
-          )}
-          {uploadResult.error > 0 && (
-            <div className="mt-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg relative" role="alert">
-              <strong className="font-bold">실패!</strong>
-              <span className="block sm:inline"> {uploadResult.error}개의 데이터 저장에 실패했습니다.</span>
-              <span className="absolute top-0 bottom-0 right-0 px-4 py-3">
-                <button onClick={() => setShowUploadSuccessModal(false)} className="text-red-800">
-                  <span>&times;</span>
-                </button>
-              </span>
-            </div>
-          )}
+          </div>
         </div>
       )}
 
