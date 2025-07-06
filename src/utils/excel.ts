@@ -80,3 +80,53 @@ export const downloadPerformanceExcel = (performances: Performance[]) => {
   document.body.removeChild(a);
   window.URL.revokeObjectURL(url);
 };
+
+// 실적 데이터를 파싱하는 함수
+export const parsePerformanceExcelData = (csvContent: string): Omit<Performance, 'id' | 'createdAt' | 'updatedAt'>[] => {
+  const lines = csvContent.split('\n');
+  const data: Omit<Performance, 'id' | 'createdAt' | 'updatedAt'>[] = [];
+  
+  // 헤더 행 건너뛰기 (첫 번째 줄)
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    
+    const columns = line.split(',').map(col => col.trim().replace(/"/g, ''));
+    
+    if (columns.length >= 8) {
+      const dateStr = columns[0];
+      const date = dateStr ? new Date(dateStr) : new Date();
+      
+      data.push({
+        date: date,
+        organizationName: columns[1] || '',
+        city: columns[2] || '',
+        program: (columns[3] as '스포츠교실' | '스포츠체험존' | '스포츠이벤트') || '스포츠교실',
+        maleCount: parseInt(columns[4]) || 0,
+        femaleCount: parseInt(columns[5]) || 0,
+        promotionCount: parseInt(columns[6]) || 0,
+        notes: columns[7] || ''
+      });
+    }
+  }
+  
+  return data;
+};
+
+// 실적 업로드용 템플릿 다운로드
+export const downloadPerformanceTemplate = () => {
+  // UTF-8 BOM을 추가하여 한글 인코딩 문제 해결
+  const csvContent = '\uFEFF날짜,단체명,시군,프로그램,남성,여성,홍보횟수,메모\n' +
+    '2024-01-15,예시 단체,수원시,스포츠교실,10,15,5,샘플 메모\n' +
+    '2024-01-16,샘플 그룹,성남시,스포츠체험존,8,12,3,테스트 데이터';
+  
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '실적_업로드_템플릿.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+};
