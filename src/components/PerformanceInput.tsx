@@ -24,6 +24,8 @@ const PerformanceInput: React.FC = () => {
   const [showUploadSuccessModal, setShowUploadSuccessModal] = useState(false);
   const [showInstructionModal, setShowInstructionModal] = useState(false);
   const [uploadResult, setUploadResult] = useState<{ success: number; error: number }>({ success: 0, error: 0 });
+  const [organizationSearchTerm, setOrganizationSearchTerm] = useState('');
+  const [showOrganizationDropdown, setShowOrganizationDropdown] = useState(false);
   const [formData, setFormData] = useState<PerformanceFormData>({
     date: new Date().toISOString().split('T')[0],
     organizationName: '',
@@ -36,6 +38,11 @@ const PerformanceInput: React.FC = () => {
 
   // 파이어베이스에서 단체명 목록 가져오기
   const organizationNames = Array.from(new Set(demands.map(d => d.organizationName))).sort();
+
+  // 검색어에 따라 필터링된 단체명 목록
+  const filteredOrganizations = organizationNames.filter(name =>
+    name.toLowerCase().includes(organizationSearchTerm.toLowerCase())
+  );
 
   // 선택된 단체의 시/군 정보 가져오기
   const selectedDemand = demands.find(d => d.organizationName === formData.organizationName);
@@ -185,6 +192,21 @@ const PerformanceInput: React.FC = () => {
     e.target.value = '';
   };
 
+  // 드롭다운 외부 클릭 시 닫기
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.organization-dropdown')) {
+        setShowOrganizationDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
@@ -242,29 +264,68 @@ const PerformanceInput: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label htmlFor="organizationName" className="block text-sm font-medium text-gray-700 mb-2">
-                  단체명 *
-                </label>
-                <select
-                  id="organizationName"
-                  name="organizationName"
-                  value={formData.organizationName}
-                  onChange={handleInputChange}
+                          <div>
+              <label htmlFor="organizationName" className="block text-sm font-medium text-gray-700 mb-2">
+                단체명 *
+              </label>
+              <div className="relative organization-dropdown">
+                <input
+                  type="text"
+                  placeholder="단체명을 검색하세요..."
+                  value={organizationSearchTerm}
+                  onChange={(e) => {
+                    setOrganizationSearchTerm(e.target.value);
+                    setShowOrganizationDropdown(true);
+                  }}
+                  onFocus={() => setShowOrganizationDropdown(true)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  required
-                >
-                  <option value="">단체를 선택하세요</option>
-                  {organizationNames.map(name => (
-                    <option key={name} value={name}>{name}</option>
-                  ))}
-                </select>
-                {organizationNames.length === 0 && (
-                  <p className="text-sm text-amber-600 mt-1">
-                    등록된 단체가 없습니다. 먼저 수요처를 등록해주세요.
-                  </p>
+                />
+                {formData.organizationName && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, organizationName: '' }));
+                        setOrganizationSearchTerm('');
+                      }}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+                
+                {showOrganizationDropdown && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {filteredOrganizations.length > 0 ? (
+                      filteredOrganizations.map(name => (
+                        <button
+                          key={name}
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, organizationName: name }));
+                            setOrganizationSearchTerm(name);
+                            setShowOrganizationDropdown(false);
+                          }}
+                          className="w-full px-4 py-2 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
+                        >
+                          {name}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-2 text-gray-500">
+                        검색 결과가 없습니다
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
+              {organizationNames.length === 0 && (
+                <p className="text-sm text-amber-600 mt-1">
+                  등록된 단체가 없습니다. 먼저 수요처를 등록해주세요.
+                </p>
+              )}
+            </div>
 
               <div>
                 <label htmlFor="program" className="block text-sm font-medium text-gray-700 mb-2">
