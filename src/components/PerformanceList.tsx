@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Calendar, Filter, Trash2, Edit2, Save, X, Users, Megaphone } from 'lucide-react';
+import { Search, Calendar, Filter, Trash2, Edit2, Save, X, Users, Megaphone, Download } from 'lucide-react';
 import { useFirebaseData } from '../hooks/useFirebaseData';
 import { useToast } from '../hooks/useToast';
 import { Performance, FilterState } from '../types';
+import { downloadPerformanceExcel } from '../utils/excel';
 
 const PerformanceList: React.FC = () => {
   const { addToast } = useToast();
@@ -34,6 +35,11 @@ const PerformanceList: React.FC = () => {
     // 단체명 필터
     if (filters.organizationName) {
       filtered = filtered.filter(p => p.organizationName === filters.organizationName);
+    }
+
+    // 프로그램 필터
+    if (filters.program) {
+      filtered = filtered.filter(p => p.program === filters.program);
     }
 
     // 검색 필터
@@ -147,6 +153,33 @@ const PerformanceList: React.FC = () => {
     setEditForm(prev => ({ ...prev, [field]: value }));
   };
 
+  // 엑셀 다운로드 함수
+  const handleExcelDownload = () => {
+    if (filteredPerformances.length === 0) {
+      addToast({
+        type: 'warning',
+        title: '다운로드 불가',
+        message: '다운로드할 데이터가 없습니다'
+      });
+      return;
+    }
+
+    try {
+      downloadPerformanceExcel(filteredPerformances);
+      addToast({
+        type: 'success',
+        title: '다운로드 완료',
+        message: '실적 데이터가 성공적으로 다운로드되었습니다'
+      });
+    } catch (error) {
+      addToast({
+        type: 'error',
+        title: '다운로드 실패',
+        message: '엑셀 파일 다운로드 중 오류가 발생했습니다'
+      });
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-8">
@@ -169,7 +202,7 @@ const PerformanceList: React.FC = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">검색</label>
             <div className="relative">
@@ -223,12 +256,36 @@ const PerformanceList: React.FC = () => {
               ))}
             </select>
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">프로그램</label>
+            <select
+              value={filters.program || ''}
+              onChange={(e) => handleFilterChange('program', e.target.value || undefined)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">전체 프로그램</option>
+              <option value="스포츠교실">스포츠교실</option>
+              <option value="스포츠체험존">스포츠체험존</option>
+              <option value="스포츠이벤트">스포츠이벤트</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* 결과 요약 */}
-      <div className="mb-4 text-sm text-gray-500">
-        총 {performances.length}건 중 {filteredPerformances.length}건 표시
+      {/* 결과 요약 및 엑셀 다운로드 */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-sm text-gray-500">
+          총 {performances.length}건 중 {filteredPerformances.length}건 표시
+        </div>
+        <button
+          onClick={handleExcelDownload}
+          disabled={filteredPerformances.length === 0}
+          className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          엑셀 다운로드
+        </button>
       </div>
 
       {/* 테이블 */}
@@ -239,6 +296,8 @@ const PerformanceList: React.FC = () => {
               <tr>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">날짜</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">단체명</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">시/군</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">프로그램</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">남성</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">여성</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">총 인원</th>
@@ -278,6 +337,24 @@ const PerformanceList: React.FC = () => {
                       </select>
                     ) : (
                       <span className="text-sm font-medium text-gray-900">{performance.organizationName}</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-sm text-gray-600">{performance.city || '-'}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    {editingId === performance.id ? (
+                      <select
+                        value={editForm.program || performance.program || '스포츠교실'}
+                        onChange={(e) => handleInputChange('program', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="스포츠교실">스포츠교실</option>
+                        <option value="스포츠체험존">스포츠체험존</option>
+                        <option value="스포츠이벤트">스포츠이벤트</option>
+                      </select>
+                    ) : (
+                      <span className="text-sm text-purple-600 font-medium">{performance.program || '스포츠교실'}</span>
                     )}
                   </td>
                   <td className="px-6 py-4">

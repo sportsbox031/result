@@ -6,6 +6,7 @@ import { useToast } from '../hooks/useToast';
 interface PerformanceFormData {
   date: string;
   organizationName: string;
+  program: '스포츠교실' | '스포츠체험존' | '스포츠이벤트'; // 프로그램 필드 추가
   maleCount: string;
   femaleCount: string;
   promotionCount: string;
@@ -19,6 +20,7 @@ const PerformanceInput: React.FC = () => {
   const [formData, setFormData] = useState<PerformanceFormData>({
     date: new Date().toISOString().split('T')[0],
     organizationName: '',
+    program: '스포츠교실', // 기본값 설정
     maleCount: '',
     femaleCount: '',
     promotionCount: '',
@@ -27,6 +29,10 @@ const PerformanceInput: React.FC = () => {
 
   // 파이어베이스에서 단체명 목록 가져오기
   const organizationNames = Array.from(new Set(demands.map(d => d.organizationName))).sort();
+
+  // 선택된 단체의 시/군 정보 가져오기
+  const selectedDemand = demands.find(d => d.organizationName === formData.organizationName);
+  const selectedCity = selectedDemand?.city || '';
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -68,6 +74,8 @@ const PerformanceInput: React.FC = () => {
       await addPerformance({
         date: new Date(formData.date),
         organizationName: formData.organizationName,
+        city: selectedCity, // 시/군 정보 추가
+        program: formData.program, // 프로그램 정보 추가
         maleCount: maleCount,
         femaleCount: femaleCount,
         promotionCount: promotionCount,
@@ -79,6 +87,7 @@ const PerformanceInput: React.FC = () => {
       setFormData({
         date: new Date().toISOString().split('T')[0],
         organizationName: '',
+        program: '스포츠교실', // 기본값 유지
         maleCount: '',
         femaleCount: '',
         promotionCount: '',
@@ -102,7 +111,7 @@ const PerformanceInput: React.FC = () => {
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
                 날짜 *
@@ -144,7 +153,35 @@ const PerformanceInput: React.FC = () => {
                 </p>
               )}
             </div>
+
+            <div>
+              <label htmlFor="program" className="block text-sm font-medium text-gray-700 mb-2">
+                프로그램 *
+              </label>
+              <select
+                id="program"
+                name="program"
+                value={formData.program}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                required
+              >
+                <option value="스포츠교실">스포츠교실</option>
+                <option value="스포츠체험존">스포츠체험존</option>
+                <option value="스포츠이벤트">스포츠이벤트</option>
+              </select>
+            </div>
           </div>
+
+          {/* 선택된 단체의 시/군 정보 표시 */}
+          {formData.organizationName && (
+            <div className="bg-blue-50 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                <span className="font-medium">선택된 단체:</span> {formData.organizationName} 
+                {selectedCity && ` (${selectedCity})`}
+              </p>
+            </div>
+          )}
 
           {/* 인원수 입력 */}
           <div className="bg-blue-50 rounded-lg p-6">

@@ -13,6 +13,8 @@ export interface Performance {
   id: string;
   date: Date;
   organizationName: string;
+  city: string; // 시/군 정보 추가
+  program: '스포츠교실' | '스포츠체험존' | '스포츠이벤트'; // 프로그램 필드 추가
   maleCount: number;
   femaleCount: number;
   promotionCount: number;
@@ -34,6 +36,7 @@ export interface FilterState {
   endDate?: Date;
   organizationName?: string;
   city?: string;
+  program?: string;
 }
 
 export interface StatisticsData {
@@ -81,4 +84,17 @@ export interface BudgetUsage {
   date: string; // 회계일자 (YYYY-MM-DD)
   paymentMethod: string; // 결제방법
   note?: string; // 비고
+}
+
+// 엑셀 다운로드용 타입
+export interface ExcelPerformanceData {
+  날짜: string;
+  단체명: string;
+  시군: string;
+  프로그램: string;
+  남성: number;
+  여성: number;
+  총인원: number;
+  홍보횟수: number;
+  메모: string;
 }

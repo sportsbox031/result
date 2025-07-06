@@ -1,4 +1,4 @@
-import { Demand } from '../types';
+import { Demand, Performance, ExcelPerformanceData } from '../types';
 
 export const parseExcelData = (csvContent: string): Omit<Demand, 'id' | 'createdAt' | 'updatedAt'>[] => {
   const lines = csvContent.split('\n');
@@ -36,6 +36,45 @@ export const downloadTemplate = () => {
   const a = document.createElement('a');
   a.href = url;
   a.download = '수요처_등록_템플릿.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+};
+
+// 실적 데이터를 엑셀로 다운로드하는 함수
+export const downloadPerformanceExcel = (performances: Performance[]) => {
+  // CSV 헤더 (UTF-8 BOM 포함)
+  let csvContent = '\uFEFF날짜,단체명,시군,프로그램,남성,여성,총인원,홍보횟수,메모\n';
+  
+  // 데이터 행 추가
+  performances.forEach(performance => {
+    const totalCount = (performance.maleCount || 0) + (performance.femaleCount || 0);
+    const date = performance.date ? performance.date.toLocaleDateString('ko-KR') : '';
+    const notes = performance.notes || '';
+    
+    // CSV 형식으로 데이터 추가 (쉼표와 따옴표 처리)
+    const row = [
+      date,
+      `"${performance.organizationName}"`,
+      `"${performance.city || ''}"`,
+      `"${performance.program || '스포츠교실'}"`,
+      performance.maleCount || 0,
+      performance.femaleCount || 0,
+      totalCount,
+      performance.promotionCount || 0,
+      `"${notes.replace(/"/g, '""')}"` // 따옴표 이스케이프
+    ].join(',');
+    
+    csvContent += row + '\n';
+  });
+  
+  // 파일 다운로드
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `실적_데이터_${new Date().toISOString().split('T')[0]}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
