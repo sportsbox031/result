@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, FileText, Download, Plus, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, FileText, Download, Plus, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { parseExcelData, downloadTemplate } from '../utils/excel';
 import { useFirebaseData } from '../hooks/useFirebaseData';
 import { useToast } from '../hooks/useToast';
@@ -29,6 +29,8 @@ const DemandRegister: React.FC = () => {
   const [showInstructionModal, setShowInstructionModal] = useState(false);
   const [showUploadSuccessModal, setShowUploadSuccessModal] = useState(false);
   const [uploadResult, setUploadResult] = useState<{ success: number; error: number }>({ success: 0, error: 0 });
+  const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState<DemandFormData>({
     city: '',
     organizationName: '',
@@ -54,6 +56,7 @@ const DemandRegister: React.FC = () => {
       return;
     }
 
+    setIsLoading(true);
     try {
       await addDemand({
         city: formData.city,
@@ -78,10 +81,13 @@ const DemandRegister: React.FC = () => {
         title: '등록 실패',
         message: '수요처 등록 중 오류가 발생했습니다'
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleFileUpload = async (file: File) => {
+    setIsUploading(true);
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
@@ -122,6 +128,8 @@ const DemandRegister: React.FC = () => {
           title: '업로드 오류',
           message: '파일 형식을 확인해주세요'
         });
+      } finally {
+        setIsUploading(false);
       }
     };
     
@@ -276,9 +284,17 @@ const DemandRegister: React.FC = () => {
             <div className="flex justify-end">
               <button
                 type="submit"
-                className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center"
+                disabled={isLoading}
               >
-                수요처 등록
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    등록 중...
+                  </>
+                ) : (
+                  '수요처 등록'
+                )}
               </button>
             </div>
           </form>
@@ -326,29 +342,41 @@ const DemandRegister: React.FC = () => {
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
             >
-              <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-lg font-medium text-gray-900 mb-2">
-                CSV 파일을 여기에 드롭하거나 클릭하여 선택하세요
-              </p>
-              <p className="text-gray-500 mb-2">최대 10MB까지 지원합니다</p>
-              <p className="text-sm text-amber-600 mb-6">
-                한글이 깨지는 경우 "저장 방법 보기"를 참고하세요
-              </p>
-              
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv,.txt"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-              
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-              >
-                파일 선택
-              </button>
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-12 h-12 text-blue-500 mx-auto mb-4 animate-spin" />
+                  <p className="text-lg font-medium text-gray-900 mb-2">
+                    파일을 업로드하고 있습니다...
+                  </p>
+                  <p className="text-gray-500 mb-2">잠시만 기다려주세요</p>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-lg font-medium text-gray-900 mb-2">
+                    CSV 파일을 여기에 드롭하거나 클릭하여 선택하세요
+                  </p>
+                  <p className="text-gray-500 mb-2">최대 10MB까지 지원합니다</p>
+                  <p className="text-sm text-amber-600 mb-6">
+                    한글이 깨지는 경우 "저장 방법 보기"를 참고하세요
+                  </p>
+                  
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv,.txt"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    파일 선택
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

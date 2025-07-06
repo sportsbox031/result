@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Calendar, Save, Users, Megaphone, CheckCircle, Upload, FileText, Download, AlertCircle } from 'lucide-react';
+import { Calendar, Save, Users, Megaphone, CheckCircle, Upload, FileText, Download, AlertCircle, Loader2 } from 'lucide-react';
 import { useFirebaseData } from '../hooks/useFirebaseData';
 import { useToast } from '../hooks/useToast';
 import { parsePerformanceExcelData, downloadPerformanceTemplate } from '../utils/excel';
@@ -26,6 +26,8 @@ const PerformanceInput: React.FC = () => {
   const [uploadResult, setUploadResult] = useState<{ success: number; error: number }>({ success: 0, error: 0 });
   const [organizationSearchTerm, setOrganizationSearchTerm] = useState('');
   const [showOrganizationDropdown, setShowOrganizationDropdown] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState<PerformanceFormData>({
     date: new Date().toISOString().split('T')[0],
     organizationName: '',
@@ -84,6 +86,7 @@ const PerformanceInput: React.FC = () => {
       return;
     }
 
+    setIsLoading(true);
     try {
       await addPerformance({
         date: new Date(formData.date),
@@ -113,11 +116,14 @@ const PerformanceInput: React.FC = () => {
         title: '저장 실패',
         message: '실적 데이터 저장 중 오류가 발생했습니다'
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // 파일 업로드 처리
   const handleFileUpload = async (file: File) => {
+    setIsUploading(true);
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
@@ -158,6 +164,8 @@ const PerformanceInput: React.FC = () => {
           title: '업로드 오류',
           message: '파일 형식을 확인해주세요'
         });
+      } finally {
+        setIsUploading(false);
       }
     };
     
@@ -441,7 +449,7 @@ const PerformanceInput: React.FC = () => {
                 type="submit"
                 className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center"
               >
-                <Save className="w-4 h-4 mr-2" />
+                {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                 실적 저장
               </button>
             </div>
@@ -495,29 +503,41 @@ const PerformanceInput: React.FC = () => {
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
             >
-              <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-lg font-medium text-gray-900 mb-2">
-                CSV 파일을 여기에 드롭하거나 클릭하여 선택하세요
-              </p>
-              <p className="text-gray-500 mb-2">최대 10MB까지 지원합니다</p>
-              <p className="text-sm text-amber-600 mb-6">
-                한글이 깨지는 경우 "저장 방법 보기"를 참고하세요
-              </p>
-              
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv,.txt"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-              
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-              >
-                파일 선택
-              </button>
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-12 h-12 text-blue-500 mx-auto mb-4 animate-spin" />
+                  <p className="text-lg font-medium text-gray-900 mb-2">
+                    파일을 업로드하고 있습니다...
+                  </p>
+                  <p className="text-gray-500 mb-2">잠시만 기다려주세요</p>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-lg font-medium text-gray-900 mb-2">
+                    CSV 파일을 여기에 드롭하거나 클릭하여 선택하세요
+                  </p>
+                  <p className="text-gray-500 mb-2">최대 10MB까지 지원합니다</p>
+                  <p className="text-sm text-amber-600 mb-6">
+                    한글이 깨지는 경우 "저장 방법 보기"를 참고하세요
+                  </p>
+                  
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv,.txt"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    파일 선택
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -533,6 +553,111 @@ const PerformanceInput: React.FC = () => {
               <p className="text-gray-600 mb-6">실적 데이터가 성공적으로 저장되었습니다.</p>
               <button
                 onClick={() => setShowSuccessModal(false)}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 업로드 완료 모달 */}
+      {showUploadSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md mx-4">
+            <div className="text-center">
+              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">일괄등록 완료!</h3>
+              <div className="text-gray-600 mb-6">
+                <p className="mb-2">실적 데이터 일괄등록이 완료되었습니다.</p>
+                <div className="bg-gray-50 rounded-lg p-4 text-sm">
+                  <div className="flex justify-between items-center mb-1">
+                    <span>성공:</span>
+                    <span className="font-semibold text-green-600">{uploadResult.success}건</span>
+                  </div>
+                  {uploadResult.error > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span>실패:</span>
+                      <span className="font-semibold text-red-600">{uploadResult.error}건</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => setShowUploadSuccessModal(false)}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 저장 방법 모달 */}
+      {showInstructionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="mb-6">
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">실적 데이터 저장 방법</h3>
+              <p className="text-gray-600">실적 데이터를 올바르게 저장하는 방법을 안내합니다.</p>
+            </div>
+
+            <div className="space-y-6">
+              <div className="border border-gray-200 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-900 mb-3">📊 수기 입력 방법</h4>
+                <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
+                  <li>날짜를 선택하세요 (필수)</li>
+                  <li>단체명을 검색하여 선택하세요 (필수)</li>
+                  <li>프로그램 유형을 선택하세요 (스포츠교실/스포츠체험존/스포츠이벤트)</li>
+                  <li>남성/여성 인원수를 입력하세요</li>
+                  <li>홍보 횟수를 입력하세요 (선택사항)</li>
+                  <li>메모를 입력하세요 (선택사항)</li>
+                  <li>"실적 저장" 버튼을 클릭하세요</li>
+                </ol>
+              </div>
+
+              <div className="border border-gray-200 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-900 mb-3">📋 CSV 파일 업로드 방법</h4>
+                <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
+                  <li>템플릿을 다운로드하여 엑셀에서 열기</li>
+                  <li>데이터 입력 완료 후 <strong>파일 → 다른 이름으로 저장</strong> 클릭</li>
+                  <li>파일 형식에서 <strong>"CSV UTF-8(쉼표로 분리)(*.csv)"</strong> 선택</li>
+                  <li>파일명 입력 후 저장</li>
+                  <li>저장된 CSV 파일을 업로드</li>
+                </ol>
+                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                  <p className="text-sm text-yellow-800">
+                    <strong>주의:</strong> "CSV(쉼표로 분리)" 대신 반드시 <strong>"CSV UTF-8"</strong>을 선택하세요!
+                  </p>
+                </div>
+              </div>
+
+              <div className="border border-gray-200 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-900 mb-3">📅 날짜 형식</h4>
+                <p className="text-sm text-gray-700 mb-2">날짜는 반드시 YYYY-MM-DD 형식으로 입력해야 합니다:</p>
+                <ul className="list-disc list-inside text-sm text-gray-700">
+                  <li>올바른 형식: 2024-01-15, 2024-12-31</li>
+                  <li>잘못된 형식: 2024/01/15, 2024.01.15, 01-15-2024</li>
+                </ul>
+              </div>
+
+              <div className="border border-gray-200 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-900 mb-3">🔧 한글 깨짐 해결방법</h4>
+                <p className="text-sm text-gray-700 mb-2">파일 업로드 시 한글이 깨지는 경우:</p>
+                <ol className="list-decimal list-inside space-y-1 text-sm text-gray-700">
+                  <li>엑셀에서 파일을 다시 열기</li>
+                  <li>파일 → 다른 이름으로 저장</li>
+                  <li>파일 형식에서 "CSV UTF-8(쉼표로 분리)" 선택</li>
+                  <li>새로운 파일로 저장 후 업로드</li>
+                </ol>
+              </div>
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => setShowInstructionModal(false)}
                 className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 확인
