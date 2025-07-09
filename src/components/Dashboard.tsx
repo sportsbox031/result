@@ -69,8 +69,11 @@ const Dashboard: React.FC = () => {
 
   // 기준일자 필터가 적용된 실적 데이터
   const filteredPerformances = performances.filter((p: any) => {
-    if (dateFilter.startDate && new Date(p.date) < dateFilter.startDate) return false;
-    if (dateFilter.endDate && new Date(p.date) > dateFilter.endDate) return false;
+    const perfDate = new Date(p.date);
+    const startDate = dateFilter.startDate instanceof Date ? dateFilter.startDate : (dateFilter.startDate ? new Date(dateFilter.startDate) : undefined);
+    const endDate = dateFilter.endDate instanceof Date ? dateFilter.endDate : (dateFilter.endDate ? new Date(dateFilter.endDate) : undefined);
+    if (startDate && perfDate < startDate) return false;
+    if (endDate && perfDate > endDate) return false;
     return true;
   });
 
