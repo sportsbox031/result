@@ -12,8 +12,8 @@ const BudgetUsagePage: React.FC = () => {
   const filteredBudgetItems = budgetItems
     .filter(item => item.name.includes(budgetSearch))
     .sort((a, b) => b.name.localeCompare(a.name, 'ko'));
-  // 최신순 정렬
-  const sortedBudgetUsages = budgetUsages.sort((a, b) => {
+  // 최신순 정렬 (집행일자 기준, 없으면 id 기준)
+  const sortedBudgetUsages = [...budgetUsages].sort((a, b) => {
     if (a.date && b.date) {
       return new Date(b.date).getTime() - new Date(a.date).getTime();
     }
@@ -101,7 +101,10 @@ const BudgetUsagePage: React.FC = () => {
                 {/* 적요 */}
                 <div className="flex-1 min-w-[100px]">
                   {isEditing ? (
-                    <input className="border rounded px-2 py-1 w-full" value={editForm.description || ''} onChange={e => handleChange('description', e.target.value)} />
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">적요</label>
+                      <input className="border rounded px-2 py-1 w-full" value={editForm.description || ''} onChange={e => handleChange('description', e.target.value)} />
+                    </div>
                   ) : (
                     <div className="text-gray-800 truncate" title={usage.description}>{usage.description || '-'}</div>
                   )}
@@ -109,7 +112,10 @@ const BudgetUsagePage: React.FC = () => {
                 {/* 채주 */}
                 <div className="flex-1 min-w-[80px]">
                   {isEditing ? (
-                    <input className="border rounded px-2 py-1 w-full" value={editForm.vendor || ''} onChange={e => handleChange('vendor', e.target.value)} />
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">채주</label>
+                      <input className="border rounded px-2 py-1 w-full" value={editForm.vendor || ''} onChange={e => handleChange('vendor', e.target.value)} />
+                    </div>
                   ) : (
                     <div className="text-gray-700 truncate" title={usage.vendor}>{usage.vendor || '-'}</div>
                   )}
@@ -117,15 +123,18 @@ const BudgetUsagePage: React.FC = () => {
                 {/* 집행액 */}
                 <div className="w-32 text-right">
                   {isEditing ? (
-                    <input
-                      type="text"
-                      className="border rounded px-2 py-1 w-full text-right"
-                      value={editForm.amount !== undefined && editForm.amount !== null ? Number(editForm.amount).toLocaleString() : ''}
-                      onChange={e => {
-                        const raw = e.target.value.replace(/,/g, '');
-                        if (!isNaN(Number(raw))) handleChange('amount', Number(raw));
-                      }}
-                    />
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">집행액</label>
+                      <input
+                        type="text"
+                        className="border rounded px-2 py-1 w-full text-right"
+                        value={editForm.amount !== undefined && editForm.amount !== null ? Number(editForm.amount).toLocaleString() : ''}
+                        onChange={e => {
+                          const raw = e.target.value.replace(/,/g, '');
+                          if (!isNaN(Number(raw))) handleChange('amount', Number(raw));
+                        }}
+                      />
+                    </div>
                   ) : (
                     <span className="font-bold text-blue-700">{usage.amount.toLocaleString()}원</span>
                   )}
@@ -133,7 +142,10 @@ const BudgetUsagePage: React.FC = () => {
                 {/* 회계일자 */}
                 <div className="w-32 text-center">
                   {isEditing ? (
-                    <input type="date" className="border rounded px-2 py-1 w-full" value={editForm.date || ''} onChange={e => handleChange('date', e.target.value)} />
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">집행일자</label>
+                      <input type="date" className="border rounded px-2 py-1 w-full" value={editForm.date || ''} onChange={e => handleChange('date', e.target.value)} />
+                    </div>
                   ) : (
                     <span className="text-gray-600">{usage.date || '-'}</span>
                   )}
@@ -141,7 +153,14 @@ const BudgetUsagePage: React.FC = () => {
                 {/* 결제방법 */}
                 <div className="w-32 text-center">
                   {isEditing ? (
-                    <input className="border rounded px-2 py-1 w-full" value={editForm.paymentMethod || ''} onChange={e => handleChange('paymentMethod', e.target.value)} />
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">결제방법</label>
+                      <select className="border rounded px-2 py-1 w-full" value={editForm.paymentMethod || ''} onChange={e => handleChange('paymentMethod', e.target.value)}>
+                        <option value="">선택</option>
+                        <option value="계좌입금">계좌입금</option>
+                        <option value="카드결제">카드결제</option>
+                      </select>
+                    </div>
                   ) : (
                     <span className="text-gray-600">{usage.paymentMethod || '-'}</span>
                   )}
@@ -149,7 +168,10 @@ const BudgetUsagePage: React.FC = () => {
                 {/* 비고 */}
                 <div className="flex-1 min-w-[80px]">
                   {isEditing ? (
-                    <input className="border rounded px-2 py-1 w-full" value={editForm.note || ''} onChange={e => handleChange('note', e.target.value)} />
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">메모</label>
+                      <input className="border rounded px-2 py-1 w-full" value={editForm.note || ''} onChange={e => handleChange('note', e.target.value)} />
+                    </div>
                   ) : (
                     <div className="text-gray-500 truncate" title={usage.note}>{usage.note || '-'}</div>
                   )}
