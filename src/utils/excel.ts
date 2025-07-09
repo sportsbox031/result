@@ -1,4 +1,5 @@
 import { Demand, Performance, ExcelPerformanceData } from '../types';
+import { BudgetUsage, BudgetItem } from '../types';
 
 export const parseExcelData = (csvContent: string): Omit<Demand, 'id' | 'createdAt' | 'updatedAt'>[] => {
   const lines = csvContent.split('\n');
@@ -151,4 +152,31 @@ export const parsePerformanceExcelData = (csvContent: string): Omit<Performance,
   }
   
   return data;
+};
+
+// 예산 사용 내역 전체 리스트를 엑셀(CSV)로 다운로드하는 함수
+export const downloadBudgetUsageExcel = (usages: BudgetUsage[], budgetItems: BudgetItem[]) => {
+  let csvContent = '\uFEFF예산명,적요,채주,집행액,집행일자,결제방법,메모\n';
+  usages.forEach(usage => {
+    const budgetName = budgetItems.find(b => b.id === usage.budgetItemId)?.name || '';
+    const row = [
+      `"${budgetName}"`,
+      `"${usage.description || ''}"`,
+      `"${usage.vendor || ''}"`,
+      usage.amount || 0,
+      usage.date || '',
+      usage.paymentMethod || '',
+      `"${usage.note || ''}"`
+    ].join(',');
+    csvContent += row + '\n';
+  });
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `예산사용내역_${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
 };

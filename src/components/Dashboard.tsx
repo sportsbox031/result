@@ -38,6 +38,21 @@ const Dashboard: React.FC = () => {
   const [regionFilter, setRegionFilter] = useState<'전체'|'남부'|'북부'>('전체');
   const [selectedCity, setSelectedCity] = useState<string|null>(null);
   const [showPopup, setShowPopup] = useState(false);
+  const [showProgramPopup, setShowProgramPopup] = useState(false);
+  const [programStats, setProgramStats] = useState<{ [key: string]: { count: number; people: number } }>({});
+
+  function handleTotalCountClick() {
+    // 프로그램별 집계
+    const statsByProgram: { [key: string]: { count: number; people: number } } = {};
+    performances.forEach(p => {
+      const prog = p.program || '스포츠교실';
+      if (!statsByProgram[prog]) statsByProgram[prog] = { count: 0, people: 0 };
+      statsByProgram[prog].count += 1;
+      statsByProgram[prog].people += (p.maleCount || 0) + (p.femaleCount || 0);
+    });
+    setProgramStats(statsByProgram);
+    setShowProgramPopup(true);
+  }
 
   // 예산 데이터 실시간 구독
   useEffect(() => {
@@ -293,12 +308,14 @@ const Dashboard: React.FC = () => {
           icon={Building2}
           color="bg-blue-500"
         />
-        <StatCard
-          title="총 횟수"
-          value={performances.length.toString()}
-          icon={Calendar}
-          color="bg-green-500"
-        />
+        <div onClick={handleTotalCountClick} className="cursor-pointer">
+          <StatCard
+            title="총 횟수"
+            value={performances.length.toString()}
+            icon={Calendar}
+            color="bg-green-500"
+          />
+        </div>
         <StatCard
           title="총 참여 인원"
           value={stats.totalPeople.toLocaleString() + '명'}
@@ -414,6 +431,30 @@ const Dashboard: React.FC = () => {
             ) : (
               <div className="text-gray-500 text-center py-8">데이터가 없습니다</div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showProgramPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8 relative animate-fadeIn border-2 border-green-400">
+            <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" onClick={()=>setShowProgramPopup(false)}>&times;</button>
+            <h3 className="text-2xl font-bold mb-6 text-green-700 text-center">프로그램별 실적 요약</h3>
+            <div className="grid gap-4">
+              {['스포츠교실','스포츠체험존','스포츠이벤트'].map(prog => (
+                <div key={prog} className="bg-green-50 rounded-lg p-4 flex items-center justify-between shadow-sm border border-green-100">
+                  <div className="font-semibold text-lg text-green-900">{prog}</div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-sm text-gray-600">총 횟수</span>
+                    <span className="text-xl font-bold text-green-700">{programStats[prog]?.count || 0}회</span>
+                  </div>
+                  <div className="flex flex-col items-end ml-6">
+                    <span className="text-sm text-gray-600">총 인원</span>
+                    <span className="text-xl font-bold text-green-700">{programStats[prog]?.people?.toLocaleString() || 0}명</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

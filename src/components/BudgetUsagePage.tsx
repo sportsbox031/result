@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BudgetItem, BudgetUsage } from '../types';
 import { firebaseStorage } from '../utils/firebaseStorage';
 import { Plus, Trash2, Edit2, Save, X } from 'lucide-react';
+import { downloadBudgetUsageExcel } from '../utils/excel';
 
 const BudgetUsagePage: React.FC = () => {
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
@@ -71,9 +72,14 @@ const BudgetUsagePage: React.FC = () => {
     <div className="w-full max-w-5xl mx-auto px-2">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">예산 사용 내역</h1>
-        <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition" onClick={handleAddUsage}>
-          <Plus className="w-4 h-4" /> 내역 추가
-        </button>
+        <div className="flex gap-2">
+          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition" onClick={handleAddUsage}>
+            <Plus className="w-4 h-4" /> 내역 추가
+          </button>
+          <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition" onClick={() => downloadBudgetUsageExcel(budgetUsages, budgetItems)}>
+            엑셀 다운로드
+          </button>
+        </div>
       </div>
       <div className="mb-4 flex gap-2">
         <input
