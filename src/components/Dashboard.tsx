@@ -137,6 +137,12 @@ const Dashboard: React.FC = () => {
     });
   }, [demands, performances]);
 
+  // 전체 예산/사용/잔액/집행율 계산
+  const totalBudget = budgetItems.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+  const totalUsed = budgetUsages.reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
+  const totalRemain = totalBudget - totalUsed;
+  const totalRate = totalBudget > 0 ? Math.round((totalUsed / totalBudget) * 1000) / 10 : 0; // 소수점 1자리
+
   const StatCard: React.FC<{
     title: string;
     value: string;
@@ -305,6 +311,14 @@ const Dashboard: React.FC = () => {
           icon={BarChart3}
           color="bg-orange-500"
         />
+      </div>
+
+      {/* 전체 예산/사용/잔액/집행율 카드 */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <StatCard title="전체 예산액" value={totalBudget.toLocaleString() + '원'} icon={BarChart3} color="bg-blue-500" />
+        <StatCard title="전체 사용액" value={totalUsed.toLocaleString() + '원'} icon={Users} color="bg-green-500" />
+        <StatCard title="전체 잔액" value={totalRemain.toLocaleString() + '원'} icon={Building2} color="bg-gray-500" />
+        <StatCard title="전체 집행율" value={totalRate + '%'} icon={Calendar} color="bg-orange-500" />
       </div>
 
       {/* 기간 필터 UI */}

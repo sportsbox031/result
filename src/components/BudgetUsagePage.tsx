@@ -11,6 +11,12 @@ const BudgetUsagePage: React.FC = () => {
   const [editForm, setEditForm] = useState<Partial<BudgetUsage>>({});
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<'add'|'edit'>('add');
+  // 예산명 검색 상태 추가
+  const [budgetSearch, setBudgetSearch] = useState('');
+  // 한글 내림차순 정렬 및 검색 적용
+  const filteredBudgetItems = budgetItems
+    .filter(item => item.name.includes(budgetSearch))
+    .sort((a, b) => b.name.localeCompare(a.name, 'ko'));
 
   useEffect(() => {
     const unsubBudgets = firebaseStorage.subscribeToBudgets(setBudgetItems);
@@ -121,8 +127,15 @@ const BudgetUsagePage: React.FC = () => {
             <div className="flex flex-col gap-3">
               <div>
                 <label className="block text-sm font-medium mb-1">예산명</label>
+                <input
+                  type="text"
+                  className="border rounded px-2 py-1 w-full mb-2"
+                  placeholder="예산명 검색..."
+                  value={budgetSearch}
+                  onChange={e => setBudgetSearch(e.target.value)}
+                />
                 <select className="border rounded px-2 py-1 w-full" value={editForm.budgetItemId} onChange={e => setEditForm(f => ({ ...f, budgetItemId: e.target.value }))}>
-                  {budgetItems.map(item => (
+                  {filteredBudgetItems.map(item => (
                     <option key={item.id} value={item.id}>{item.name}</option>
                   ))}
                 </select>
