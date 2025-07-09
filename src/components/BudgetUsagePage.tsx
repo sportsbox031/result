@@ -68,7 +68,7 @@ const BudgetUsagePage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full max-w-5xl mx-auto px-2">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">예산 사용 내역</h1>
         <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition" onClick={handleAddUsage}>
@@ -87,8 +87,8 @@ const BudgetUsagePage: React.FC = () => {
       <div className="grid gap-4">
         {/* 추가 내역 입력 카드 (맨 위) */}
         {adding && (
-          <div className="rounded-xl shadow-md border-2 border-blue-300 bg-white ring-2 ring-blue-400">
-            <div className="flex flex-col md:flex-row md:items-center gap-4 p-6">
+          <div className="rounded-xl shadow-md border-2 border-blue-300 bg-white ring-2 ring-blue-400 overflow-x-auto">
+            <div className="flex flex-col md:flex-row md:flex-wrap md:items-center gap-4 p-6 min-w-[900px]">
               {/* 예산명/지역 */}
               <div className="flex-1 min-w-[120px]">
                 <label className="block text-xs font-medium text-gray-500 mb-1">예산명</label>
@@ -113,7 +113,7 @@ const BudgetUsagePage: React.FC = () => {
                 <input className="border rounded px-2 py-1 w-full" value={addForm.vendor || ''} onChange={e => handleAddChange('vendor', e.target.value)} />
               </div>
               {/* 집행액 */}
-              <div className="w-32 text-right">
+              <div className="w-32 text-right min-w-[120px]">
                 <label className="block text-xs font-medium text-gray-500 mb-1">집행액</label>
                 <input
                   type="text"
@@ -126,12 +126,12 @@ const BudgetUsagePage: React.FC = () => {
                 />
               </div>
               {/* 집행일자 */}
-              <div className="w-32 text-center">
+              <div className="w-32 text-center min-w-[120px]">
                 <label className="block text-xs font-medium text-gray-500 mb-1">집행일자</label>
                 <input type="date" className="border rounded px-2 py-1 w-full" value={addForm.date || ''} onChange={e => handleAddChange('date', e.target.value)} />
               </div>
               {/* 결제방법 */}
-              <div className="w-32 text-center">
+              <div className="w-32 text-center min-w-[120px]">
                 <label className="block text-xs font-medium text-gray-500 mb-1">결제방법</label>
                 <select className="border rounded px-2 py-1 w-full" value={addForm.paymentMethod || ''} onChange={e => handleAddChange('paymentMethod', e.target.value)}>
                   <option value="">선택</option>
@@ -145,7 +145,7 @@ const BudgetUsagePage: React.FC = () => {
                 <input className="border rounded px-2 py-1 w-full" value={addForm.note || ''} onChange={e => handleAddChange('note', e.target.value)} />
               </div>
               {/* 저장/취소 버튼 */}
-              <div className="flex flex-col gap-2 items-center justify-center">
+              <div className="flex flex-col gap-2 items-center justify-center min-w-[80px]">
                 <button className="p-2 bg-blue-600 text-white rounded-full shadow hover:bg-blue-700 transition" onClick={handleAddSave} title="저장">
                   <Save className="w-5 h-5" />
                 </button>
@@ -163,10 +163,10 @@ const BudgetUsagePage: React.FC = () => {
           return (
             <div
               key={usage.id}
-              className={`rounded-xl shadow-md border border-gray-100 bg-white hover:shadow-lg transition cursor-pointer relative ${isEditing ? 'ring-2 ring-blue-400' : 'hover:ring-1 hover:ring-blue-200'}`}
+              className={`rounded-xl shadow-md border border-gray-100 bg-white hover:shadow-lg transition cursor-pointer relative ${isEditing ? 'ring-2 ring-blue-400' : 'hover:ring-1 hover:ring-blue-200'} overflow-x-auto`}
               onClick={() => !isEditing && handleEdit(usage)}
             >
-              <div className="flex flex-col md:flex-row md:items-center gap-4 p-6">
+              <div className="flex flex-col md:flex-row md:flex-wrap md:items-center gap-4 p-6 min-w-[900px]">
                 {/* 예산명/지역 */}
                 <div className="flex-1 min-w-[120px]">
                   {isEditing ? (
