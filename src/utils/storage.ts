@@ -3,6 +3,33 @@ import { Demand, Performance } from '../types';
 const DEMANDS_KEY = 'demands';
 const PERFORMANCES_KEY = 'performances';
 
+// 관리자 계정 저장 키
+const ADMIN_USER_KEY = 'admin_user';
+
+// sha256 해시 함수 (브라우저 내장 SubtleCrypto 사용)
+export async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// 관리자 계정 저장
+export function saveAdminUser(user: { username: string; passwordHash: string }) {
+  localStorage.setItem(ADMIN_USER_KEY, JSON.stringify(user));
+}
+
+// 관리자 계정 불러오기
+export function loadAdminUser(): { username: string; passwordHash: string } | null {
+  const data = localStorage.getItem(ADMIN_USER_KEY);
+  if (!data) return null;
+  try {
+    return JSON.parse(data);
+  } catch {
+    return null;
+  }
+}
+
 export const storage = {
   // 수요처 관련 작업
   getDemands(): Demand[] {

@@ -98,3 +98,9 @@ export interface ExcelPerformanceData {
   홍보횟수: number;
   메모: string;
 }
+
+// 관리자 계정 타입
+export interface AdminUser {
+  username: string;
+  passwordHash: string;
+}

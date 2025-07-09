@@ -11,11 +11,36 @@ import { useToast } from './hooks/useToast';
 import { useFirebaseData } from './hooks/useFirebaseData';
 import { Loader2 } from 'lucide-react';
 import BudgetUsagePage from './components/BudgetUsagePage';
+import Login from './components/Login';
+import ChangePassword from './components/ChangePassword';
+import { loadAdminUser } from './utils/storage';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const { toasts, addToast, removeToast } = useToast();
   const { loading, error } = useFirebaseData();
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [showChangePw, setShowChangePw] = useState(false);
+
+  useEffect(() => {
+    // 자동 로그인 세션(간단히 localStorage에 flag 저장)
+    if (localStorage.getItem('admin_logged_in') === 'true') {
+      setLoggedIn(true);
+    }
+  }, []);
+
+  function handleLogin() {
+    setLoggedIn(true);
+    localStorage.setItem('admin_logged_in', 'true');
+  }
+  function handleLogout() {
+    setLoggedIn(false);
+    localStorage.removeItem('admin_logged_in');
+  }
+
+  if (!loggedIn) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   const renderCurrentPage = () => {
     if (loading) {
@@ -67,9 +92,14 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Layout currentPage={currentPage} onPageChange={setCurrentPage}>
+        <div className="flex justify-end mb-2">
+          <button className="mr-2 px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm" onClick={() => setShowChangePw(true)}>비밀번호 변경</button>
+          <button className="px-3 py-1 bg-red-200 rounded hover:bg-red-300 text-sm" onClick={handleLogout}>로그아웃</button>
+        </div>
         {renderCurrentPage()}
       </Layout>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
+      {showChangePw && <ChangePassword onClose={() => setShowChangePw(false)} />}
     </div>
   );
 }
