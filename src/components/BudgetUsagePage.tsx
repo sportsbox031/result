@@ -88,7 +88,7 @@ const BudgetUsagePage: React.FC = () => {
         {/* 추가 내역 입력 카드 (맨 위) */}
         {adding && (
           <div className="rounded-xl shadow-md border-2 border-blue-300 bg-white ring-2 ring-blue-400 overflow-x-auto">
-            <div className="flex flex-col md:flex-row md:flex-wrap md:items-center gap-4 p-6 min-w-[900px]">
+            <div className="flex flex-col md:flex-row md:flex-wrap md:items-center gap-4 p-6 min-w-[1200px] max-w-full">
               {/* 예산명/지역 */}
               <div className="flex-1 min-w-[120px]">
                 <label className="block text-xs font-medium text-gray-500 mb-1">예산명</label>
@@ -103,7 +103,7 @@ const BudgetUsagePage: React.FC = () => {
                 </select>
               </div>
               {/* 적요 */}
-              <div className="flex-1 min-w-[100px]">
+              <div className="flex-[2] min-w-[220px]">
                 <label className="block text-xs font-medium text-gray-500 mb-1">적요</label>
                 <input className="border rounded px-2 py-1 w-full" value={addForm.description || ''} onChange={e => handleAddChange('description', e.target.value)} />
               </div>
@@ -140,7 +140,7 @@ const BudgetUsagePage: React.FC = () => {
                 </select>
               </div>
               {/* 메모 */}
-              <div className="flex-1 min-w-[80px]">
+              <div className="flex-1 min-w-[60px] max-w-[120px]">
                 <label className="block text-xs font-medium text-gray-500 mb-1">메모</label>
                 <input className="border rounded px-2 py-1 w-full" value={addForm.note || ''} onChange={e => handleAddChange('note', e.target.value)} />
               </div>
@@ -166,9 +166,10 @@ const BudgetUsagePage: React.FC = () => {
               className={`rounded-xl shadow-md border border-gray-100 bg-white hover:shadow-lg transition cursor-pointer relative ${isEditing ? 'ring-2 ring-blue-400' : 'hover:ring-1 hover:ring-blue-200'} overflow-x-auto`}
               onClick={() => !isEditing && handleEdit(usage)}
             >
-              <div className="flex flex-col md:flex-row md:flex-wrap md:items-center gap-4 p-6 min-w-[900px]">
+              <div className="flex flex-col md:flex-row md:flex-wrap md:items-center gap-4 p-6 min-w-[1200px] max-w-full">
                 {/* 예산명/지역 */}
                 <div className="flex-1 min-w-[120px]">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">예산명</label>
                   {isEditing ? (
                     <select
                       className="border rounded px-2 py-1 w-full"
@@ -180,11 +181,15 @@ const BudgetUsagePage: React.FC = () => {
                       ))}
                     </select>
                   ) : (
-                    <div className="font-semibold text-lg text-gray-900 flex items-center gap-2">
+                    <span
+                      className={
+                        (budgetItem?.name.includes('북부')
+                          ? 'bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-semibold'
+                          : 'bg-gray-100 text-gray-800 px-2 py-1 rounded font-semibold')
+                      }
+                    >
                       {budgetItem?.name || '-'}
-                      {budgetItem?.region === '남부' && <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">남부</span>}
-                      {budgetItem?.region === '북부' && <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">북부</span>}
-                    </div>
+                    </span>
                   )}
                 </div>
                 {/* 적요 */}

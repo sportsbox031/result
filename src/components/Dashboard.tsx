@@ -439,7 +439,11 @@ function BudgetRow({ item, editingBudgetId, editingBudgetName, editingBudgetAmou
           <input className="border rounded px-2 py-1 w-32" value={editingBudgetName} onChange={e => setEditingBudgetName(e.target.value)} />
         ) : (
           <>
-            <span>{item.name}</span>
+            <span className={item.name.includes('북부')
+              ? 'bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-semibold'
+              : 'bg-gray-100 text-gray-800 px-2 py-1 rounded font-semibold'}>
+              {item.name}
+            </span>
             {item.region === '남부' && (
               <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">남부</span>
             )}
