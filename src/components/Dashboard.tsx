@@ -42,9 +42,9 @@ const Dashboard: React.FC = () => {
   const [programStats, setProgramStats] = useState<{ [key: string]: { count: number; people: number } }>({});
 
   function handleTotalCountClick() {
-    // 프로그램별 집계
+    // 프로그램별 집계 (기준일자 필터 적용)
     const statsByProgram: { [key: string]: { count: number; people: number } } = {};
-    performances.forEach(p => {
+    filteredPerformances.forEach(p => {
       const prog = p.program || '스포츠교실';
       if (!statsByProgram[prog]) statsByProgram[prog] = { count: 0, people: 0 };
       statsByProgram[prog].count += 1;
@@ -67,13 +67,15 @@ const Dashboard: React.FC = () => {
   // 기간 필터 상태
   const [dateFilter, setDateFilter] = useState<{ startDate?: Date; endDate?: Date }>({});
 
+  // 기준일자 필터가 적용된 실적 데이터
+  const filteredPerformances = performances.filter((p: any) => {
+    if (dateFilter.startDate && new Date(p.date) < dateFilter.startDate) return false;
+    if (dateFilter.endDate && new Date(p.date) > dateFilter.endDate) return false;
+    return true;
+  });
+
   // 기준일자 필터가 변경될 때마다 실적, 예산 사용 현황 데이터가 필터링되어 반영되도록 useEffect 및 집계 로직 개선
   useEffect(() => {
-    const filteredPerformances = performances.filter(p => {
-      if (dateFilter.startDate && new Date(p.date) < dateFilter.startDate) return false;
-      if (dateFilter.endDate && new Date(p.date) > dateFilter.endDate) return false;
-      return true;
-    });
     const filteredBudgetUsages = budgetUsages.filter(u => {
       if (dateFilter.startDate && new Date(u.date) < dateFilter.startDate) return false;
       if (dateFilter.endDate && new Date(u.date) > dateFilter.endDate) return false;
@@ -311,20 +313,20 @@ const Dashboard: React.FC = () => {
         <div onClick={handleTotalCountClick} className="cursor-pointer">
           <StatCard
             title="총 횟수"
-            value={performances.length.toString()}
+            value={filteredPerformances.length.toString()}
             icon={Calendar}
             color="bg-green-500"
           />
         </div>
         <StatCard
           title="총 참여 인원"
-          value={stats.totalPeople.toLocaleString() + '명'}
+          value={filteredPerformances.reduce((sum, p) => sum + (p.maleCount || 0) + (p.femaleCount || 0), 0).toLocaleString() + '명'}
           icon={Users}
           color="bg-purple-500"
         />
         <StatCard
           title="평균 참여 인원"
-          value={performances.length > 0 ? Math.round(stats.totalPeople / performances.length).toLocaleString() + '명' : '0명'}
+          value={filteredPerformances.length > 0 ? Math.round(filteredPerformances.reduce((sum, p) => sum + (p.maleCount || 0) + (p.femaleCount || 0), 0) / filteredPerformances.length).toLocaleString() + '명' : '0명'}
           icon={BarChart3}
           color="bg-orange-500"
         />
