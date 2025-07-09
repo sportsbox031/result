@@ -101,6 +101,7 @@ const PerformanceInput: React.FC = () => {
 
       setShowSuccessModal(true);
 
+      // 모든 입력 상태 초기화
       setFormData({
         date: new Date().toISOString().split('T')[0],
         organizationName: '',
@@ -110,6 +111,8 @@ const PerformanceInput: React.FC = () => {
         promotionCount: '',
         notes: ''
       });
+      setOrganizationSearchTerm('');
+      setShowOrganizationDropdown(false);
     } catch (error) {
       addToast({
         type: 'error',
@@ -552,7 +555,21 @@ const PerformanceInput: React.FC = () => {
               <h3 className="text-xl font-semibold text-gray-900 mb-2">저장 완료!</h3>
               <p className="text-gray-600 mb-6">실적 데이터가 성공적으로 저장되었습니다.</p>
               <button
-                onClick={() => setShowSuccessModal(false)}
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  // 모달 닫힐 때도 상태 초기화(혹시 남아있을 수 있으니)
+                  setFormData({
+                    date: new Date().toISOString().split('T')[0],
+                    organizationName: '',
+                    program: '스포츠교실',
+                    maleCount: '',
+                    femaleCount: '',
+                    promotionCount: '',
+                    notes: ''
+                  });
+                  setOrganizationSearchTerm('');
+                  setShowOrganizationDropdown(false);
+                }}
                 className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 확인
