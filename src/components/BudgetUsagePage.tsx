@@ -18,6 +18,16 @@ const BudgetUsagePage: React.FC = () => {
     .filter(item => item.name.includes(budgetSearch))
     .sort((a, b) => b.name.localeCompare(a.name, 'ko'));
 
+  // 예산사용내역을 최신 저장 순서로 정렬 (date 기준, 없으면 id 기준)
+  const sortedBudgetUsages = budgetUsages.sort((a, b) => {
+    // date가 있으면 date 기준, 없으면 id 기준 (최신순)
+    if (a.date && b.date) {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    }
+    // date가 없는 경우 id 기준 (최신순)
+    return b.id.localeCompare(a.id);
+  });
+
   useEffect(() => {
     const unsubBudgets = firebaseStorage.subscribeToBudgets(setBudgetItems);
     const unsubUsages = firebaseStorage.subscribeToBudgetUsages(setBudgetUsages);
@@ -81,39 +91,83 @@ const BudgetUsagePage: React.FC = () => {
       </div>
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-blue-50">
+          <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
             <tr>
-              <th className="px-4 py-3 text-left">예산명</th>
-              <th className="px-4 py-3 text-left">적요</th>
-              <th className="px-4 py-3 text-left">채주</th>
-              <th className="px-4 py-3 text-right">집행액</th>
-              <th className="px-4 py-3 text-center">회계일자</th>
-              <th className="px-4 py-3 text-center">결제방법</th>
-              <th className="px-4 py-3 text-left">비고</th>
-              <th className="px-4 py-3 text-center">관리</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">예산명</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">적요</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">채주</th>
+              <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">집행액</th>
+              <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">회계일자</th>
+              <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">결제방법</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">비고</th>
+              <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">관리</th>
             </tr>
           </thead>
-          <tbody>
-            {budgetUsages.map((usage) => (
-              <tr key={usage.id} className="hover:bg-blue-50 transition">
-                <td className="px-4 py-3 flex items-center gap-2 min-w-[160px]">
-                  <span>{budgetItems.find(b => b.id === usage.budgetItemId)?.name || '-'}</span>
-                  {(() => {
-                    const region = budgetItems.find(b => b.id === usage.budgetItemId)?.region;
-                    if (region === '남부') return <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">남부</span>;
-                    if (region === '북부') return <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">북부</span>;
-                    return null;
-                  })()}
+          <tbody className="bg-white divide-y divide-gray-100">
+            {sortedBudgetUsages.map((usage) => (
+              <tr key={usage.id} className="hover:bg-blue-50 transition-colors duration-150">
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900">
+                        {budgetItems.find(b => b.id === usage.budgetItemId)?.name || '-'}
+                      </div>
+                    </div>
+                    {(() => {
+                      const region = budgetItems.find(b => b.id === usage.budgetItemId)?.region;
+                      if (region === '남부') return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">남부</span>;
+                      if (region === '북부') return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">북부</span>;
+                      return null;
+                    })()}
+                  </div>
                 </td>
-                <td className="px-4 py-2 truncate max-w-[120px]">{usage.description}</td>
-                <td className="px-4 py-2 truncate max-w-[100px]">{usage.vendor}</td>
-                <td className="px-4 py-2 text-right">{usage.amount.toLocaleString()}</td>
-                <td className="px-4 py-2 text-center">{usage.date}</td>
-                <td className="px-4 py-2 text-center">{usage.paymentMethod}</td>
-                <td className="px-4 py-2 truncate max-w-[120px]">{usage.note}</td>
-                <td className="px-4 py-2 text-center">
-                  <button className="px-2 py-1 text-blue-600 hover:underline" onClick={() => openEditModal(usage)}><Edit2 className="inline w-4 h-4" /></button>
-                  <button className="px-2 py-1 text-red-500 hover:underline" onClick={() => handleDelete(usage.id)}><Trash2 className="inline w-4 h-4" /></button>
+                <td className="px-6 py-4">
+                  <div className="text-sm text-gray-900 max-w-xs truncate" title={usage.description}>
+                    {usage.description || '-'}
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="text-sm text-gray-900 max-w-32 truncate" title={usage.vendor}>
+                    {usage.vendor || '-'}
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-right">
+                  <span className="text-sm font-semibold text-gray-900">
+                    {usage.amount.toLocaleString()}원
+                  </span>
+                </td>
+                <td className="px-6 py-4 text-center">
+                  <span className="text-sm text-gray-600">
+                    {usage.date || '-'}
+                  </span>
+                </td>
+                <td className="px-6 py-4 text-center">
+                  <span className="text-sm text-gray-600">
+                    {usage.paymentMethod || '-'}
+                  </span>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="text-sm text-gray-600 max-w-xs truncate" title={usage.note}>
+                    {usage.note || '-'}
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-center">
+                  <div className="flex items-center justify-center space-x-2">
+                    <button 
+                      className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-md transition-colors duration-150" 
+                      onClick={() => openEditModal(usage)}
+                      title="수정"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button 
+                      className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-md transition-colors duration-150" 
+                      onClick={() => handleDelete(usage.id)}
+                      title="삭제"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

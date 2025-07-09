@@ -137,9 +137,9 @@ const Dashboard: React.FC = () => {
     });
   }, [demands, performances]);
 
-  // 전체 예산/사용/잔액/집행율 계산
+  // 전체 예산/사용/잔액/집행율 계산 (기준일자 필터 적용)
   const totalBudget = budgetItems.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
-  const totalUsed = budgetUsages.reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
+  const totalUsed = filteredBudgetUsages.reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
   const totalRemain = totalBudget - totalUsed;
   const totalRate = totalBudget > 0 ? Math.round((totalUsed / totalBudget) * 1000) / 10 : 0; // 소수점 1자리
 
