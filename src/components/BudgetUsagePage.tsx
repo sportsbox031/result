@@ -80,8 +80,10 @@ const BudgetUsagePage: React.FC = () => {
 
   const handleAddUsage = () => {
     setAdding(true);
+    // 지역 필터에 맞는 첫 번째 예산을 기본값으로 설정
+    const defaultBudgetItem = filteredBudgetItems[0];
     setAddForm({
-      budgetItemId: budgetItems[0]?.id || '',
+      budgetItemId: defaultBudgetItem?.id || budgetItems[0]?.id || '',
       description: '', vendor: '', amount: 0, date: '', paymentMethod: '', note: ''
     });
   };
@@ -112,6 +114,29 @@ const BudgetUsagePage: React.FC = () => {
   const handleAddChange = (field: keyof BudgetUsage, value: any) => {
     setAddForm(f => ({ ...f, [field]: value }));
   };
+
+  // 지역 필터가 변경될 때 addForm과 editForm의 budgetItemId를 유효한 값으로 업데이트
+  useEffect(() => {
+    if (adding && filteredBudgetItems.length > 0) {
+      const currentBudgetItem = budgetItems.find(b => b.id === addForm.budgetItemId);
+      const currentRegion = currentBudgetItem ? getRegionFromBudgetName(currentBudgetItem.name) : null;
+      
+      // 현재 선택된 예산이 현재 필터와 맞지 않으면 첫 번째 예산으로 변경
+      if (regionFilter !== '전체' && currentRegion !== regionFilter) {
+        setAddForm(f => ({ ...f, budgetItemId: filteredBudgetItems[0]?.id || '' }));
+      }
+    }
+    
+    if (editingId && filteredBudgetItems.length > 0) {
+      const currentBudgetItem = budgetItems.find(b => b.id === editForm.budgetItemId);
+      const currentRegion = currentBudgetItem ? getRegionFromBudgetName(currentBudgetItem.name) : null;
+      
+      // 현재 선택된 예산이 현재 필터와 맞지 않으면 첫 번째 예산으로 변경
+      if (regionFilter !== '전체' && currentRegion !== regionFilter) {
+        setEditForm(f => ({ ...f, budgetItemId: filteredBudgetItems[0]?.id || '' }));
+      }
+    }
+  }, [regionFilter, adding, editingId, filteredBudgetItems, addForm.budgetItemId, editForm.budgetItemId, budgetItems]);
 
   return (
     <div className="w-full max-w-5xl mx-auto px-2">
