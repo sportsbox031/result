@@ -8,7 +8,9 @@ import {
   query, 
   orderBy,
   onSnapshot,
-  Timestamp 
+  Timestamp,
+  getDoc,
+  setDoc 
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Demand, Performance, BudgetItem, BudgetUsage } from '../types';
@@ -309,5 +311,42 @@ export const firebaseStorage = {
       })) as BudgetUsage[];
       callback(usages);
     });
+  },
+
+  // 관리자 계정 관련 작업
+  async getAdminUser(): Promise<{ username: string; passwordHash: string } | null> {
+    try {
+      const docRef = doc(db, 'admin', 'user');
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        return docSnap.data() as { username: string; passwordHash: string };
+      }
+      return null;
+    } catch (error) {
+      console.error('관리자 계정 로드 실패:', error);
+      throw error;
+    }
+  },
+
+  async saveAdminUser(user: { username: string; passwordHash: string }): Promise<void> {
+    try {
+      const docRef = doc(db, 'admin', 'user');
+      await setDoc(docRef, user);
+    } catch (error) {
+      console.error('관리자 계정 저장 실패:', error);
+      throw error;
+    }
+  },
+
+  async createDefaultAdmin(): Promise<void> {
+    try {
+      const { hashPassword } = await import('./storage');
+      const defaultHash = await hashPassword('admin123');
+      await this.saveAdminUser({ username: 'admin', passwordHash: defaultHash });
+    } catch (error) {
+      console.error('기본 관리자 계정 생성 실패:', error);
+      throw error;
+    }
   }
 };

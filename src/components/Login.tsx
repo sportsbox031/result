@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { hashPassword, loadAdminUser, saveAdminUser } from '../utils/storage';
+import { hashPassword } from '../utils/storage';
+import { firebaseStorage } from '../utils/firebaseStorage';
 
-const DEFAULT_ADMIN = {
-  username: 'admin',
-  passwordHash: '', // 최초 로그인 시 admin123 해시로 자동 생성
-};
+
 
 export default function Login({ onLogin }: { onLogin: () => void }) {
   const [username, setUsername] = useState('admin');
@@ -12,24 +10,35 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError('');
-    let admin = loadAdminUser();
-    if (!admin) {
-      // 최초 로그인: admin123 해시로 계정 생성
-      const hash = await hashPassword('admin123');
-      admin = { username: 'admin', passwordHash: hash };
-      saveAdminUser(admin);
+    
+    try {
+      let admin = await firebaseStorage.getAdminUser();
+      
+      // 최초 로그인인 경우 admin123으로 계정 생성
+      if (!admin) {
+        await firebaseStorage.createDefaultAdmin();
+        admin = await firebaseStorage.getAdminUser();
+      }
+      
+      const inputHash = await hashPassword(password);
+      
+      if (username === admin?.username && inputHash === admin?.passwordHash) {
+        onLogin();
+      } else {
+        setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+      }
+    } catch (error) {
+      console.error('로그인 실패:', error);
+      setError('로그인 중 오류가 발생했습니다. 네트워크 연결을 확인해주세요.');
+    } finally {
+      setLoading(false);
     }
-    const inputHash = await hashPassword(password);
-    if (username === admin.username && inputHash === admin.passwordHash) {
-      onLogin();
-    } else {
-      setError('아이디 또는 비밀번호가 올바르지 않습니다.');
-    }
-    setLoading(false);
   }
 
   return (
@@ -48,6 +57,8 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
         <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700 transition" disabled={loading}>
           {loading ? '로그인 중...' : '로그인'}
         </button>
+        
+
       </form>
     </div>
   );

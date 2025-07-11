@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { hashPassword, loadAdminUser, saveAdminUser } from '../utils/storage';
+import React, { useState, useEffect } from 'react';
+import { hashPassword } from '../utils/storage';
+import { firebaseStorage } from '../utils/firebaseStorage';
 
 export default function ChangePassword({ onClose }: { onClose: () => void }) {
   const [oldPw, setOldPw] = useState('');
@@ -9,38 +10,59 @@ export default function ChangePassword({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // 성공 메시지 후 자동으로 팝업 닫기
+  useEffect(() => {
+    if (msg) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [msg, onClose]);
+
   async function handleChange(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError('');
     setMsg('');
-    const admin = loadAdminUser();
-    if (!admin) {
-      setError('관리자 계정이 존재하지 않습니다.');
+    
+    try {
+      const admin = await firebaseStorage.getAdminUser();
+      if (!admin) {
+        setError('관리자 계정이 존재하지 않습니다.');
+        setLoading(false);
+        return;
+      }
+      
+      const oldHash = await hashPassword(oldPw);
+      if (oldHash !== admin.passwordHash) {
+        setError('기존 비밀번호가 올바르지 않습니다.');
+        setLoading(false);
+        return;
+      }
+      
+      if (newPw.length < 6) {
+        setError('새 비밀번호는 6자 이상이어야 합니다.');
+        setLoading(false);
+        return;
+      }
+      
+      if (newPw !== newPw2) {
+        setError('새 비밀번호가 일치하지 않습니다.');
+        setLoading(false);
+        return;
+      }
+      
+      const newHash = await hashPassword(newPw);
+      await firebaseStorage.saveAdminUser({ username: 'admin', passwordHash: newHash });
+      setMsg('비밀번호가 성공적으로 변경되었습니다.');
+      setOldPw(''); setNewPw(''); setNewPw2('');
+    } catch (error) {
+      console.error('비밀번호 변경 실패:', error);
+      setError('비밀번호 변경 중 오류가 발생했습니다. 네트워크 연결을 확인해주세요.');
+    } finally {
       setLoading(false);
-      return;
     }
-    const oldHash = await hashPassword(oldPw);
-    if (oldHash !== admin.passwordHash) {
-      setError('기존 비밀번호가 올바르지 않습니다.');
-      setLoading(false);
-      return;
-    }
-    if (newPw.length < 6) {
-      setError('새 비밀번호는 6자 이상이어야 합니다.');
-      setLoading(false);
-      return;
-    }
-    if (newPw !== newPw2) {
-      setError('새 비밀번호가 일치하지 않습니다.');
-      setLoading(false);
-      return;
-    }
-    const newHash = await hashPassword(newPw);
-    saveAdminUser({ username: 'admin', passwordHash: newHash });
-    setMsg('비밀번호가 성공적으로 변경되었습니다.');
-    setOldPw(''); setNewPw(''); setNewPw2('');
-    setLoading(false);
   }
 
   return (
