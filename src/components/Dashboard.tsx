@@ -39,6 +39,8 @@ const Dashboard: React.FC = () => {
   const [selectedCity, setSelectedCity] = useState<string|null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [showProgramPopup, setShowProgramPopup] = useState(false);
+  const [showBudgetUsagePopup, setShowBudgetUsagePopup] = useState(false);
+  const [selectedBudgetItem, setSelectedBudgetItem] = useState<BudgetItem | null>(null);
   const [programStats, setProgramStats] = useState<{ [key: string]: { count: number; people: number } }>({});
 
   function handleTotalCountClick() {
@@ -146,6 +148,12 @@ const Dashboard: React.FC = () => {
   // 예산 항목 삭제 핸들러
   const handleDeleteBudget = async (id: string) => {
     await firebaseStorage.deleteBudget(id);
+  };
+
+  // 예산명 클릭 핸들러
+  const handleBudgetItemClick = (budgetItem: BudgetItem) => {
+    setSelectedBudgetItem(budgetItem);
+    setShowBudgetUsagePopup(true);
   };
 
   // 예산명별 사용액 집계
@@ -395,6 +403,7 @@ const Dashboard: React.FC = () => {
                       handleEditBudget={handleEditBudget}
                       handleSaveBudget={handleSaveBudget}
                       handleDeleteBudget={handleDeleteBudget}
+                      handleBudgetItemClick={handleBudgetItemClick}
                       used={getBudgetUsageSum(item.id)}
                       isDragging={false}
                     />
@@ -463,12 +472,73 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* 예산 사용 내역 팝업 */}
+      {showBudgetUsagePopup && selectedBudgetItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[80vh] p-6 relative animate-fadeIn">
+            <button 
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" 
+              onClick={() => setShowBudgetUsagePopup(false)}
+            >
+              &times;
+            </button>
+            <h3 className="text-2xl font-bold mb-4 text-blue-700">
+              {selectedBudgetItem.name} 사용 내역
+            </h3>
+            <div className="max-h-[60vh] overflow-y-auto">
+              {(() => {
+                const usages = filteredBudgetUsages.filter(u => u.budgetItemId === selectedBudgetItem.id);
+                return usages.length > 0 ? (
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th className="px-3 py-2 text-left">적요</th>
+                        <th className="px-3 py-2 text-left">채주</th>
+                        <th className="px-3 py-2 text-right">집행액</th>
+                        <th className="px-3 py-2 text-center">집행일자</th>
+                        <th className="px-3 py-2 text-center">결제방법</th>
+                        <th className="px-3 py-2 text-left">메모</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {usages.map((usage, idx) => (
+                        <tr key={usage.id} className="hover:bg-blue-50 border-b">
+                          <td className="px-3 py-2 font-medium text-gray-900">{usage.description}</td>
+                          <td className="px-3 py-2 text-gray-700">{usage.vendor}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-blue-600">
+                            {Number(usage.amount).toLocaleString()}원
+                          </td>
+                          <td className="px-3 py-2 text-center text-gray-700">{usage.date}</td>
+                          <td className="px-3 py-2 text-center text-gray-700">{usage.paymentMethod}</td>
+                          <td className="px-3 py-2 text-gray-600">{usage.note || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-gray-50">
+                      <tr>
+                        <td colSpan={2} className="px-3 py-2 font-semibold text-gray-900">총 사용액</td>
+                        <td className="px-3 py-2 text-right font-bold text-blue-600">
+                          {usages.reduce((sum, u) => sum + Number(u.amount), 0).toLocaleString()}원
+                        </td>
+                        <td colSpan={3}></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                ) : (
+                  <div className="text-gray-500 text-center py-8">사용 내역이 없습니다</div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 // BudgetRow 컴포넌트 정의 (드래그핸들, 삭제, 수정, UI 개선)
-function BudgetRow({ item, editingBudgetId, editingBudgetName, editingBudgetAmount, setEditingBudgetName, setEditingBudgetAmount, setEditingBudgetId, handleEditBudget, handleSaveBudget, handleDeleteBudget, used, isDragging }: any) {
+function BudgetRow({ item, editingBudgetId, editingBudgetName, editingBudgetAmount, setEditingBudgetName, setEditingBudgetAmount, setEditingBudgetId, handleEditBudget, handleSaveBudget, handleDeleteBudget, handleBudgetItemClick, used, isDragging }: any) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging: dndDragging } = useSortable({ id: item.id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -485,9 +555,13 @@ function BudgetRow({ item, editingBudgetId, editingBudgetName, editingBudgetAmou
           <input className="border rounded px-2 py-1 w-32" value={editingBudgetName} onChange={e => setEditingBudgetName(e.target.value)} />
         ) : (
           <>
-            <span className={item.name.includes('북부')
-              ? 'bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-semibold'
-              : 'bg-gray-100 text-gray-800 px-2 py-1 rounded font-semibold'}>
+            <span 
+              className={`${item.name.includes('북부')
+                ? 'bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-semibold'
+                : 'bg-gray-100 text-gray-800 px-2 py-1 rounded font-semibold'} cursor-pointer hover:opacity-80 transition-opacity`}
+              onClick={() => handleBudgetItemClick(item)}
+              title="클릭하여 사용 내역 보기"
+            >
               {item.name}
             </span>
             {item.region === '남부' && (

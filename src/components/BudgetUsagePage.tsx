@@ -10,8 +10,14 @@ const BudgetUsagePage: React.FC = () => {
   const [editingId, setEditingId] = useState<string|null>(null);
   const [editForm, setEditForm] = useState<Partial<BudgetUsage>>({});
   const [budgetSearch, setBudgetSearch] = useState('');
+  const [regionFilter, setRegionFilter] = useState<'전체' | '남부' | '북부'>('전체');
+  
   const filteredBudgetItems = budgetItems
-    .filter(item => item.name.includes(budgetSearch))
+    .filter(item => {
+      const matchesSearch = item.name.includes(budgetSearch);
+      const matchesRegion = regionFilter === '전체' || item.region === regionFilter;
+      return matchesSearch && matchesRegion;
+    })
     .sort((a, b) => b.name.localeCompare(a.name, 'ko'));
   // 최신순 정렬 (집행일자 기준, 없으면 id 기준)
   const sortedBudgetUsages = [...budgetUsages].sort((a, b) => {
@@ -32,6 +38,28 @@ const BudgetUsagePage: React.FC = () => {
     const unsubUsages = firebaseStorage.subscribeToBudgetUsages(setBudgetUsages);
     return () => { unsubBudgets(); unsubUsages(); };
   }, []);
+
+  // ESC 키로 수정모드 종료
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (editingId) {
+          setEditingId(null);
+          setEditForm({});
+        }
+        if (adding) {
+          setAdding(false);
+          setAddForm({
+            budgetItemId: budgetItems[0]?.id || '',
+            description: '', vendor: '', amount: 0, date: '', paymentMethod: '', note: ''
+          });
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [editingId, adding, budgetItems]);
 
   const handleAddUsage = () => {
     setAdding(true);
@@ -81,7 +109,7 @@ const BudgetUsagePage: React.FC = () => {
           </button>
         </div>
       </div>
-      <div className="mb-4 flex gap-2">
+      <div className="mb-4 flex gap-2 items-center">
         <input
           type="text"
           className="border rounded px-3 py-2 w-64"
@@ -89,6 +117,21 @@ const BudgetUsagePage: React.FC = () => {
           value={budgetSearch}
           onChange={e => setBudgetSearch(e.target.value)}
         />
+        <div className="flex gap-2">
+          {['전체', '남부', '북부'].map(region => (
+            <button
+              key={region}
+              className={`px-4 py-2 rounded-full border font-semibold transition-colors duration-200 ${
+                regionFilter === region 
+                  ? 'bg-blue-600 text-white border-blue-600' 
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'
+              }`}
+              onClick={() => setRegionFilter(region as '전체' | '남부' | '북부')}
+            >
+              {region}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="grid gap-4">
         {/* 추가 내역 입력 카드 (맨 위) */}
