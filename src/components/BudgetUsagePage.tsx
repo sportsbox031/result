@@ -9,16 +9,33 @@ const BudgetUsagePage: React.FC = () => {
   const [budgetUsages, setBudgetUsages] = useState<BudgetUsage[]>([]);
   const [editingId, setEditingId] = useState<string|null>(null);
   const [editForm, setEditForm] = useState<Partial<BudgetUsage>>({});
-  const [budgetSearch, setBudgetSearch] = useState('');
   const [regionFilter, setRegionFilter] = useState<'전체' | '남부' | '북부'>('전체');
+  
+  // 남부/북부 예산명 매칭 함수
+  const getRegionFromBudgetName = (budgetName: string): '남부' | '북부' | null => {
+    const southBudgets = [
+      '스포츠이벤트(동/하계)', '용품구입비', '근무자피복비(동/하계)', '간담회 및 회의운영', 
+      '차량리스비', '차량관리비(유류비,정비,세차 등)', '차량보험료', '기타운영비', 
+      '사업홍보비', '전산구축 및 유지보수', '주최자배상책임공제', '운동 영상장비 구입'
+    ];
+    const northBudgets = [
+      '용품구입비_북부', '근무자 피복비_북부(동/하계)', '간담회 및 회의운영_북부', 
+      '차량리스비_북부', '차량관리비_북부(유류비,정비,세차 등)', '차량개조비_북부(래핑,앵글제작 등)', 
+      '차량보험료_북부', '기타운영비_북부', '사업홍보비_북부', '운영수당(스포츠박스)_북부'
+    ];
+    
+    if (southBudgets.includes(budgetName)) return '남부';
+    if (northBudgets.includes(budgetName)) return '북부';
+    return null;
+  };
   
   const filteredBudgetItems = budgetItems
     .filter(item => {
-      const matchesSearch = item.name.includes(budgetSearch);
-      const matchesRegion = regionFilter === '전체' || item.region === regionFilter;
-      return matchesSearch && matchesRegion;
+      const itemRegion = getRegionFromBudgetName(item.name);
+      const matchesRegion = regionFilter === '전체' || itemRegion === regionFilter;
+      return matchesRegion;
     })
-    .sort((a, b) => b.name.localeCompare(a.name, 'ko'));
+    .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
   // 최신순 정렬 (집행일자 기준, 없으면 id 기준)
   const sortedBudgetUsages = [...budgetUsages].sort((a, b) => {
     if (a.date && b.date) {
@@ -109,30 +126,7 @@ const BudgetUsagePage: React.FC = () => {
           </button>
         </div>
       </div>
-      <div className="mb-4 flex gap-2 items-center">
-        <input
-          type="text"
-          className="border rounded px-3 py-2 w-64"
-          placeholder="예산명 검색..."
-          value={budgetSearch}
-          onChange={e => setBudgetSearch(e.target.value)}
-        />
-        <div className="flex gap-2">
-          {['전체', '남부', '북부'].map(region => (
-            <button
-              key={region}
-              className={`px-4 py-2 rounded-full border font-semibold transition-colors duration-200 ${
-                regionFilter === region 
-                  ? 'bg-blue-600 text-white border-blue-600' 
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'
-              }`}
-              onClick={() => setRegionFilter(region as '전체' | '남부' | '북부')}
-            >
-              {region}
-            </button>
-          ))}
-        </div>
-      </div>
+
       <div className="grid gap-4">
         {/* 추가 내역 입력 카드 (맨 위) */}
         {adding && (
@@ -141,6 +135,22 @@ const BudgetUsagePage: React.FC = () => {
               {/* 예산명/지역 */}
               <div className="flex-1 min-w-[120px]">
                 <label className="block text-xs font-medium text-gray-500 mb-1">예산명</label>
+                <div className="flex gap-2 mb-2">
+                  {['전체', '남부', '북부'].map(region => (
+                    <button
+                      key={region}
+                      type="button"
+                      className={`px-3 py-1 rounded-full border text-xs font-semibold transition-colors duration-200 ${
+                        regionFilter === region 
+                          ? 'bg-blue-600 text-white border-blue-600' 
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'
+                      }`}
+                      onClick={() => setRegionFilter(region as '전체' | '남부' | '북부')}
+                    >
+                      {region}
+                    </button>
+                  ))}
+                </div>
                 <select
                   className="border rounded px-2 py-1 w-full"
                   value={addForm.budgetItemId}
@@ -220,15 +230,33 @@ const BudgetUsagePage: React.FC = () => {
                 <div className="flex-1 min-w-[120px]">
                   <label className="block text-xs font-medium text-gray-500 mb-1">예산명</label>
                   {isEditing ? (
-                    <select
-                      className="border rounded px-2 py-1 w-full"
-                      value={editForm.budgetItemId}
-                      onChange={e => handleChange('budgetItemId', e.target.value)}
-                    >
-                      {filteredBudgetItems.map(item => (
-                        <option key={item.id} value={item.id}>{item.name}</option>
-                      ))}
-                    </select>
+                    <>
+                      <div className="flex gap-2 mb-2">
+                        {['전체', '남부', '북부'].map(region => (
+                          <button
+                            key={region}
+                            type="button"
+                            className={`px-3 py-1 rounded-full border text-xs font-semibold transition-colors duration-200 ${
+                              regionFilter === region 
+                                ? 'bg-blue-600 text-white border-blue-600' 
+                                : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'
+                            }`}
+                            onClick={() => setRegionFilter(region as '전체' | '남부' | '북부')}
+                          >
+                            {region}
+                          </button>
+                        ))}
+                      </div>
+                      <select
+                        className="border rounded px-2 py-1 w-full"
+                        value={editForm.budgetItemId}
+                        onChange={e => handleChange('budgetItemId', e.target.value)}
+                      >
+                        {filteredBudgetItems.map(item => (
+                          <option key={item.id} value={item.id}>{item.name}</option>
+                        ))}
+                      </select>
+                    </>
                   ) : (
                     <span
                       className={
