@@ -11,6 +11,7 @@ import { useToast } from './hooks/useToast';
 import { useFirebaseData } from './hooks/useFirebaseData';
 import { Loader2 } from 'lucide-react';
 import BudgetUsagePage from './components/BudgetUsagePage';
+import Manual from './components/Manual';
 import Login from './components/Login';
 import ChangePassword from './components/ChangePassword';
 import { loadAdminUser } from './utils/storage';
@@ -84,6 +85,8 @@ function App() {
         return <PerformanceList />;
       case 'budget-usage':
         return <BudgetUsagePage />;
+      case 'manual':
+        return <Manual />;
       default:
         return <Dashboard />;
     }

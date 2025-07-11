@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, TrendingUp, FileText, BarChart3, Upload } from 'lucide-react';
+import { Users, TrendingUp, FileText, BarChart3, Upload, BookOpen } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -15,6 +15,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onPageChange }) 
     { id: 'performance-input', name: '실적 입력', icon: TrendingUp },
     { id: 'performance-list', name: '실적 조회', icon: Users },
     { id: 'budget-usage', name: '예산 사용 내역', icon: FileText },
+    { id: 'manual', name: '사용매뉴얼', icon: BookOpen },
   ];
 
   return (
