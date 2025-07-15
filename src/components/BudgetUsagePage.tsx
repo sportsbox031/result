@@ -139,7 +139,7 @@ const BudgetUsagePage: React.FC = () => {
   }, [regionFilter, adding, editingId, filteredBudgetItems, addForm.budgetItemId, editForm.budgetItemId, budgetItems]);
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-2">
+    <div className="w-full max-w-[2000px] mx-auto px-2 overflow-x-hidden">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">예산 사용 내역</h1>
         <div className="flex gap-2">
@@ -155,10 +155,10 @@ const BudgetUsagePage: React.FC = () => {
       <div className="grid gap-4">
         {/* 추가 내역 입력 카드 (맨 위) */}
         {adding && (
-          <div className="rounded-xl shadow-md border-2 border-blue-300 bg-white ring-2 ring-blue-400 overflow-x-auto">
-            <div className="flex flex-col md:flex-row md:flex-wrap md:items-center gap-4 p-6 min-w-[2000px] max-w-full">
+          <div className="rounded-xl shadow-md border-2 border-blue-300 bg-white ring-2 ring-blue-400">
+            <div className="flex md:flex-row md:items-center gap-4 p-6 w-full">
               {/* 예산명/지역 */}
-              <div className="flex-none w-48 min-w-[160px] max-w-[200px]">
+              <div className="flex-none w-48 min-w-[180px]">
                 <label className="block text-xs font-medium text-gray-500 mb-1">예산명</label>
                 <div className="flex gap-2 mb-2">
                   {['전체', '남부', '북부'].map(region => (
@@ -187,17 +187,17 @@ const BudgetUsagePage: React.FC = () => {
                 </select>
               </div>
               {/* 적요 */}
-              <div className="flex-[4] min-w-[500px] max-w-[700px]">
+              <div className="flex-[3] min-w-[400px]">
                 <label className="block text-xs font-medium text-gray-500 mb-1">적요</label>
                 <input className="border rounded px-2 py-1 w-full" value={addForm.description || ''} onChange={e => handleAddChange('description', e.target.value)} />
               </div>
               {/* 채주 */}
-              <div className="flex-none w-28 min-w-[60px] max-w-[100px]">
+              <div className="flex-none w-28 min-w-[80px]">
                 <label className="block text-xs font-medium text-gray-500 mb-1">채주</label>
                 <input className="border rounded px-2 py-1 w-full" value={addForm.vendor || ''} onChange={e => handleAddChange('vendor', e.target.value)} />
               </div>
               {/* 집행액 */}
-              <div className="flex-none w-36 min-w-[120px] max-w-[140px] text-right">
+              <div className="flex-none w-32 min-w-[100px] text-right">
                 <label className="block text-xs font-medium text-gray-500 mb-1">집행액</label>
                 <input
                   type="text"
@@ -210,12 +210,12 @@ const BudgetUsagePage: React.FC = () => {
                 />
               </div>
               {/* 집행일자 */}
-              <div className="flex-none w-40 min-w-[120px] max-w-[140px] text-center">
+              <div className="flex-none w-36 min-w-[120px] text-center">
                 <label className="block text-xs font-medium text-gray-500 mb-1">집행일자</label>
                 <input type="date" className="border rounded px-2 py-1 w-full" value={addForm.date || ''} onChange={e => handleAddChange('date', e.target.value)} />
               </div>
               {/* 결제방법 */}
-              <div className="flex-none w-36 min-w-[100px] max-w-[120px] text-center">
+              <div className="flex-none w-32 min-w-[100px] text-center">
                 <label className="block text-xs font-medium text-gray-500 mb-1">결제방법</label>
                 <select className="border rounded px-2 py-1 w-full" value={addForm.paymentMethod || ''} onChange={e => handleAddChange('paymentMethod', e.target.value)}>
                   <option value="">선택</option>
@@ -224,12 +224,12 @@ const BudgetUsagePage: React.FC = () => {
                 </select>
               </div>
               {/* 메모 */}
-              <div className="flex-none w-32 min-w-[80px] max-w-[120px]">
+              <div className="flex-none w-32 min-w-[100px]">
                 <label className="block text-xs font-medium text-gray-500 mb-1">메모</label>
                 <input className="border rounded px-2 py-1 w-full" value={addForm.note || ''} onChange={e => handleAddChange('note', e.target.value)} />
               </div>
               {/* 저장/취소 버튼 */}
-              <div className="flex flex-col gap-2 items-center justify-center flex-none w-20 min-w-[60px] max-w-[80px]">
+              <div className="flex flex-col gap-2 items-center justify-center flex-none w-16 min-w-[60px]">
                 <button className="p-2 bg-blue-600 text-white rounded-full shadow hover:bg-blue-700 transition" onClick={handleAddSave} title="저장">
                   <Save className="w-5 h-5" />
                 </button>
@@ -247,12 +247,12 @@ const BudgetUsagePage: React.FC = () => {
           return (
             <div
               key={usage.id}
-              className={`rounded-xl shadow-md border border-gray-100 bg-white hover:shadow-lg transition cursor-pointer relative ${isEditing ? 'ring-2 ring-blue-400' : 'hover:ring-1 hover:ring-blue-200'} overflow-x-auto`}
+              className={`rounded-xl shadow-md border border-gray-100 bg-white hover:shadow-lg transition cursor-pointer relative ${isEditing ? 'ring-2 ring-blue-400' : 'hover:ring-1 hover:ring-blue-200'}`}
               onClick={() => !isEditing && handleEdit(usage)}
             >
-              <div className="flex flex-col md:flex-row md:flex-wrap md:items-center gap-4 p-6 min-w-[2000px] max-w-full">
+              <div className="flex md:flex-row md:items-center gap-4 p-6 w-full">
                 {/* 예산명/지역 */}
-                <div className="flex-none w-48 min-w-[160px] max-w-[200px]">
+                <div className="flex-none w-48 min-w-[180px]">
                   <label className="block text-xs font-medium text-gray-500 mb-1">예산명</label>
                   {isEditing ? (
                     <>
@@ -295,7 +295,7 @@ const BudgetUsagePage: React.FC = () => {
                   )}
                 </div>
                 {/* 적요 */}
-                <div className="flex-[4] min-w-[500px] max-w-[700px]">
+                <div className="flex-[3] min-w-[400px]">
                   {isEditing ? (
                     <div>
                       <label className="block text-xs font-medium text-gray-500 mb-1">적요</label>
@@ -306,7 +306,7 @@ const BudgetUsagePage: React.FC = () => {
                   )}
                 </div>
                 {/* 채주 */}
-                <div className="flex-none w-28 min-w-[60px] max-w-[100px]">
+                <div className="flex-none w-28 min-w-[80px]">
                   {isEditing ? (
                     <div>
                       <label className="block text-xs font-medium text-gray-500 mb-1">채주</label>
@@ -317,7 +317,7 @@ const BudgetUsagePage: React.FC = () => {
                   )}
                 </div>
                 {/* 집행액 */}
-                <div className="flex-none w-36 min-w-[120px] max-w-[140px] text-right">
+                <div className="flex-none w-32 min-w-[100px] text-right">
                   {isEditing ? (
                     <div>
                       <label className="block text-xs font-medium text-gray-500 mb-1">집행액</label>
@@ -336,7 +336,7 @@ const BudgetUsagePage: React.FC = () => {
                   )}
                 </div>
                 {/* 회계일자 */}
-                <div className="flex-none w-40 min-w-[120px] max-w-[140px] text-center">
+                <div className="flex-none w-36 min-w-[120px] text-center">
                   {isEditing ? (
                     <div>
                       <label className="block text-xs font-medium text-gray-500 mb-1">집행일자</label>
@@ -347,7 +347,7 @@ const BudgetUsagePage: React.FC = () => {
                   )}
                 </div>
                 {/* 결제방법 */}
-                <div className="flex-none w-36 min-w-[100px] max-w-[120px] text-center">
+                <div className="flex-none w-32 min-w-[100px] text-center">
                   {isEditing ? (
                     <div>
                       <label className="block text-xs font-medium text-gray-500 mb-1">결제방법</label>
@@ -362,7 +362,7 @@ const BudgetUsagePage: React.FC = () => {
                   )}
                 </div>
                 {/* 비고 */}
-                <div className="flex-none w-32 min-w-[80px] max-w-[120px]">
+                <div className="flex-none w-32 min-w-[100px]">
                   {isEditing ? (
                     <div>
                       <label className="block text-xs font-medium text-gray-500 mb-1">메모</label>
@@ -374,7 +374,7 @@ const BudgetUsagePage: React.FC = () => {
                 </div>
                 {/* 저장/취소 버튼 */}
                 {isEditing && (
-                  <div className="flex flex-col gap-2 items-center justify-center flex-none w-20 min-w-[60px] max-w-[80px]">
+                  <div className="flex flex-col gap-2 items-center justify-center flex-none w-16 min-w-[60px]">
                     <button className="p-2 bg-blue-600 text-white rounded-full shadow hover:bg-blue-700 transition" onClick={handleSave} title="저장">
                       <Save className="w-5 h-5" />
                     </button>
