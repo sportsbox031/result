@@ -254,9 +254,9 @@ const PerformanceInput: React.FC = () => {
       </div>
 
       {activeTab === 'manual' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-8">
+          <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
               <div>
                 <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
                   날짜 *
@@ -368,12 +368,12 @@ const PerformanceInput: React.FC = () => {
             )}
 
             {/* 인원수 입력 */}
-            <div className="bg-blue-50 rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <div className="bg-blue-50 rounded-lg p-4 lg:p-6">
+              <h3 className="text-base lg:text-lg font-medium text-gray-900 mb-4 flex items-center">
                 <Users className="w-5 h-5 mr-2 text-blue-600" />
                 참여 인원
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div>
                   <label htmlFor="maleCount" className="block text-sm font-medium text-gray-700 mb-2">
                     남성 인원
@@ -450,7 +450,7 @@ const PerformanceInput: React.FC = () => {
             <div className="flex justify-end">
               <button
                 type="submit"
-                className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center"
+                className="w-full lg:w-auto bg-blue-600 text-white px-6 lg:px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center"
               >
                 {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                 실적 저장
@@ -548,8 +548,8 @@ const PerformanceInput: React.FC = () => {
 
       {/* 성공 모달 */}
       {showSuccessModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 lg:p-8 max-w-md w-full">
             <div className="text-center">
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">저장 완료!</h3>
@@ -581,8 +581,8 @@ const PerformanceInput: React.FC = () => {
 
       {/* 업로드 완료 모달 */}
       {showUploadSuccessModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 lg:p-8 max-w-md w-full">
             <div className="text-center">
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">일괄등록 완료!</h3>
@@ -614,8 +614,8 @@ const PerformanceInput: React.FC = () => {
 
       {/* 저장 방법 모달 */}
       {showInstructionModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 lg:p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
             <div className="mb-6">
               <h3 className="text-xl font-semibold text-gray-900 mb-2">실적 데이터 저장 방법</h3>
               <p className="text-gray-600">실적 데이터를 올바르게 저장하는 방법을 안내합니다.</p>

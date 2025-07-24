@@ -139,14 +139,20 @@ const BudgetUsagePage: React.FC = () => {
   }, [regionFilter, adding, editingId, filteredBudgetItems, addForm.budgetItemId, editForm.budgetItemId, budgetItems]);
 
   return (
-    <div className="w-full max-w-[2000px] mx-auto px-2 overflow-x-hidden">
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">예산 사용 내역</h1>
-        <div className="flex gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition" onClick={handleAddUsage}>
+    <div className="w-full max-w-[2000px] mx-auto px-2 lg:px-4 overflow-x-hidden">
+      <div className="mb-6 lg:mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <h1 className="text-xl lg:text-2xl font-bold text-gray-900">예산 사용 내역</h1>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button 
+            className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition min-h-[44px]" 
+            onClick={handleAddUsage}
+          >
             <Plus className="w-4 h-4" /> 내역 추가
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition" onClick={() => downloadBudgetUsageExcel(budgetUsages, budgetItems)}>
+          <button 
+            className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition min-h-[44px]" 
+            onClick={() => downloadBudgetUsageExcel(budgetUsages, budgetItems)}
+          >
             엑셀 다운로드
           </button>
         </div>
@@ -156,9 +162,9 @@ const BudgetUsagePage: React.FC = () => {
         {/* 추가 내역 입력 카드 (맨 위) */}
         {adding && (
           <div className="rounded-xl shadow-md border-2 border-blue-300 bg-white ring-2 ring-blue-400">
-            <div className="flex md:flex-row md:items-center gap-4 p-6 w-full">
+            <div className="flex flex-col lg:flex-row lg:items-center gap-4 p-4 lg:p-6 w-full">
               {/* 예산명/지역 */}
-              <div className="flex-none w-48 min-w-[180px]">
+              <div className="flex-none w-full lg:w-48 lg:min-w-[180px]">
                 <label className="block text-xs font-medium text-gray-500 mb-1">예산명</label>
                 <div className="flex gap-2 mb-2">
                   {['전체', '남부', '북부'].map(region => (
@@ -187,21 +193,21 @@ const BudgetUsagePage: React.FC = () => {
                 </select>
               </div>
               {/* 적요 */}
-              <div className="flex-[3] min-w-[400px]">
+              <div className="flex-1 lg:flex-[3] lg:min-w-[400px]">
                 <label className="block text-xs font-medium text-gray-500 mb-1">적요</label>
-                <input className="border rounded px-2 py-1 w-full" value={addForm.description || ''} onChange={e => handleAddChange('description', e.target.value)} />
+                <input className="border rounded px-3 py-2 w-full min-h-[44px]" value={addForm.description || ''} onChange={e => handleAddChange('description', e.target.value)} />
               </div>
               {/* 채주 */}
-              <div className="flex-none w-28 min-w-[80px]">
+              <div className="flex-1 lg:flex-none lg:w-28 lg:min-w-[80px]">
                 <label className="block text-xs font-medium text-gray-500 mb-1">채주</label>
-                <input className="border rounded px-2 py-1 w-full" value={addForm.vendor || ''} onChange={e => handleAddChange('vendor', e.target.value)} />
+                <input className="border rounded px-3 py-2 w-full min-h-[44px]" value={addForm.vendor || ''} onChange={e => handleAddChange('vendor', e.target.value)} />
               </div>
               {/* 집행액 */}
-              <div className="flex-none w-32 min-w-[100px] text-right">
+              <div className="flex-1 lg:flex-none lg:w-32 lg:min-w-[100px] text-right">
                 <label className="block text-xs font-medium text-gray-500 mb-1">집행액</label>
                 <input
                   type="text"
-                  className="border rounded px-2 py-1 w-full text-right"
+                  className="border rounded px-3 py-2 w-full text-right min-h-[44px]"
                   value={addForm.amount !== undefined && addForm.amount !== null ? Number(addForm.amount).toLocaleString() : ''}
                   onChange={e => {
                     const raw = e.target.value.replace(/,/g, '');
@@ -210,31 +216,31 @@ const BudgetUsagePage: React.FC = () => {
                 />
               </div>
               {/* 집행일자 */}
-              <div className="flex-none w-36 min-w-[120px] text-center">
+              <div className="flex-1 lg:flex-none lg:w-36 lg:min-w-[120px] text-center">
                 <label className="block text-xs font-medium text-gray-500 mb-1">집행일자</label>
-                <input type="date" className="border rounded px-2 py-1 w-full" value={addForm.date || ''} onChange={e => handleAddChange('date', e.target.value)} />
+                <input type="date" className="border rounded px-3 py-2 w-full min-h-[44px]" value={addForm.date || ''} onChange={e => handleAddChange('date', e.target.value)} />
               </div>
               {/* 결제방법 */}
-              <div className="flex-none w-32 min-w-[100px] text-center">
+              <div className="flex-1 lg:flex-none lg:w-32 lg:min-w-[100px] text-center">
                 <label className="block text-xs font-medium text-gray-500 mb-1">결제방법</label>
-                <select className="border rounded px-2 py-1 w-full" value={addForm.paymentMethod || ''} onChange={e => handleAddChange('paymentMethod', e.target.value)}>
+                <select className="border rounded px-3 py-2 w-full min-h-[44px]" value={addForm.paymentMethod || ''} onChange={e => handleAddChange('paymentMethod', e.target.value)}>
                   <option value="">선택</option>
                   <option value="계좌입금">계좌입금</option>
                   <option value="카드결제">카드결제</option>
                 </select>
               </div>
               {/* 메모 */}
-              <div className="flex-none w-32 min-w-[100px]">
+              <div className="flex-1 lg:flex-none lg:w-32 lg:min-w-[100px]">
                 <label className="block text-xs font-medium text-gray-500 mb-1">메모</label>
-                <input className="border rounded px-2 py-1 w-full" value={addForm.note || ''} onChange={e => handleAddChange('note', e.target.value)} />
+                <input className="border rounded px-3 py-2 w-full min-h-[44px]" value={addForm.note || ''} onChange={e => handleAddChange('note', e.target.value)} />
               </div>
               {/* 저장/취소 버튼 */}
-              <div className="flex flex-col gap-2 items-center justify-center flex-none w-16 min-w-[60px]">
-                <button className="p-2 bg-blue-600 text-white rounded-full shadow hover:bg-blue-700 transition" onClick={handleAddSave} title="저장">
-                  <Save className="w-5 h-5" />
+              <div className="flex flex-row lg:flex-col gap-2 items-center justify-center flex-none w-full lg:w-16 lg:min-w-[60px]">
+                <button className="p-3 lg:p-2 bg-blue-600 text-white rounded-lg lg:rounded-full shadow hover:bg-blue-700 transition min-h-[44px] min-w-[44px] flex-1 lg:flex-none" onClick={handleAddSave} title="저장">
+                  <Save className="w-5 h-5 mx-auto" />
                 </button>
-                <button className="p-2 bg-gray-200 text-gray-700 rounded-full shadow hover:bg-gray-300 transition" onClick={() => setAdding(false)} title="취소">
-                  <X className="w-5 h-5" />
+                <button className="p-3 lg:p-2 bg-gray-200 text-gray-700 rounded-lg lg:rounded-full shadow hover:bg-gray-300 transition min-h-[44px] min-w-[44px] flex-1 lg:flex-none" onClick={() => setAdding(false)} title="취소">
+                  <X className="w-5 h-5 mx-auto" />
                 </button>
               </div>
             </div>

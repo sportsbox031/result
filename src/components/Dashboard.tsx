@@ -177,14 +177,14 @@ const Dashboard: React.FC = () => {
     icon: React.ElementType;
     color: string;
   }> = ({ title, value, icon: Icon, color }) => (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-6">
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs lg:text-sm font-medium text-gray-600 truncate">{title}</p>
+          <p className="text-xl lg:text-3xl font-bold text-gray-900 mt-1 lg:mt-2 truncate">{value}</p>
         </div>
-        <div className={`p-3 rounded-lg ${color}`}>
-          <Icon className="w-6 h-6 text-white" />
+        <div className={`p-2 lg:p-3 rounded-lg ${color} flex-shrink-0 ml-2`}>
+          <Icon className="w-4 h-4 lg:w-6 lg:h-6 text-white" />
         </div>
       </div>
     </div>
@@ -197,13 +197,13 @@ const Dashboard: React.FC = () => {
     const maxTotal = Math.max(...data.map(d => d.total), 1);
     
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">시/군별 참여 현황</h2>
-        <div className="flex gap-2 mb-4">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-6">
+        <h2 className="text-lg lg:text-xl font-semibold text-gray-900 mb-4 lg:mb-6">시/군별 참여 현황</h2>
+        <div className="flex flex-wrap gap-2 mb-4">
           {['전체','남부','북부'].map(region => (
             <button
               key={region}
-              className={`px-4 py-2 rounded-full border font-semibold transition-colors duration-200 ${regionFilter===region ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}
+              className={`px-3 lg:px-4 py-2 rounded-full border font-semibold transition-colors duration-200 text-sm lg:text-base ${regionFilter===region ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}
               onClick={() => setRegionFilter(region as any)}
             >
               {region}
@@ -211,29 +211,30 @@ const Dashboard: React.FC = () => {
           ))}
         </div>
         {data.length > 0 ? (
-          <div className="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto">
+          <div className="grid grid-cols-1 gap-2 lg:gap-3 max-h-96 overflow-y-auto">
             {data.map((item, index) => (
-              <div key={index} className={`flex items-center space-x-4 p-3 bg-gray-50 rounded-lg transition cursor-pointer hover:shadow-md ${onBarClick ? 'hover:bg-blue-100' : ''}`}
+              <div key={index} className={`flex items-center space-x-2 lg:space-x-4 p-2 lg:p-3 bg-gray-50 rounded-lg transition cursor-pointer hover:shadow-md ${onBarClick ? 'hover:bg-blue-100' : ''}`}
                 onClick={onBarClick ? () => onBarClick(item.name) : undefined}
               >
-                <div className="text-sm font-medium text-gray-700 min-w-[70px] text-center">
+                <div className="text-xs lg:text-sm font-medium text-gray-700 min-w-[60px] lg:min-w-[70px] text-center">
                   {item.name}
                 </div>
                 <div className="flex-1">
-                  <div className="bg-gray-200 rounded-full h-6 relative">
+                  <div className="bg-gray-200 rounded-full h-5 lg:h-6 relative">
                     <div
-                      className="bg-blue-500 h-6 rounded-full transition-all duration-500 ease-out flex items-center justify-end pr-2"
+                      className="bg-blue-500 h-5 lg:h-6 rounded-full transition-all duration-500 ease-out flex items-center justify-end pr-1 lg:pr-2"
                       style={{ width: `${Math.max((item.total / maxTotal) * 100, 8)}%` }}
                       title={`${item.count}회, ${item.total.toLocaleString()}명`}
                     >
-                      <span className="text-xs text-white font-medium">
+                      <span className="text-xs text-white font-medium hidden sm:inline">
                         {item.total.toLocaleString()}명
                       </span>
                     </div>
                   </div>
                 </div>
-                <div className="text-sm text-gray-600 font-mono min-w-[50px] text-right">
-                  {item.count}회
+                <div className="text-xs lg:text-sm text-gray-600 font-mono min-w-[40px] lg:min-w-[50px] text-right">
+                  <div className="sm:hidden">{item.total.toLocaleString()}</div>
+                  <div>{item.count}회</div>
                 </div>
               </div>
             ))}
@@ -308,13 +309,13 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">대시보드</h1>
-        <p className="text-gray-600">수요처 및 실적 현황 개요</p>
+      <div className="mb-6 lg:mb-8">
+        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">대시보드</h1>
+        <p className="text-sm lg:text-base text-gray-600">수요처 및 실적 현황 개요</p>
       </div>
 
       {/* 통계 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
         <StatCard
           title="등록 단체수"
           value={stats.totalOrganizations.toString()}
@@ -344,7 +345,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* 전체 예산/사용/잔액/집행율 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
         <StatCard title="전체 예산액" value={totalBudget.toLocaleString() + '원'} icon={BarChart3} color="bg-blue-500" />
         <StatCard title="전체 사용액" value={totalUsed.toLocaleString() + '원'} icon={Users} color="bg-green-500" />
         <StatCard title="전체 잔액" value={totalRemain.toLocaleString() + '원'} icon={Building2} color="bg-gray-500" />
@@ -352,13 +353,34 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* 기간 필터 UI */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <label className="block text-sm font-medium text-gray-700">시작 날짜</label>
-          <input type="date" className="border rounded px-2 py-1" value={dateFilter.startDate ? dateFilter.startDate.toISOString().split('T')[0] : ''} onChange={e => setDateFilter(f => ({ ...f, startDate: e.target.value ? new Date(e.target.value) : undefined }))} />
-          <label className="block text-sm font-medium text-gray-700">종료 날짜</label>
-          <input type="date" className="border rounded px-2 py-1" value={dateFilter.endDate ? dateFilter.endDate.toISOString().split('T')[0] : ''} onChange={e => setDateFilter(f => ({ ...f, endDate: e.target.value ? new Date(e.target.value) : undefined }))} />
-          <button className="ml-2 px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-sm" onClick={() => setDateFilter({})}>전체 초기화</button>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-6 mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <label className="text-sm font-medium text-gray-700 whitespace-nowrap">시작 날짜</label>
+              <input 
+                type="date" 
+                className="border rounded px-3 py-2 text-sm w-full sm:w-auto" 
+                value={dateFilter.startDate ? dateFilter.startDate.toISOString().split('T')[0] : ''} 
+                onChange={e => setDateFilter(f => ({ ...f, startDate: e.target.value ? new Date(e.target.value) : undefined }))} 
+              />
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <label className="text-sm font-medium text-gray-700 whitespace-nowrap">종료 날짜</label>
+              <input 
+                type="date" 
+                className="border rounded px-3 py-2 text-sm w-full sm:w-auto" 
+                value={dateFilter.endDate ? dateFilter.endDate.toISOString().split('T')[0] : ''} 
+                onChange={e => setDateFilter(f => ({ ...f, endDate: e.target.value ? new Date(e.target.value) : undefined }))} 
+              />
+            </div>
+          </div>
+          <button 
+            className="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200 text-sm font-medium whitespace-nowrap" 
+            onClick={() => setDateFilter({})}
+          >
+            전체 초기화
+          </button>
         </div>
       </div>
 
@@ -370,23 +392,28 @@ const Dashboard: React.FC = () => {
       {/* 예산 사용 현황 테이블 */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={budgetItems.map(b => b.id)} strategy={verticalListSortingStrategy}>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">예산 사용 현황</h2>
-              <button className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700" onClick={handleAddBudget}>+ 예산 항목 추가</button>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-6 mb-6 lg:mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+              <h2 className="text-lg lg:text-xl font-semibold text-gray-900">예산 사용 현황</h2>
+              <button 
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium min-h-[44px] whitespace-nowrap" 
+                onClick={handleAddBudget}
+              >
+                + 예산 항목 추가
+              </button>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-xs lg:text-sm">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-2 py-2 text-center"></th>
-                    <th className="px-2 py-2 text-left">예산명</th>
-                    <th className="px-2 py-2 text-right">예산액</th>
-                    <th className="px-2 py-2 text-right">사용액</th>
-                    <th className="px-2 py-2 text-right">잔액</th>
-                    <th className="px-2 py-2 text-right">집행율(%)</th>
-                    <th className="px-2 py-2 text-center">수정</th>
-                    <th className="px-2 py-2 text-center">삭제</th>
+                    <th className="px-1 lg:px-2 py-2 text-center w-8"></th>
+                    <th className="px-1 lg:px-2 py-2 text-left min-w-[120px]">예산명</th>
+                    <th className="px-1 lg:px-2 py-2 text-right min-w-[80px]">예산액</th>
+                    <th className="px-1 lg:px-2 py-2 text-right min-w-[80px]">사용액</th>
+                    <th className="px-1 lg:px-2 py-2 text-right min-w-[80px]">잔액</th>
+                    <th className="px-1 lg:px-2 py-2 text-right min-w-[60px]">집행율</th>
+                    <th className="px-1 lg:px-2 py-2 text-center w-16">수정</th>
+                    <th className="px-1 lg:px-2 py-2 text-center w-16">삭제</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -419,10 +446,10 @@ const Dashboard: React.FC = () => {
 
       {/* 시/군별 통계 - 전체 화면 너비 사용 */}
       {showPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 relative animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 lg:p-6 relative animate-fadeIn">
             <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" onClick={()=>setShowPopup(false)}>&times;</button>
-            <h3 className="text-2xl font-bold mb-4 text-blue-700">{selectedCity} 수요처별 참여 현황</h3>
+            <h3 className="text-lg lg:text-2xl font-bold mb-4 text-blue-700 pr-8">{selectedCity} 수요처별 참여 현황</h3>
             {selectedCityOrganizations.length > 0 ? (
               <table className="w-full text-sm">
                 <thead>
@@ -450,10 +477,10 @@ const Dashboard: React.FC = () => {
       )}
 
       {showProgramPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8 relative animate-fadeIn border-2 border-green-400">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 lg:p-8 relative animate-fadeIn border-2 border-green-400">
             <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" onClick={()=>setShowProgramPopup(false)}>&times;</button>
-            <h3 className="text-2xl font-bold mb-6 text-green-700 text-center">프로그램별 실적 요약</h3>
+            <h3 className="text-lg lg:text-2xl font-bold mb-6 text-green-700 text-center pr-8">프로그램별 실적 요약</h3>
             <div className="grid gap-4">
               {['스포츠교실','스포츠체험존','스포츠이벤트'].map(prog => (
                 <div key={prog} className="bg-green-50 rounded-lg p-4 flex items-center justify-between shadow-sm border border-green-100">
@@ -475,15 +502,15 @@ const Dashboard: React.FC = () => {
 
       {/* 예산 사용 내역 팝업 */}
       {showBudgetUsagePopup && selectedBudgetItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[80vh] p-6 relative animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[80vh] p-4 lg:p-6 relative animate-fadeIn">
             <button 
               className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" 
               onClick={() => setShowBudgetUsagePopup(false)}
             >
               &times;
             </button>
-            <h3 className="text-2xl font-bold mb-4 text-blue-700">
+            <h3 className="text-lg lg:text-2xl font-bold mb-4 text-blue-700 pr-8">
               {selectedBudgetItem.name} 사용 내역
             </h3>
             <div className="max-h-[60vh] overflow-y-auto">

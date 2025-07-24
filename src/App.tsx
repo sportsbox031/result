@@ -95,9 +95,19 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Layout currentPage={currentPage} onPageChange={setCurrentPage}>
-        <div className="flex justify-end mb-2">
-          <button className="mr-2 px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm" onClick={() => setShowChangePw(true)}>비밀번호 변경</button>
-          <button className="px-3 py-1 bg-red-200 rounded hover:bg-red-300 text-sm" onClick={handleLogout}>로그아웃</button>
+        <div className="flex flex-col sm:flex-row justify-end gap-2 mb-4">
+          <button 
+            className="px-4 py-3 bg-gray-200 rounded hover:bg-gray-300 text-sm font-medium min-h-[44px] transition-colors" 
+            onClick={() => setShowChangePw(true)}
+          >
+            비밀번호 변경
+          </button>
+          <button 
+            className="px-4 py-3 bg-red-200 rounded hover:bg-red-300 text-sm font-medium min-h-[44px] transition-colors" 
+            onClick={handleLogout}
+          >
+            로그아웃
+          </button>
         </div>
         {renderCurrentPage()}
       </Layout>

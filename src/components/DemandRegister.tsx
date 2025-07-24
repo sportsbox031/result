@@ -172,11 +172,11 @@ const DemandRegister: React.FC = () => {
       </div>
 
       {/* 탭 네비게이션 */}
-      <div className="border-b border-gray-200 mb-8">
-        <nav className="-mb-px flex space-x-8">
+      <div className="border-b border-gray-200 mb-6 lg:mb-8">
+        <nav className="-mb-px flex space-x-4 lg:space-x-8 overflow-x-auto">
           <button
             onClick={() => setActiveTab('manual')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
               activeTab === 'manual'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -187,7 +187,7 @@ const DemandRegister: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('bulk')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
               activeTab === 'bulk'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -200,9 +200,9 @@ const DemandRegister: React.FC = () => {
       </div>
 
       {activeTab === 'manual' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-          <form onSubmit={handleManualSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-8">
+          <form onSubmit={handleManualSubmit} className="space-y-4 lg:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
               <div>
                 <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
                   시/군 *
@@ -266,7 +266,7 @@ const DemandRegister: React.FC = () => {
                   required
                 />
               </div>
-              <div className="md:col-span-2">
+              <div className="lg:col-span-2">
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                   이메일 (선택사항)
                 </label>
@@ -284,7 +284,7 @@ const DemandRegister: React.FC = () => {
             <div className="flex justify-end">
               <button
                 type="submit"
-                className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center"
+                className="w-full lg:w-auto bg-blue-600 text-white px-6 lg:px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -384,8 +384,8 @@ const DemandRegister: React.FC = () => {
 
       {/* 모달들 */}
       {showSuccessModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 lg:p-8 max-w-md w-full">
             <div className="text-center">
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">등록 완료!</h3>
@@ -402,8 +402,8 @@ const DemandRegister: React.FC = () => {
       )}
 
       {showUploadSuccessModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 lg:p-8 max-w-md w-full">
             <div className="text-center">
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">업로드 완료!</h3>
@@ -434,8 +434,8 @@ const DemandRegister: React.FC = () => {
       )}
 
       {showInstructionModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 lg:p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
             <div className="mb-6">
               <h3 className="text-xl font-semibold text-gray-900 mb-2">CSV 파일 저장 방법</h3>
               <p className="text-gray-600">한글이 깨지지 않게 저장하는 방법을 안내합니다.</p>

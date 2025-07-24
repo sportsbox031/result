@@ -105,3 +105,248 @@ button:active {
     transform: translateX(100%);
   }
 }
+
+/* 모바일 최적화 */
+@media (max-width: 768px) {
+  /* 터치 타겟 크기 최적화 */
+  button, input, select, textarea, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* 테이블 스크롤 개선 */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  
+  /* 모바일에서 호버 효과 제거 */
+  @media (hover: none) {
+    button:hover,
+    .hover\:bg-gray-50:hover,
+    .hover\:bg-blue-50:hover,
+    .hover\:bg-green-50:hover,
+    .hover\:bg-red-50:hover,
+    .hover\:bg-gray-100:hover,
+    .hover\:bg-gray-200:hover,
+    .hover\:bg-gray-300:hover,
+    .hover\:text-gray-700:hover,
+    .hover\:text-gray-900:hover,
+    .hover\:border-gray-300:hover {
+      background-color: inherit;
+      color: inherit;
+      border-color: inherit;
+    }
+  }
+  
+  /* 폰트 크기 조정 */
+  html {
+    font-size: 16px;
+  }
+  
+  /* 입력 필드 확대 방지 */
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    font-size: 16px;
+  }
+  
+  /* 모달 최적화 */
+  .fixed.inset-0 {
+    padding: 8px;
+  }
+  
+  /* 테이블 반응형 개선 */
+  table {
+    font-size: 14px;
+  }
+  
+  /* 버튼 간격 조정 */
+  .space-x-1 > * + * {
+    margin-left: 8px;
+  }
+  
+  .space-x-2 > * + * {
+    margin-left: 12px;
+  }
+}
+
+/* 작은 모바일 화면 (iPhone SE 등) */
+@media (max-width: 375px) {
+  /* 더 작은 폰트 크기 */
+  .text-3xl {
+    font-size: 1.5rem;
+  }
+  
+  .text-xl {
+    font-size: 1.125rem;
+  }
+  
+  /* 패딩 조정 */
+  .p-4 {
+    padding: 0.75rem;
+  }
+  
+  .p-6 {
+    padding: 1rem;
+  }
+  
+  /* 그리드 간격 조정 */
+  .gap-4 {
+    gap: 0.75rem;
+  }
+  
+  .gap-6 {
+    gap: 1rem;
+  }
+}
+
+/* 애니메이션 최적화 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* 모바일 사이드바 애니메이션 */
+@media (max-width: 1024px) {
+  .transform {
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  /* 사이드바 스크롤 개선 */
+  .sidebar-nav {
+    max-height: calc(100vh - 4rem);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* 터치 디바이스 최적화 */
+@media (pointer: coarse) {
+  /* 터치 타겟 크기 증가 */
+  button, 
+  input[type="button"], 
+  input[type="submit"], 
+  .clickable {
+    min-height: 48px;
+    min-width: 48px;
+  }
+  
+  /* 드롭다운 메뉴 터치 최적화 */
+  .dropdown-item {
+    padding: 12px 16px;
+    min-height: 48px;
+  }
+}
+
+/* 고해상도 디스플레이 최적화 */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* 아이콘과 이미지 선명도 개선 */
+  svg {
+    shape-rendering: geometricPrecision;
+  }
+}
+
+/* 가로 모드 최적화 */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* 헤더 높이 줄이기 */
+  .mobile-header {
+    padding: 0.5rem 1rem;
+  }
+  
+  /* 사이드바 너비 조정 */
+  .sidebar {
+    width: 200px;
+  }
+}
+
+/* 접근성 개선 */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 다크모드 지원 */
+@media (prefers-color-scheme: dark) {
+  /* 다크모드는 현재 미지원이지만 향후 확장 가능 */
+}
+
+/* 인쇄 최적화 */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    font-size: 12pt;
+    line-height: 1.4;
+  }
+  
+  .bg-gray-50 {
+    background: white !important;
+  }
+  
+  .shadow-sm,
+  .shadow-lg {
+    box-shadow: none !important;
+  }
+}
+
+/* 포커스 표시 개선 */
+.focus-visible:focus {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+/* 스크롤바 스타일링 개선 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* 로딩 상태 개선 */
+.loading-skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

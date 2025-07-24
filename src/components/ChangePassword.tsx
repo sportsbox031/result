@@ -66,8 +66,8 @@ export default function ChangePassword({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-      <form onSubmit={handleChange} className="bg-white p-8 rounded-xl shadow-md w-full max-w-xs relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30 p-4">
+      <form onSubmit={handleChange} className="bg-white p-6 lg:p-8 rounded-xl shadow-md w-full max-w-sm relative">
         <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-xl" onClick={onClose}>&times;</button>
         <h2 className="text-xl font-bold mb-6 text-center">비밀번호 변경</h2>
         <div className="mb-3">

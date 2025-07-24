@@ -49,18 +49,19 @@ const Toast: React.FC<ToastProps> = ({ toast, onRemove }) => {
   };
 
   return (
-    <div className={`bg-white rounded-lg shadow-lg border-l-4 ${getBorderColor()} p-4 mb-3 max-w-md animate-slide-in`}>
+    <div className={`bg-white rounded-lg shadow-lg border-l-4 ${getBorderColor()} p-4 mb-3 max-w-sm lg:max-w-md animate-slide-in mx-4 lg:mx-0`}>
       <div className="flex items-start">
         <div className="flex-shrink-0">
           {getIcon()}
         </div>
-        <div className="ml-3 flex-1">
-          <p className="text-sm font-medium text-gray-900">{title}</p>
-          <p className="text-sm text-gray-500">{message}</p>
+        <div className="ml-3 flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-900 truncate">{title}</p>
+          <p className="text-sm text-gray-500 break-words">{message}</p>
         </div>
         <button
           onClick={() => onRemove(toast.id)}
-          className="ml-4 flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+          className="ml-4 flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2 -mt-2"
+          aria-label="알림 닫기"
         >
           <X className="w-4 h-4" />
         </button>
