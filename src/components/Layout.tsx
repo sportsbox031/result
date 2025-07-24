@@ -9,7 +9,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, currentPage, onPageChange }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+
   const navigation = [
     { id: 'dashboard', name: '대시보드', icon: BarChart3 },
     { id: 'demand-register', name: '수요처 등록', icon: Upload },
@@ -41,7 +41,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onPageChange }) 
 
       {/* 모바일 오버레이 */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="lg:hidden fixed inset-0 z-40 bg-black bg-opacity-50 touch-none"
           onClick={() => setIsMobileMenuOpen(false)}
           onTouchStart={(e) => e.preventDefault()}
@@ -61,11 +61,10 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onPageChange }) 
                 <button
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
-                  className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors min-h-[48px] ${
-                    currentPage === item.id
+                  className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors min-h-[48px] ${currentPage === item.id
                       ? 'bg-blue-50 text-blue-700 border border-blue-200'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
+                    }`}
                   aria-current={currentPage === item.id ? 'page' : undefined}
                 >
                   <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
@@ -78,9 +77,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onPageChange }) 
       </div>
 
       {/* 모바일 사이드바 */}
-      <div className={`lg:hidden fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out ${
-        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      <div className={`lg:hidden fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}>
         <div className="flex h-16 items-center justify-center border-b border-gray-200 px-4">
           <h1 className="text-lg font-bold text-gray-900 truncate">메뉴</h1>
         </div>
@@ -92,11 +90,10 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onPageChange }) 
                 <button
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
-                  className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors min-h-[48px] ${
-                    currentPage === item.id
+                  className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors min-h-[48px] ${currentPage === item.id
                       ? 'bg-blue-50 text-blue-700 border border-blue-200'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
+                    }`}
                   aria-current={currentPage === item.id ? 'page' : undefined}
                 >
                   <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
