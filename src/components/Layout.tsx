@@ -48,13 +48,41 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onPageChange }) 
         />
       )}
 
-      {/* 사이드바 */}
-      <div className={`sidebar fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out ${
-        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-      } lg:translate-x-0`}>
+      {/* 데스크톱 사이드바 */}
+      <div className="hidden lg:block fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg">
         <div className="flex h-16 items-center justify-center border-b border-gray-200 px-4">
-          <h1 className="text-xl font-bold text-gray-900 hidden lg:block truncate">관리자 대시보드</h1>
-          <h1 className="text-lg font-bold text-gray-900 lg:hidden truncate">메뉴</h1>
+          <h1 className="text-xl font-bold text-gray-900 truncate">관리자 대시보드</h1>
+        </div>
+        <nav className="sidebar-nav mt-4 pb-4">
+          <div className="space-y-1 px-4">
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavClick(item.id)}
+                  className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors min-h-[48px] ${
+                    currentPage === item.id
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                  aria-current={currentPage === item.id ? 'page' : undefined}
+                >
+                  <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
+                  <span className="truncate text-left">{item.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      </div>
+
+      {/* 모바일 사이드바 */}
+      <div className={`lg:hidden fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out ${
+        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        <div className="flex h-16 items-center justify-center border-b border-gray-200 px-4">
+          <h1 className="text-lg font-bold text-gray-900 truncate">메뉴</h1>
         </div>
         <nav className="sidebar-nav mt-4 pb-4">
           <div className="space-y-1 px-4">
