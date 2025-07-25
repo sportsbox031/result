@@ -37,6 +37,7 @@ export interface FilterState {
   organizationName?: string;
   city?: string;
   program?: string;
+  region?: '남부' | '북부'; // 지역 필터 추가
 }
 
 export interface StatisticsData {

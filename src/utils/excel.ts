@@ -1,5 +1,6 @@
 import { Demand, Performance, ExcelPerformanceData } from '../types';
 import { BudgetUsage, BudgetItem } from '../types';
+import { getCityRegion } from './regions';
 
 export const parseExcelData = (csvContent: string): Omit<Demand, 'id' | 'createdAt' | 'updatedAt'>[] => {
   const lines = csvContent.split('\n');
@@ -46,19 +47,21 @@ export const downloadTemplate = () => {
 // 실적 데이터를 엑셀로 다운로드하는 함수
 export const downloadPerformanceExcel = (performances: Performance[]) => {
   // CSV 헤더 (UTF-8 BOM 포함)
-  let csvContent = '\uFEFF날짜,단체명,시군,프로그램,남성,여성,총인원,홍보횟수,메모\n';
+  let csvContent = '\uFEFF날짜,단체명,시군,지역,프로그램,남성,여성,총인원,홍보횟수,메모\n';
   
   // 데이터 행 추가
   performances.forEach(performance => {
     const totalCount = (performance.maleCount || 0) + (performance.femaleCount || 0);
     const date = performance.date ? performance.date.toLocaleDateString('ko-KR') : '';
     const notes = performance.notes || '';
+    const region = getCityRegion(performance.city);
     
     // CSV 형식으로 데이터 추가 (쉼표와 따옴표 처리)
     const row = [
       date,
       `"${performance.organizationName}"`,
       `"${performance.city || ''}"`,
+      `"${region}"`,
       `"${performance.program || '스포츠교실'}"`,
       performance.maleCount || 0,
       performance.femaleCount || 0,

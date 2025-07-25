@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Calendar, Filter, Trash2, Edit2, Save, X, Users, Megaphone, Download } from 'lucide-react';
+import { Search, Calendar, Filter, Trash2, Edit2, Save, X, Megaphone, Download, MapPin } from 'lucide-react';
 import { useFirebaseData } from '../hooks/useFirebaseData';
 import { useToast } from '../hooks/useToast';
 import { Performance, FilterState } from '../types';
 import { downloadPerformanceExcel } from '../utils/excel';
+import { getCityRegion, getAllRegions } from '../utils/regions';
 
 const PerformanceList: React.FC = () => {
   const { addToast } = useToast();
@@ -32,6 +33,11 @@ const PerformanceList: React.FC = () => {
       filtered = filtered.filter(p => p.date && p.date <= filters.endDate!);
     }
 
+    // 지역 필터 (남부/북부)
+    if (filters.region) {
+      filtered = filtered.filter(p => getCityRegion(p.city) === filters.region);
+    }
+
     // 단체명 필터
     if (filters.organizationName) {
       filtered = filtered.filter(p => p.organizationName === filters.organizationName);
@@ -46,6 +52,7 @@ const PerformanceList: React.FC = () => {
     if (searchTerm) {
       filtered = filtered.filter(p =>
         p.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (p.notes && p.notes.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
@@ -202,7 +209,7 @@ const PerformanceList: React.FC = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">검색</label>
             <div className="relative">
@@ -214,6 +221,22 @@ const PerformanceList: React.FC = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9 pr-3 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">지역</label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <select
+                value={filters.region || ''}
+                onChange={(e) => handleFilterChange('region', e.target.value || undefined)}
+                className="pl-9 pr-3 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+              >
+                <option value="">전체 지역</option>
+                <option value="남부">남부</option>
+                <option value="북부">북부</option>
+              </select>
             </div>
           </div>
 
@@ -297,6 +320,7 @@ const PerformanceList: React.FC = () => {
                 <th className="px-2 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-medium text-gray-900 w-20 lg:w-32">날짜</th>
                 <th className="px-2 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-medium text-gray-900 w-24 lg:w-48">단체명</th>
                 <th className="px-2 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-medium text-gray-900 w-16 lg:w-24 hidden lg:table-cell">시/군</th>
+                <th className="px-2 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-medium text-gray-900 w-12 lg:w-16 hidden lg:table-cell">지역</th>
                 <th className="px-2 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-medium text-gray-900 w-16 lg:w-32">프로그램</th>
                 <th className="px-2 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-medium text-gray-900 w-12 lg:w-20">남성</th>
                 <th className="px-2 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-medium text-gray-900 w-12 lg:w-20">여성</th>
@@ -341,6 +365,15 @@ const PerformanceList: React.FC = () => {
                   </td>
                   <td className="px-2 lg:px-6 py-3 lg:py-4 w-16 lg:w-24 hidden lg:table-cell">
                     <span className="text-xs lg:text-sm text-gray-600">{performance.city || '-'}</span>
+                  </td>
+                  <td className="px-2 lg:px-6 py-3 lg:py-4 w-12 lg:w-16 hidden lg:table-cell">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      getCityRegion(performance.city) === '남부' 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'bg-green-100 text-green-800'
+                    }`}>
+                      {getCityRegion(performance.city)}
+                    </span>
                   </td>
                   <td className="px-2 lg:px-6 py-3 lg:py-4 w-16 lg:w-32">
                     {editingId === performance.id ? (
