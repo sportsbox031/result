@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, BarChart3, Calendar, Building2 } from 'lucide-react';
+import { Users, BarChart3, Calendar, Building2, TrendingUp, PieChart, Activity } from 'lucide-react';
 import { GripVertical, Trash2 } from 'lucide-react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -24,24 +24,25 @@ const Dashboard: React.FC = () => {
 
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
   const [budgetUsages, setBudgetUsages] = useState<BudgetUsage[]>([]);
-  const [editingBudgetId, setEditingBudgetId] = useState<string|null>(null);
+  const [editingBudgetId, setEditingBudgetId] = useState<string | null>(null);
   const [editingBudgetName, setEditingBudgetName] = useState<string>('');
   const [editingBudgetAmount, setEditingBudgetAmount] = useState<number>(0);
 
   const SOUTH_CITIES = [
-    '과천시','광명시','광주시','군포시','김포시','부천시','성남시','수원시','시흥시','안산시','안성시','안양시','여주시','오산시','용인시','의왕시','이천시','평택시','하남시','화성시','양평군'
+    '과천시', '광명시', '광주시', '군포시', '김포시', '부천시', '성남시', '수원시', '시흥시', '안산시', '안성시', '안양시', '여주시', '오산시', '용인시', '의왕시', '이천시', '평택시', '하남시', '화성시', '양평군'
   ];
   const NORTH_CITIES = [
-    '고양시','구리시','남양주시','동두천시','양주시','의정부시','파주시','포천시','가평군','연천군'
+    '고양시', '구리시', '남양주시', '동두천시', '양주시', '의정부시', '파주시', '포천시', '가평군', '연천군'
   ];
 
-  const [regionFilter, setRegionFilter] = useState<'전체'|'남부'|'북부'>('전체');
-  const [selectedCity, setSelectedCity] = useState<string|null>(null);
+  const [regionFilter, setRegionFilter] = useState<'전체' | '남부' | '북부'>('전체');
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [showProgramPopup, setShowProgramPopup] = useState(false);
   const [showBudgetUsagePopup, setShowBudgetUsagePopup] = useState(false);
   const [selectedBudgetItem, setSelectedBudgetItem] = useState<BudgetItem | null>(null);
   const [programStats, setProgramStats] = useState<{ [key: string]: { count: number; people: number } }>({});
+  const [activeTab, setActiveTab] = useState<'overview' | 'city' | 'organization' | 'budget'>('overview');
 
   function handleTotalCountClick() {
     // 프로그램별 집계 (기준일자 필터 적용)
@@ -176,34 +177,44 @@ const Dashboard: React.FC = () => {
     value: string;
     icon: React.ElementType;
     color: string;
-  }> = ({ title, value, icon: Icon, color }) => (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-6">
-      <div className="flex items-center justify-between">
-        <div className="min-w-0 flex-1">
-          <p className="text-xs lg:text-sm font-medium text-gray-600 truncate">{title}</p>
-          <p className="text-xl lg:text-3xl font-bold text-gray-900 mt-1 lg:mt-2 truncate">{value}</p>
+    gradient?: string;
+    onClick?: () => void;
+  }> = ({ title, value, icon: Icon, color, gradient, onClick }) => (
+    <div
+      className={`bg-white rounded-xl shadow-lg border-0 p-6 min-h-[120px] transition-all duration-300 hover:shadow-xl hover:scale-105 ${onClick ? 'cursor-pointer' : ''}`}
+      onClick={onClick}
+    >
+      <div className="flex flex-col space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">{title}</p>
+          <div className={`p-3 rounded-xl ${gradient || color} flex-shrink-0`}>
+            <Icon className="w-6 h-6 text-white" />
+          </div>
         </div>
-        <div className={`p-2 lg:p-3 rounded-lg ${color} flex-shrink-0 ml-2`}>
-          <Icon className="w-4 h-4 lg:w-6 lg:h-6 text-white" />
+        <div className="w-full">
+          <p className="text-xl lg:text-2xl font-bold text-gray-900 break-words leading-tight whitespace-normal">{value}</p>
         </div>
       </div>
     </div>
   );
 
-  const CityBarChart: React.FC<{ 
+  const CityBarChart: React.FC<{
     data: Array<{ name: string; total: number; count: number }>;
     onBarClick?: (cityName: string) => void;
   }> = ({ data, onBarClick }) => {
     const maxTotal = Math.max(...data.map(d => d.total), 1);
-    
+
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-6">
-        <h2 className="text-lg lg:text-xl font-semibold text-gray-900 mb-4 lg:mb-6">시/군별 참여 현황</h2>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {['전체','남부','북부'].map(region => (
+      <div className="bg-white rounded-xl shadow-lg border-0 p-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">시/군별 참여 현황</h2>
+        <div className="flex flex-wrap gap-3 mb-6">
+          {['전체', '남부', '북부'].map(region => (
             <button
               key={region}
-              className={`px-3 lg:px-4 py-2 rounded-full border font-semibold transition-colors duration-200 text-sm lg:text-base ${regionFilter===region ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}
+              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-200 text-sm ${regionFilter === region
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:shadow-md'
+                }`}
               onClick={() => setRegionFilter(region as any)}
             >
               {region}
@@ -211,79 +222,89 @@ const Dashboard: React.FC = () => {
           ))}
         </div>
         {data.length > 0 ? (
-          <div className="grid grid-cols-1 gap-2 lg:gap-3 max-h-96 overflow-y-auto">
+          <div className="grid grid-cols-1 gap-4 max-h-96 overflow-y-auto">
             {data.map((item, index) => (
-              <div key={index} className={`flex items-center space-x-2 lg:space-x-4 p-2 lg:p-3 bg-gray-50 rounded-lg transition cursor-pointer hover:shadow-md ${onBarClick ? 'hover:bg-blue-100' : ''}`}
+              <div key={index} className={`flex items-center space-x-4 p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl transition-all duration-200 cursor-pointer hover:shadow-lg hover:scale-[1.02] ${onBarClick ? 'hover:from-blue-100 hover:to-purple-100' : ''}`}
                 onClick={onBarClick ? () => onBarClick(item.name) : undefined}
               >
-                <div className="text-xs lg:text-sm font-medium text-gray-700 min-w-[60px] lg:min-w-[70px] text-center">
+                <div className="text-sm font-bold text-gray-700 min-w-[70px] text-center bg-white rounded-lg py-2 px-3 shadow-sm">
                   {item.name}
                 </div>
                 <div className="flex-1">
-                  <div className="bg-gray-200 rounded-full h-5 lg:h-6 relative">
+                  <div className="bg-gray-200 rounded-full h-6 relative overflow-hidden">
                     <div
-                      className="bg-blue-500 h-5 lg:h-6 rounded-full transition-all duration-500 ease-out flex items-center justify-end pr-1 lg:pr-2"
+                      className="bg-gradient-to-r from-blue-500 to-purple-600 h-6 rounded-full transition-all duration-700 ease-out flex items-center justify-end pr-3"
                       style={{ width: `${Math.max((item.total / maxTotal) * 100, 8)}%` }}
                       title={`${item.count}회, ${item.total.toLocaleString()}명`}
                     >
-                      <span className="text-xs text-white font-medium hidden sm:inline">
+                      <span className="text-xs text-white font-bold hidden sm:inline">
                         {item.total.toLocaleString()}명
                       </span>
                     </div>
                   </div>
                 </div>
-                <div className="text-xs lg:text-sm text-gray-600 font-mono min-w-[40px] lg:min-w-[50px] text-right">
-                  <div className="sm:hidden">{item.total.toLocaleString()}</div>
-                  <div>{item.count}회</div>
+                <div className="text-sm text-gray-600 font-mono min-w-[60px] text-right">
+                  <div className="sm:hidden font-bold text-blue-600">{item.total.toLocaleString()}</div>
+                  <div className="font-semibold">{item.count}회</div>
                 </div>
               </div>
             ))}
           </div>
         ) : (
           <div className="flex items-center justify-center h-64 text-gray-500">
-            데이터가 없습니다
+            <div className="text-center">
+              <div className="text-6xl mb-4">📊</div>
+              <div className="text-lg font-medium">데이터가 없습니다</div>
+            </div>
           </div>
         )}
       </div>
     );
   };
 
-  const OrganizationTable: React.FC<{ 
+  const OrganizationTable: React.FC<{
     data: Array<{ name: string; total: number; count: number; city: string }>;
   }> = ({ data }) => (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-6">수요처별 참여 현황</h2>
+    <div className="bg-white rounded-xl shadow-lg border-0 p-6">
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">수요처별 참여 현황</h2>
       {data.length > 0 ? (
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
               <tr>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">순위</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">수요처명</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">시/군</th>
-                <th className="px-4 py-3 text-right text-sm font-medium text-gray-900">횟수</th>
-                <th className="px-4 py-3 text-right text-sm font-medium text-gray-900">총 참여인원</th>
+                <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">순위</th>
+                <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">수요처명</th>
+                <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">시/군</th>
+                <th className="px-6 py-4 text-right text-sm font-bold text-gray-700">횟수</th>
+                <th className="px-6 py-4 text-right text-sm font-bold text-gray-700">총 참여인원</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-100">
               {data.map((item, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    <span className="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                <tr key={index} className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-200">
+                  <td className="px-6 py-4 text-sm text-gray-900">
+                    <span className={`inline-flex items-center justify-center w-8 h-8 text-xs font-bold rounded-full ${index < 3
+                        ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white'
+                        : 'bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800'
+                      }`}>
                       {index + 1}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900 max-w-[200px] truncate" title={item.name}>
+                  <td className="px-6 py-4 text-sm font-semibold text-gray-900 max-w-[200px] truncate" title={item.name}>
                     {item.name}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-gray-600 font-medium">
                     {item.city || '-'}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 text-right font-mono">
-                    {item.count}회
+                  <td className="px-6 py-4 text-sm text-gray-900 text-right font-bold">
+                    <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
+                      {item.count}회
+                    </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 text-right font-mono">
-                    {item.total.toLocaleString()}명
+                  <td className="px-6 py-4 text-sm text-gray-900 text-right font-bold">
+                    <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full">
+                      {item.total.toLocaleString()}명
+                    </span>
                   </td>
                 </tr>
               ))}
@@ -292,91 +313,77 @@ const Dashboard: React.FC = () => {
         </div>
       ) : (
         <div className="flex items-center justify-center h-32 text-gray-500">
-          데이터가 없습니다
+          <div className="text-center">
+            <div className="text-6xl mb-4">🏢</div>
+            <div className="text-lg font-medium">데이터가 없습니다</div>
+          </div>
         </div>
       )}
     </div>
   );
 
   const filteredCityData = stats.cityData.filter(item => {
-    if(regionFilter === '전체') return true;
-    if(regionFilter === '남부') return SOUTH_CITIES.includes(item.name);
-    if(regionFilter === '북부') return NORTH_CITIES.includes(item.name);
+    if (regionFilter === '전체') return true;
+    if (regionFilter === '남부') return SOUTH_CITIES.includes(item.name);
+    if (regionFilter === '북부') return NORTH_CITIES.includes(item.name);
     return true;
   });
 
   const selectedCityOrganizations = stats.organizationData.filter(org => org.city === selectedCity);
 
+  const TabButton: React.FC<{
+    id: string;
+    label: string;
+    icon: React.ElementType;
+    isActive: boolean;
+    onClick: () => void;
+  }> = ({ id, label, icon: Icon, isActive, onClick }) => (
+    <button
+      onClick={onClick}
+      className={`flex items-center px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${isActive
+          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+          : 'bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900 border border-gray-200'
+        }`}
+    >
+      <Icon className="w-5 h-5 mr-2" />
+      {label}
+    </button>
+  );
+
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="mb-6 lg:mb-8">
-        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">대시보드</h1>
-        <p className="text-sm lg:text-base text-gray-600">수요처 및 실적 현황 개요</p>
-      </div>
-
-      {/* 통계 카드 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
-        <StatCard
-          title="등록 단체수"
-          value={stats.totalOrganizations.toString()}
-          icon={Building2}
-          color="bg-blue-500"
-        />
-        <div onClick={handleTotalCountClick} className="cursor-pointer">
-          <StatCard
-            title="총 횟수"
-            value={filteredPerformances.length.toString()}
-            icon={Calendar}
-            color="bg-green-500"
-          />
-        </div>
-        <StatCard
-          title="총 참여 인원"
-          value={filteredPerformances.reduce((sum, p) => sum + (p.maleCount || 0) + (p.femaleCount || 0), 0).toLocaleString() + '명'}
-          icon={Users}
-          color="bg-purple-500"
-        />
-        <StatCard
-          title="평균 참여 인원"
-          value={filteredPerformances.length > 0 ? Math.round(filteredPerformances.reduce((sum, p) => sum + (p.maleCount || 0) + (p.femaleCount || 0), 0) / filteredPerformances.length).toLocaleString() + '명' : '0명'}
-          icon={BarChart3}
-          color="bg-orange-500"
-        />
-      </div>
-
-      {/* 전체 예산/사용/잔액/집행율 카드 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
-        <StatCard title="전체 예산액" value={totalBudget.toLocaleString() + '원'} icon={BarChart3} color="bg-blue-500" />
-        <StatCard title="전체 사용액" value={totalUsed.toLocaleString() + '원'} icon={Users} color="bg-green-500" />
-        <StatCard title="전체 잔액" value={totalRemain.toLocaleString() + '원'} icon={Building2} color="bg-gray-500" />
-        <StatCard title="전체 집행율" value={totalRate + '%'} icon={Calendar} color="bg-orange-500" />
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
+          대시보드
+        </h1>
+        <p className="text-lg text-gray-600">수요처 및 실적 현황을 한눈에 확인하세요</p>
       </div>
 
       {/* 기간 필터 UI */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-6 mb-6">
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl shadow-sm border border-blue-100 p-6 mb-8">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:items-center gap-4">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <label className="text-sm font-medium text-gray-700 whitespace-nowrap">시작 날짜</label>
-              <input 
-                type="date" 
-                className="border rounded px-3 py-2 text-sm w-full sm:w-auto" 
-                value={dateFilter.startDate ? dateFilter.startDate.toISOString().split('T')[0] : ''} 
-                onChange={e => setDateFilter(f => ({ ...f, startDate: e.target.value ? new Date(e.target.value) : undefined }))} 
+              <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">시작 날짜</label>
+              <input
+                type="date"
+                className="border-0 rounded-lg px-4 py-2 text-sm w-full sm:w-auto shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={dateFilter.startDate ? dateFilter.startDate.toISOString().split('T')[0] : ''}
+                onChange={e => setDateFilter(f => ({ ...f, startDate: e.target.value ? new Date(e.target.value) : undefined }))}
               />
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <label className="text-sm font-medium text-gray-700 whitespace-nowrap">종료 날짜</label>
-              <input 
-                type="date" 
-                className="border rounded px-3 py-2 text-sm w-full sm:w-auto" 
-                value={dateFilter.endDate ? dateFilter.endDate.toISOString().split('T')[0] : ''} 
-                onChange={e => setDateFilter(f => ({ ...f, endDate: e.target.value ? new Date(e.target.value) : undefined }))} 
+              <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">종료 날짜</label>
+              <input
+                type="date"
+                className="border-0 rounded-lg px-4 py-2 text-sm w-full sm:w-auto shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={dateFilter.endDate ? dateFilter.endDate.toISOString().split('T')[0] : ''}
+                onChange={e => setDateFilter(f => ({ ...f, endDate: e.target.value ? new Date(e.target.value) : undefined }))}
               />
             </div>
           </div>
-          <button 
-            className="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200 text-sm font-medium whitespace-nowrap" 
+          <button
+            className="px-6 py-2 bg-white rounded-lg hover:bg-gray-50 text-sm font-semibold whitespace-nowrap shadow-sm border border-gray-200 transition-colors"
             onClick={() => setDateFilter({})}
           >
             전체 초기화
@@ -384,87 +391,167 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 시/군별 참여 현황 섹션을 예산 사용 현황 위로 이동 */}
-      <div className="mb-8">
-        <CityBarChart data={filteredCityData} onBarClick={cityName => { setSelectedCity(cityName); setShowPopup(true); }} />
+      {/* 탭 네비게이션 */}
+      <div className="flex flex-wrap gap-3 mb-8">
+        <TabButton
+          id="overview"
+          label="수요처 및 실적 현황 개요"
+          icon={Activity}
+          isActive={activeTab === 'overview'}
+          onClick={() => setActiveTab('overview')}
+        />
+        <TabButton
+          id="city"
+          label="시군별 참여현황"
+          icon={BarChart3}
+          isActive={activeTab === 'city'}
+          onClick={() => setActiveTab('city')}
+        />
+        <TabButton
+          id="organization"
+          label="수요처별 참여현황"
+          icon={Building2}
+          isActive={activeTab === 'organization'}
+          onClick={() => setActiveTab('organization')}
+        />
+        <TabButton
+          id="budget"
+          label="예산사용현황"
+          icon={PieChart}
+          isActive={activeTab === 'budget'}
+          onClick={() => setActiveTab('budget')}
+        />
       </div>
 
-      {/* 예산 사용 현황 테이블 */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={budgetItems.map(b => b.id)} strategy={verticalListSortingStrategy}>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-6 mb-6 lg:mb-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-              <h2 className="text-lg lg:text-xl font-semibold text-gray-900">예산 사용 현황</h2>
-              <button 
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium min-h-[44px] whitespace-nowrap" 
-                onClick={handleAddBudget}
-              >
-                + 예산 항목 추가
-              </button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs lg:text-sm">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-1 lg:px-2 py-2 text-center w-8"></th>
-                    <th className="px-1 lg:px-2 py-2 text-left min-w-[120px]">예산명</th>
-                    <th className="px-1 lg:px-2 py-2 text-right min-w-[80px]">예산액</th>
-                    <th className="px-1 lg:px-2 py-2 text-right min-w-[80px]">사용액</th>
-                    <th className="px-1 lg:px-2 py-2 text-right min-w-[80px]">잔액</th>
-                    <th className="px-1 lg:px-2 py-2 text-right min-w-[60px]">집행율</th>
-                    <th className="px-1 lg:px-2 py-2 text-center w-16">수정</th>
-                    <th className="px-1 lg:px-2 py-2 text-center w-16">삭제</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {budgetItems.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map(item => (
-                    <BudgetRow
-                      key={item.id}
-                      item={item}
-                      editingBudgetId={editingBudgetId}
-                      editingBudgetName={editingBudgetName}
-                      editingBudgetAmount={editingBudgetAmount}
-                      setEditingBudgetName={setEditingBudgetName}
-                      setEditingBudgetAmount={setEditingBudgetAmount}
-                      setEditingBudgetId={setEditingBudgetId}
-                      handleEditBudget={handleEditBudget}
-                      handleSaveBudget={handleSaveBudget}
-                      handleDeleteBudget={handleDeleteBudget}
-                      handleBudgetItemClick={handleBudgetItemClick}
-                      used={getBudgetUsageSum(item.id)}
-                      isDragging={false}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+      {/* 탭 컨텐츠 */}
+      {activeTab === 'overview' && (
+        <div className="space-y-8">
+          {/* 통계 카드 */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard
+              title="등록 단체수"
+              value={stats.totalOrganizations.toString()}
+              icon={Building2}
+              gradient="bg-gradient-to-br from-blue-500 to-blue-600"
+            />
+            <StatCard
+              title="총 횟수"
+              value={filteredPerformances.length.toString()}
+              icon={Calendar}
+              gradient="bg-gradient-to-br from-green-500 to-green-600"
+              onClick={handleTotalCountClick}
+            />
+            <StatCard
+              title="총 참여 인원"
+              value={filteredPerformances.reduce((sum, p) => sum + (p.maleCount || 0) + (p.femaleCount || 0), 0).toLocaleString() + '명'}
+              icon={Users}
+              gradient="bg-gradient-to-br from-purple-500 to-purple-600"
+            />
+            <StatCard
+              title="평균 참여 인원"
+              value={filteredPerformances.length > 0 ? Math.round(filteredPerformances.reduce((sum, p) => sum + (p.maleCount || 0) + (p.femaleCount || 0), 0) / filteredPerformances.length).toLocaleString() + '명' : '0명'}
+              icon={TrendingUp}
+              gradient="bg-gradient-to-br from-orange-500 to-orange-600"
+            />
           </div>
-        </SortableContext>
-      </DndContext>
 
-      {/* 예산 사용 내역 리스트 UI 제거 */}
+          {/* 전체 예산/사용/잔액/집행율 카드 */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard title="전체 예산액" value={totalBudget.toLocaleString() + '원'} icon={BarChart3} gradient="bg-gradient-to-br from-indigo-500 to-indigo-600" />
+            <StatCard title="전체 사용액" value={totalUsed.toLocaleString() + '원'} icon={Users} gradient="bg-gradient-to-br from-emerald-500 to-emerald-600" />
+            <StatCard title="전체 잔액" value={totalRemain.toLocaleString() + '원'} icon={Building2} gradient="bg-gradient-to-br from-gray-500 to-gray-600" />
+            <StatCard title="전체 집행율" value={totalRate + '%'} icon={Calendar} gradient="bg-gradient-to-br from-amber-500 to-amber-600" />
+          </div>
+        </div>
+      )}
 
-      {/* 시/군별 통계 - 전체 화면 너비 사용 */}
+      {activeTab === 'city' && (
+        <div className="mb-8">
+          <CityBarChart data={filteredCityData} onBarClick={cityName => { setSelectedCity(cityName); setShowPopup(true); }} />
+        </div>
+      )}
+
+      {activeTab === 'organization' && (
+        <div className="mb-8">
+          <OrganizationTable data={stats.organizationData} />
+        </div>
+      )}
+
+      {activeTab === 'budget' && (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={budgetItems.map(b => b.id)} strategy={verticalListSortingStrategy}>
+            <div className="bg-white rounded-xl shadow-lg border-0 p-6 mb-8">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">예산 사용 현황</h2>
+                <button
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 font-semibold shadow-lg transition-all duration-200 hover:shadow-xl"
+                  onClick={handleAddBudget}
+                >
+                  + 예산 항목 추가
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                    <tr>
+                      <th className="px-2 py-3 text-center w-8"></th>
+                      <th className="px-2 py-3 text-left min-w-[120px] font-semibold text-gray-700">예산명</th>
+                      <th className="px-2 py-3 text-right min-w-[80px] font-semibold text-gray-700">예산액</th>
+                      <th className="px-2 py-3 text-right min-w-[80px] font-semibold text-gray-700">사용액</th>
+                      <th className="px-2 py-3 text-right min-w-[80px] font-semibold text-gray-700">잔액</th>
+                      <th className="px-2 py-3 text-right min-w-[60px] font-semibold text-gray-700">집행율</th>
+                      <th className="px-2 py-3 text-center w-16 font-semibold text-gray-700">수정</th>
+                      <th className="px-2 py-3 text-center w-16 font-semibold text-gray-700">삭제</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {budgetItems.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map(item => (
+                      <BudgetRow
+                        key={item.id}
+                        item={item}
+                        editingBudgetId={editingBudgetId}
+                        editingBudgetName={editingBudgetName}
+                        editingBudgetAmount={editingBudgetAmount}
+                        setEditingBudgetName={setEditingBudgetName}
+                        setEditingBudgetAmount={setEditingBudgetAmount}
+                        setEditingBudgetId={setEditingBudgetId}
+                        handleEditBudget={handleEditBudget}
+                        handleSaveBudget={handleSaveBudget}
+                        handleDeleteBudget={handleDeleteBudget}
+                        handleBudgetItemClick={handleBudgetItemClick}
+                        used={getBudgetUsageSum(item.id)}
+                        isDragging={false}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
+
+      {/* 팝업들 */}
       {showPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 lg:p-6 relative animate-fadeIn">
-            <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" onClick={()=>setShowPopup(false)}>&times;</button>
-            <h3 className="text-lg lg:text-2xl font-bold mb-4 text-blue-700 pr-8">{selectedCity} 수요처별 참여 현황</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 relative animate-fadeIn">
+            <button className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl" onClick={() => setShowPopup(false)}>&times;</button>
+            <h3 className="text-2xl font-bold mb-6 text-blue-700 pr-8">{selectedCity} 수요처별 참여 현황</h3>
             {selectedCityOrganizations.length > 0 ? (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50">
-                    <th className="px-2 py-2 text-left">수요처명</th>
-                    <th className="px-2 py-2 text-right">횟수</th>
-                    <th className="px-2 py-2 text-right">총 참여인원</th>
+                  <tr className="bg-gradient-to-r from-gray-50 to-gray-100">
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700">수요처명</th>
+                    <th className="px-3 py-3 text-right font-semibold text-gray-700">횟수</th>
+                    <th className="px-3 py-3 text-right font-semibold text-gray-700">총 참여인원</th>
                   </tr>
                 </thead>
                 <tbody>
                   {selectedCityOrganizations.map((org, idx) => (
-                    <tr key={idx} className="hover:bg-blue-50">
-                      <td className="px-2 py-2 font-medium text-gray-900">{org.name}</td>
-                      <td className="px-2 py-2 text-right">{org.count}회</td>
-                      <td className="px-2 py-2 text-right">{org.total.toLocaleString()}명</td>
+                    <tr key={idx} className="hover:bg-blue-50 transition-colors">
+                      <td className="px-3 py-3 font-medium text-gray-900">{org.name}</td>
+                      <td className="px-3 py-3 text-right">{org.count}회</td>
+                      <td className="px-3 py-3 text-right">{org.total.toLocaleString()}명</td>
                     </tr>
                   ))}
                 </tbody>
@@ -477,21 +564,21 @@ const Dashboard: React.FC = () => {
       )}
 
       {showProgramPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 lg:p-8 relative animate-fadeIn border-2 border-green-400">
-            <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" onClick={()=>setShowProgramPopup(false)}>&times;</button>
-            <h3 className="text-lg lg:text-2xl font-bold mb-6 text-green-700 text-center pr-8">프로그램별 실적 요약</h3>
-            <div className="grid gap-4">
-              {['스포츠교실','스포츠체험존','스포츠이벤트'].map(prog => (
-                <div key={prog} className="bg-green-50 rounded-lg p-4 flex items-center justify-between shadow-sm border border-green-100">
-                  <div className="font-semibold text-lg text-green-900">{prog}</div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-8 relative animate-fadeIn">
+            <button className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl" onClick={() => setShowProgramPopup(false)}>&times;</button>
+            <h3 className="text-2xl font-bold mb-8 text-green-700 text-center pr-8">프로그램별 실적 요약</h3>
+            <div className="grid gap-6">
+              {['스포츠교실', '스포츠체험존', '스포츠이벤트'].map(prog => (
+                <div key={prog} className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 flex items-center justify-between shadow-sm border border-green-100">
+                  <div className="font-bold text-xl text-green-900">{prog}</div>
                   <div className="flex flex-col items-end">
-                    <span className="text-sm text-gray-600">총 횟수</span>
-                    <span className="text-xl font-bold text-green-700">{programStats[prog]?.count || 0}회</span>
+                    <span className="text-sm text-gray-600 font-medium">총 횟수</span>
+                    <span className="text-2xl font-bold text-green-700">{programStats[prog]?.count || 0}회</span>
                   </div>
                   <div className="flex flex-col items-end ml-6">
-                    <span className="text-sm text-gray-600">총 인원</span>
-                    <span className="text-xl font-bold text-green-700">{programStats[prog]?.people?.toLocaleString() || 0}명</span>
+                    <span className="text-sm text-gray-600 font-medium">총 인원</span>
+                    <span className="text-2xl font-bold text-green-700">{programStats[prog]?.people?.toLocaleString() || 0}명</span>
                   </div>
                 </div>
               ))}
@@ -502,15 +589,15 @@ const Dashboard: React.FC = () => {
 
       {/* 예산 사용 내역 팝업 */}
       {showBudgetUsagePopup && selectedBudgetItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[80vh] p-4 lg:p-6 relative animate-fadeIn">
-            <button 
-              className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" 
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[80vh] p-6 relative animate-fadeIn">
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl"
               onClick={() => setShowBudgetUsagePopup(false)}
             >
               &times;
             </button>
-            <h3 className="text-lg lg:text-2xl font-bold mb-4 text-blue-700 pr-8">
+            <h3 className="text-2xl font-bold mb-6 text-blue-700 pr-8">
               {selectedBudgetItem.name} 사용 내역
             </h3>
             <div className="max-h-[60vh] overflow-y-auto">
@@ -518,34 +605,34 @@ const Dashboard: React.FC = () => {
                 const usages = filteredBudgetUsages.filter(u => u.budgetItemId === selectedBudgetItem.id);
                 return usages.length > 0 ? (
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-50 sticky top-0">
+                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0">
                       <tr>
-                        <th className="px-3 py-2 text-left">적요</th>
-                        <th className="px-3 py-2 text-left">채주</th>
-                        <th className="px-3 py-2 text-right">집행액</th>
-                        <th className="px-3 py-2 text-center">집행일자</th>
-                        <th className="px-3 py-2 text-center">결제방법</th>
-                        <th className="px-3 py-2 text-left">메모</th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">적요</th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">채주</th>
+                        <th className="px-4 py-3 text-right font-semibold text-gray-700">집행액</th>
+                        <th className="px-4 py-3 text-center font-semibold text-gray-700">집행일자</th>
+                        <th className="px-4 py-3 text-center font-semibold text-gray-700">결제방법</th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">메모</th>
                       </tr>
                     </thead>
                     <tbody>
                       {usages.map((usage, idx) => (
-                        <tr key={usage.id} className="hover:bg-blue-50 border-b">
-                          <td className="px-3 py-2 font-medium text-gray-900">{usage.description}</td>
-                          <td className="px-3 py-2 text-gray-700">{usage.vendor}</td>
-                          <td className="px-3 py-2 text-right font-semibold text-blue-600">
+                        <tr key={usage.id} className="hover:bg-blue-50 border-b transition-colors">
+                          <td className="px-4 py-3 font-medium text-gray-900">{usage.description}</td>
+                          <td className="px-4 py-3 text-gray-700">{usage.vendor}</td>
+                          <td className="px-4 py-3 text-right font-semibold text-blue-600">
                             {Number(usage.amount).toLocaleString()}원
                           </td>
-                          <td className="px-3 py-2 text-center text-gray-700">{usage.date}</td>
-                          <td className="px-3 py-2 text-center text-gray-700">{usage.paymentMethod}</td>
-                          <td className="px-3 py-2 text-gray-600">{usage.note || '-'}</td>
+                          <td className="px-4 py-3 text-center text-gray-700">{usage.date}</td>
+                          <td className="px-4 py-3 text-center text-gray-700">{usage.paymentMethod}</td>
+                          <td className="px-4 py-3 text-gray-600">{usage.note || '-'}</td>
                         </tr>
                       ))}
                     </tbody>
-                    <tfoot className="bg-gray-50">
+                    <tfoot className="bg-gradient-to-r from-gray-50 to-gray-100">
                       <tr>
-                        <td colSpan={2} className="px-3 py-2 font-semibold text-gray-900">총 사용액</td>
-                        <td className="px-3 py-2 text-right font-bold text-blue-600">
+                        <td colSpan={2} className="px-4 py-3 font-bold text-gray-900">총 사용액</td>
+                        <td className="px-4 py-3 text-right font-bold text-blue-600">
                           {usages.reduce((sum, u) => sum + Number(u.amount), 0).toLocaleString()}원
                         </td>
                         <td colSpan={3}></td>
@@ -582,7 +669,7 @@ function BudgetRow({ item, editingBudgetId, editingBudgetName, editingBudgetAmou
           <input className="border rounded px-2 py-1 w-32" value={editingBudgetName} onChange={e => setEditingBudgetName(e.target.value)} />
         ) : (
           <>
-            <span 
+            <span
               className={`${item.name.includes('북부')
                 ? 'bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-semibold'
                 : 'bg-gray-100 text-gray-800 px-2 py-1 rounded font-semibold'} cursor-pointer hover:opacity-80 transition-opacity`}

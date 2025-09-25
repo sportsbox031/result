@@ -1,3 +1,4 @@
+/* Tailwind CSS directives */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,6 +8,7 @@
     transform: translateX(100%);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
@@ -101,6 +103,7 @@ button:active {
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(100%);
   }
@@ -108,20 +111,26 @@ button:active {
 
 /* 모바일 최적화 */
 @media (max-width: 768px) {
+
   /* 터치 타겟 크기 최적화 */
-  button, input, select, textarea, a {
+  button,
+  input,
+  select,
+  textarea,
+  a {
     min-height: 44px;
     min-width: 44px;
   }
-  
+
   /* 테이블 스크롤 개선 */
   .overflow-x-auto {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
   }
-  
+
   /* 모바일에서 호버 효과 제거 */
   @media (hover: none) {
+
     button:hover,
     .hover\:bg-gray-50:hover,
     .hover\:bg-blue-50:hover,
@@ -138,12 +147,12 @@ button:active {
       border-color: inherit;
     }
   }
-  
+
   /* 폰트 크기 조정 */
   html {
     font-size: 16px;
   }
-  
+
   /* 입력 필드 확대 방지 */
   input[type="text"],
   input[type="email"],
@@ -154,52 +163,53 @@ button:active {
   textarea {
     font-size: 16px;
   }
-  
+
   /* 모달 최적화 */
   .fixed.inset-0 {
     padding: 8px;
   }
-  
+
   /* 테이블 반응형 개선 */
   table {
     font-size: 14px;
   }
-  
+
   /* 버튼 간격 조정 */
-  .space-x-1 > * + * {
+  .space-x-1>*+* {
     margin-left: 8px;
   }
-  
-  .space-x-2 > * + * {
+
+  .space-x-2>*+* {
     margin-left: 12px;
   }
 }
 
 /* 작은 모바일 화면 (iPhone SE 등) */
 @media (max-width: 375px) {
+
   /* 더 작은 폰트 크기 */
   .text-3xl {
     font-size: 1.5rem;
   }
-  
+
   .text-xl {
     font-size: 1.125rem;
   }
-  
+
   /* 패딩 조정 */
   .p-4 {
     padding: 0.75rem;
   }
-  
+
   .p-6 {
     padding: 1rem;
   }
-  
+
   /* 그리드 간격 조정 */
   .gap-4 {
     gap: 0.75rem;
   }
-  
+
   .gap-6 {
     gap: 1rem;
   }
@@ -211,6 +221,7 @@ button:active {
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -226,7 +237,7 @@ button:active {
   .transform {
     transition: transform 0.3s ease-in-out;
   }
-  
+
   /* 사이드바 스크롤 개선 */
   .sidebar-nav {
     max-height: calc(100vh - 4rem);
@@ -237,15 +248,16 @@ button:active {
 
 /* 터치 디바이스 최적화 */
 @media (pointer: coarse) {
+
   /* 터치 타겟 크기 증가 */
-  button, 
-  input[type="button"], 
-  input[type="submit"], 
+  button,
+  input[type="button"],
+  input[type="submit"],
   .clickable {
     min-height: 48px;
     min-width: 48px;
   }
-  
+
   /* 드롭다운 메뉴 터치 최적화 */
   .dropdown-item {
     padding: 12px 16px;
@@ -254,7 +266,9 @@ button:active {
 }
 
 /* 고해상도 디스플레이 최적화 */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+@media (-webkit-min-device-pixel-ratio: 2),
+(min-resolution: 192dpi) {
+
   /* 아이콘과 이미지 선명도 개선 */
   svg {
     shape-rendering: geometricPrecision;
@@ -263,11 +277,12 @@ button:active {
 
 /* 가로 모드 최적화 */
 @media (orientation: landscape) and (max-height: 500px) {
+
   /* 헤더 높이 줄이기 */
   .mobile-header {
     padding: 0.5rem 1rem;
   }
-  
+
   /* 사이드바 너비 조정 */
   .sidebar {
     width: 200px;
@@ -293,16 +308,16 @@ button:active {
   .no-print {
     display: none !important;
   }
-  
+
   body {
     font-size: 12pt;
     line-height: 1.4;
   }
-  
+
   .bg-gray-50 {
     background: white !important;
   }
-  
+
   .shadow-sm,
   .shadow-lg {
     box-shadow: none !important;
@@ -346,6 +361,7 @@ button:active {
   0% {
     background-position: 200% 0;
   }
+
   100% {
     background-position: -200% 0;
   }
