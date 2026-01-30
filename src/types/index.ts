@@ -73,6 +73,7 @@ export interface BudgetItem {
   amount: number; // 예산액 (수정 가능)
   order?: number; // 정렬 순서
   region?: '남부' | '북부'; // 지역 구분
+  year?: number; // 연도 (2025, 2026 등)
 }
 
 // 예산 사용 내역 리스트용 타입

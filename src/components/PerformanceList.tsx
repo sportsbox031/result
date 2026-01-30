@@ -5,6 +5,7 @@ import { useToast } from '../hooks/useToast';
 import { Performance, FilterState } from '../types';
 import { downloadPerformanceExcel } from '../utils/excel';
 import { getCityRegion, getAllRegions } from '../utils/regions';
+import { AVAILABLE_YEARS, CURRENT_YEAR, getPerformanceYear } from '../utils/yearUtils';
 
 const PerformanceList: React.FC = () => {
   const { addToast } = useToast();
@@ -15,15 +16,26 @@ const PerformanceList: React.FC = () => {
   const [filters, setFilters] = useState<FilterState>({});
   const [searchTerm, setSearchTerm] = useState('');
 
+  // 연도 필터 상태
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>(CURRENT_YEAR);
+
   // 파이어베이스에서 단체명 목록 가져오기
   const organizationNames = Array.from(new Set(demands.map(d => d.organizationName))).sort();
 
   useEffect(() => {
     applyFilters();
-  }, [performances, filters, searchTerm]);
+  }, [performances, filters, searchTerm, selectedYear]);
 
   const applyFilters = () => {
     let filtered = [...performances];
+
+    // 연도 필터
+    if (selectedYear !== 'all') {
+      filtered = filtered.filter(p => {
+        if (!p.date) return false;
+        return getPerformanceYear(new Date(p.date)) === selectedYear;
+      });
+    }
 
     // 날짜 범위 필터
     if (filters.startDate) {
@@ -75,6 +87,7 @@ const PerformanceList: React.FC = () => {
   const clearFilters = () => {
     setFilters({});
     setSearchTerm('');
+    setSelectedYear(CURRENT_YEAR);
   };
 
   const handleEdit = (performance: Performance) => {
@@ -209,7 +222,21 @@ const PerformanceList: React.FC = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">연도</label>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">전체 연도</option>
+              {AVAILABLE_YEARS.map(year => (
+                <option key={year} value={year}>{year}년</option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">검색</label>
             <div className="relative">

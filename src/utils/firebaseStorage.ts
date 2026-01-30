@@ -1,19 +1,20 @@
-import { 
-  collection, 
-  addDoc, 
-  getDocs, 
-  doc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
+import {
+  collection,
+  addDoc,
+  getDocs,
+  doc,
+  updateDoc,
+  deleteDoc,
+  query,
   orderBy,
   onSnapshot,
   Timestamp,
   getDoc,
-  setDoc 
+  setDoc
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Demand, Performance, BudgetItem, BudgetUsage } from '../types';
+import { BUDGET_2026_ALL } from '../data/budget2026';
 
 export const firebaseStorage = {
   // 수요처 관련 작업
@@ -199,10 +200,15 @@ export const firebaseStorage = {
     try {
       const q = query(collection(db, 'budgets'));
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as BudgetItem[];
+      return querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // year 필드가 없으면 2025로 기본값 설정 (기존 데이터 마이그레이션)
+          year: data.year ?? 2025
+        };
+      }) as BudgetItem[];
     } catch (error) {
       console.error('예산 항목 데이터 로드 실패:', error);
       throw error;
@@ -250,10 +256,15 @@ export const firebaseStorage = {
   subscribeToBudgets(callback: (budgets: BudgetItem[]) => void): () => void {
     const q = query(collection(db, 'budgets'));
     return onSnapshot(q, (querySnapshot) => {
-      const budgets = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as BudgetItem[];
+      const budgets = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // year 필드가 없으면 2025로 기본값 설정 (기존 데이터 마이그레이션)
+          year: data.year ?? 2025
+        };
+      }) as BudgetItem[];
       callback(budgets);
     });
   },
@@ -346,6 +357,41 @@ export const firebaseStorage = {
       await this.saveAdminUser({ username: 'admin', passwordHash: defaultHash });
     } catch (error) {
       console.error('기본 관리자 계정 생성 실패:', error);
+      throw error;
+    }
+  },
+
+  // 2026년 예산 초기화 함수
+  async initializeBudget2026(): Promise<void> {
+    try {
+      // 기존 2026년 예산이 있는지 확인
+      const budgets = await this.getBudgets();
+      const has2026Budgets = budgets.some(b => b.year === 2026);
+
+      if (has2026Budgets) {
+        console.log('2026년 예산이 이미 존재합니다.');
+        return;
+      }
+
+      // 2026년 예산 항목 추가
+      for (const budget of BUDGET_2026_ALL) {
+        await addDoc(collection(db, 'budgets'), budget);
+      }
+
+      console.log('2026년 예산 초기화 완료');
+    } catch (error) {
+      console.error('2026년 예산 초기화 실패:', error);
+      throw error;
+    }
+  },
+
+  // 특정 연도의 예산 항목 조회
+  async getBudgetsByYear(year: number): Promise<BudgetItem[]> {
+    try {
+      const budgets = await this.getBudgets();
+      return budgets.filter(b => (b.year ?? 2025) === year);
+    } catch (error) {
+      console.error(`${year}년 예산 데이터 로드 실패:`, error);
       throw error;
     }
   }
