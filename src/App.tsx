@@ -9,7 +9,7 @@ import FirebaseSetup from './components/FirebaseSetup';
 import ToastContainer from './components/ToastContainer';
 import { useToast } from './hooks/useToast';
 import { useFirebaseData } from './hooks/useFirebaseData';
-import { Loader2 } from 'lucide-react';
+import { Loader2, KeyRound, LogOut } from 'lucide-react';
 import BudgetUsagePage from './components/BudgetUsagePage';
 import Manual from './components/Manual';
 import Login from './components/Login';
@@ -24,7 +24,6 @@ function App() {
   const [showChangePw, setShowChangePw] = useState(false);
 
   useEffect(() => {
-    // 자동 로그인 세션(간단히 localStorage에 flag 저장)
     if (localStorage.getItem('admin_logged_in') === 'true') {
       setLoggedIn(true);
     }
@@ -34,6 +33,7 @@ function App() {
     setLoggedIn(true);
     localStorage.setItem('admin_logged_in', 'true');
   }
+
   function handleLogout() {
     setLoggedIn(false);
     localStorage.removeItem('admin_logged_in');
@@ -48,8 +48,8 @@ function App() {
       return (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
-            <p className="text-gray-600">데이터를 불러오는 중...</p>
+            <Loader2 className="w-10 h-10 animate-spin text-blue-500 mx-auto mb-4" />
+            <p className="text-gray-500">데이터를 불러오는 중...</p>
           </div>
         </div>
       );
@@ -57,17 +57,20 @@ function App() {
 
     if (error) {
       return (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <div className="text-center">
-            <p className="text-red-800 font-medium mb-2">연결 오류</p>
-            <p className="text-red-600 text-sm">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-            >
-              다시 시도
-            </button>
+        <div className="glass-card p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-rose-100 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
           </div>
+          <p className="text-lg font-semibold text-gray-900 mb-2">연결 오류</p>
+          <p className="text-gray-500 mb-6">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="btn-primary"
+          >
+            다시 시도
+          </button>
         </div>
       );
     }
@@ -93,24 +96,29 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <Layout currentPage={currentPage} onPageChange={setCurrentPage}>
-        <div className="flex flex-col sm:flex-row justify-end gap-2 mb-4">
-          <button 
-            className="px-4 py-3 bg-gray-200 rounded hover:bg-gray-300 text-sm font-medium min-h-[44px] transition-colors" 
+        {/* 상단 액션 버튼 */}
+        <div className="flex justify-end gap-2 mb-6">
+          <button
+            className="btn-glass flex items-center gap-2 text-sm"
             onClick={() => setShowChangePw(true)}
           >
-            비밀번호 변경
+            <KeyRound className="w-4 h-4" />
+            <span className="hidden sm:inline">비밀번호 변경</span>
           </button>
-          <button 
-            className="px-4 py-3 bg-red-200 rounded hover:bg-red-300 text-sm font-medium min-h-[44px] transition-colors" 
+          <button
+            className="btn-glass flex items-center gap-2 text-sm text-rose-600 hover:bg-rose-50"
             onClick={handleLogout}
           >
-            로그아웃
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">로그아웃</span>
           </button>
         </div>
+
         {renderCurrentPage()}
       </Layout>
+
       <ToastContainer toasts={toasts} onRemove={removeToast} />
       {showChangePw && <ChangePassword onClose={() => setShowChangePw(false)} />}
     </div>

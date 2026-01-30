@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { hashPassword } from '../utils/storage';
 import { firebaseStorage } from '../utils/firebaseStorage';
+import { X, Lock, Loader2, CheckCircle } from 'lucide-react';
 
 export default function ChangePassword({ onClose }: { onClose: () => void }) {
   const [oldPw, setOldPw] = useState('');
@@ -10,7 +11,6 @@ export default function ChangePassword({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 성공 메시지 후 자동으로 팝업 닫기
   useEffect(() => {
     if (msg) {
       const timer = setTimeout(() => {
@@ -25,7 +25,7 @@ export default function ChangePassword({ onClose }: { onClose: () => void }) {
     setLoading(true);
     setError('');
     setMsg('');
-    
+
     try {
       const admin = await firebaseStorage.getAdminUser();
       if (!admin) {
@@ -33,26 +33,26 @@ export default function ChangePassword({ onClose }: { onClose: () => void }) {
         setLoading(false);
         return;
       }
-      
+
       const oldHash = await hashPassword(oldPw);
       if (oldHash !== admin.passwordHash) {
         setError('기존 비밀번호가 올바르지 않습니다.');
         setLoading(false);
         return;
       }
-      
+
       if (newPw.length < 6) {
         setError('새 비밀번호는 6자 이상이어야 합니다.');
         setLoading(false);
         return;
       }
-      
+
       if (newPw !== newPw2) {
         setError('새 비밀번호가 일치하지 않습니다.');
         setLoading(false);
         return;
       }
-      
+
       const newHash = await hashPassword(newPw);
       await firebaseStorage.saveAdminUser({ username: 'admin', passwordHash: newHash });
       setMsg('비밀번호가 성공적으로 변경되었습니다.');
@@ -66,28 +66,89 @@ export default function ChangePassword({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30 p-4">
-      <form onSubmit={handleChange} className="bg-white p-6 lg:p-8 rounded-xl shadow-md w-full max-w-sm relative">
-        <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-xl" onClick={onClose}>&times;</button>
-        <h2 className="text-xl font-bold mb-6 text-center">비밀번호 변경</h2>
-        <div className="mb-3">
-          <label className="block text-sm font-medium mb-1">기존 비밀번호</label>
-          <input className="border rounded px-3 py-2 w-full" type="password" value={oldPw} onChange={e => setOldPw(e.target.value)} autoFocus />
+    <div className="modal-overlay">
+      <div className="modal-content max-w-sm">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center">
+              <Lock className="w-5 h-5 text-white" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">비밀번호 변경</h2>
+          </div>
+          <button
+            type="button"
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+            onClick={onClose}
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <div className="mb-3">
-          <label className="block text-sm font-medium mb-1">새 비밀번호</label>
-          <input className="border rounded px-3 py-2 w-full" type="password" value={newPw} onChange={e => setNewPw(e.target.value)} />
-        </div>
-        <div className="mb-3">
-          <label className="block text-sm font-medium mb-1">새 비밀번호 확인</label>
-          <input className="border rounded px-3 py-2 w-full" type="password" value={newPw2} onChange={e => setNewPw2(e.target.value)} />
-        </div>
-        {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
-        {msg && <div className="text-green-600 text-sm mb-2">{msg}</div>}
-        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700 transition" disabled={loading}>
-          {loading ? '변경 중...' : '비밀번호 변경'}
-        </button>
-      </form>
+
+        {msg ? (
+          <div className="text-center py-6">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/30">
+              <CheckCircle className="w-8 h-8 text-white" />
+            </div>
+            <p className="text-emerald-600 font-medium">{msg}</p>
+          </div>
+        ) : (
+          <form onSubmit={handleChange} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">기존 비밀번호</label>
+              <input
+                className="input-glass"
+                type="password"
+                value={oldPw}
+                onChange={e => setOldPw(e.target.value)}
+                placeholder="현재 비밀번호 입력"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">새 비밀번호</label>
+              <input
+                className="input-glass"
+                type="password"
+                value={newPw}
+                onChange={e => setNewPw(e.target.value)}
+                placeholder="새 비밀번호 입력 (6자 이상)"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">새 비밀번호 확인</label>
+              <input
+                className="input-glass"
+                type="password"
+                value={newPw2}
+                onChange={e => setNewPw2(e.target.value)}
+                placeholder="새 비밀번호 다시 입력"
+              />
+            </div>
+
+            {error && (
+              <div className="glass p-3 rounded-xl border border-rose-200 bg-rose-50/50">
+                <p className="text-sm text-rose-600">{error}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="btn-primary w-full"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>변경 중...</span>
+                </>
+              ) : (
+                <span>비밀번호 변경</span>
+              )}
+            </button>
+          </form>
+        )}
+      </div>
     </div>
   );
-} 
+}
