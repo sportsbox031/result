@@ -16,6 +16,50 @@ import { db } from '../config/firebase';
 import { Demand, Performance, BudgetItem, BudgetUsage } from '../types';
 import { BUDGET_2026_ALL } from '../data/budget2026';
 
+const NORTH_2026_ORDER_START = 20;
+const NORTH_2026_ORDER_END = 29;
+const SOUTH_2026_ORDER_START = 10;
+const SOUTH_2026_ORDER_END = 19;
+
+const inferBudgetRegionFromLegacy = (name: unknown, year: number, order: unknown): '남부' | '북부' | undefined => {
+  const safeName = typeof name === 'string' ? name : '';
+  const compactName = safeName.replace(/\s+/g, '');
+
+  if (/(?:_북부|\(북부\)|북부)/.test(compactName)) return '북부';
+
+  if (year === 2026 && typeof order === 'number') {
+    if (order >= NORTH_2026_ORDER_START && order <= NORTH_2026_ORDER_END) return '북부';
+    if (order >= SOUTH_2026_ORDER_START && order <= SOUTH_2026_ORDER_END) return '남부';
+  }
+
+  return undefined;
+};
+
+const normalizeBudgetRegion = (
+  region: unknown,
+  inferredRegion: '남부' | '북부' | undefined
+): '남부' | '북부' | undefined => {
+  const normalizedRegion = typeof region === 'string' ? region.trim() : '';
+  if (normalizedRegion === '남부' || normalizedRegion === '북부') {
+    if (inferredRegion === '북부') return '북부';
+    return normalizedRegion;
+  }
+  return inferredRegion;
+};
+
+const normalizeBudgetItem = (id: string, data: Record<string, any>): BudgetItem => {
+  const year = data.year ?? 2025;
+  const inferredRegion = inferBudgetRegionFromLegacy(data.name, year, data.order);
+  const region = normalizeBudgetRegion(data.region, inferredRegion);
+
+  return {
+    id,
+    ...data,
+    year,
+    region
+  } as BudgetItem;
+};
+
 export const firebaseStorage = {
   // 수요처 관련 작업
   async getDemands(): Promise<Demand[]> {
@@ -200,15 +244,7 @@ export const firebaseStorage = {
     try {
       const q = query(collection(db, 'budgets'));
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          // year 필드가 없으면 2025로 기본값 설정 (기존 데이터 마이그레이션)
-          year: data.year ?? 2025
-        };
-      }) as BudgetItem[];
+      return querySnapshot.docs.map((doc) => normalizeBudgetItem(doc.id, doc.data()));
     } catch (error) {
       console.error('예산 항목 데이터 로드 실패:', error);
       throw error;
@@ -256,15 +292,7 @@ export const firebaseStorage = {
   subscribeToBudgets(callback: (budgets: BudgetItem[]) => void): () => void {
     const q = query(collection(db, 'budgets'));
     return onSnapshot(q, (querySnapshot) => {
-      const budgets = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          // year 필드가 없으면 2025로 기본값 설정 (기존 데이터 마이그레이션)
-          year: data.year ?? 2025
-        };
-      }) as BudgetItem[];
+      const budgets = querySnapshot.docs.map((doc) => normalizeBudgetItem(doc.id, doc.data()));
       callback(budgets);
     });
   },

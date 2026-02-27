@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Users, BarChart3, Calendar, Building2, PieChart, Activity, RefreshCw, Search, MapPin, Wallet, TrendingDown, Percent } from 'lucide-react';
-import { GripVertical, Trash2 } from 'lucide-react';
+import { Users, BarChart3, Calendar, Building2, PieChart, Activity, RefreshCw, Search, MapPin, Wallet, TrendingDown, Percent, GripVertical, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -10,6 +9,7 @@ import { StatisticsData, BudgetItem, BudgetUsage } from '../types';
 import { firebaseStorage } from '../utils/firebaseStorage';
 import { AVAILABLE_YEARS, CURRENT_YEAR, getPerformanceYear, getBudgetUsageYear } from '../utils/yearUtils';
 import { getCityRegion } from '../utils/regions';
+import { buildBudgetHierarchy, getBudgetHierarchyInfo, sortBudgetItemsByOrder } from '../utils/budgetHierarchy';
 
 const Dashboard: React.FC = () => {
   const { demands, performances } = useFirebaseData();
@@ -48,6 +48,8 @@ const Dashboard: React.FC = () => {
   const [selectedBudgetItem, setSelectedBudgetItem] = useState<BudgetItem | null>(null);
   const [programStats, setProgramStats] = useState<{ [key: string]: { count: number; people: number } }>({});
   const [activeTab, setActiveTab] = useState<'overview' | 'city' | 'organization' | 'budget'>('overview');
+  const [collapsedBimo, setCollapsedBimo] = useState<Record<string, boolean>>({});
+  const [collapsedSemok, setCollapsedSemok] = useState<Record<string, boolean>>({});
 
   // 기간 필터 상태
   const [dateFilter, setDateFilter] = useState<{ startDate?: Date; endDate?: Date }>({});
@@ -97,10 +99,7 @@ const Dashboard: React.FC = () => {
   // 예산 지역 필터 적용
   const regionFilteredBudgetItems = useMemo(() => {
     if (budgetRegionFilter === '전체') return yearFilteredBudgetItems;
-    return yearFilteredBudgetItems.filter(item => {
-      if (!item.region) return budgetRegionFilter === '전체';
-      return item.region === budgetRegionFilter;
-    });
+    return yearFilteredBudgetItems.filter(item => item.region === budgetRegionFilter);
   }, [yearFilteredBudgetItems, budgetRegionFilter]);
 
   // 연도별 예산 사용 내역 필터링
@@ -172,12 +171,18 @@ const Dashboard: React.FC = () => {
   // 드래그&드롭 핸들러
   const handleDragEnd = async (event: any) => {
     const { active, over } = event;
-    if (active.id !== over.id) {
-      const oldIndex = budgetItems.findIndex(b => b.id === active.id);
-      const newIndex = budgetItems.findIndex(b => b.id === over.id);
-      const newItems = arrayMove(budgetItems, oldIndex, newIndex).map((b, idx) => ({ ...b, order: idx }));
-      await firebaseStorage.updateBudgetOrder(newItems);
-    }
+    if (!over || active.id === over.id) return;
+
+    const sortedYearItems = sortBudgetItemsByOrder(yearFilteredBudgetItems);
+    const oldIndex = sortedYearItems.findIndex((b) => b.id === String(active.id));
+    const newIndex = sortedYearItems.findIndex((b) => b.id === String(over.id));
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reorderedItems = arrayMove(sortedYearItems, oldIndex, newIndex).map((item, index) => ({
+      ...item,
+      order: index,
+    }));
+    await firebaseStorage.updateBudgetOrder(reorderedItems);
   };
 
   // 필터링된 예산 사용 내역
@@ -189,8 +194,70 @@ const Dashboard: React.FC = () => {
     });
   }, [yearFilteredBudgetUsages, dateFilter]);
 
-  const getBudgetUsageSum = (budgetItemId: string) =>
-    filteredBudgetUsages.filter(u => u.budgetItemId === budgetItemId).reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
+  const budgetUsedMap = useMemo(() => {
+    const usageMap = new Map<string, number>();
+    filteredBudgetUsages.forEach((usage) => {
+      usageMap.set(usage.budgetItemId, (usageMap.get(usage.budgetItemId) ?? 0) + (Number(usage.amount) || 0));
+    });
+    return usageMap;
+  }, [filteredBudgetUsages]);
+
+  const getBudgetUsageSum = (budgetItemId: string) => budgetUsedMap.get(budgetItemId) ?? 0;
+
+  const groupedBudgetItems = useMemo(() => {
+    const hierarchy = buildBudgetHierarchy(regionFilteredBudgetItems);
+    return hierarchy.map((bimoGroup) => {
+      const semokGroups = bimoGroup.semokGroups.map((semokGroup) => {
+        const totalBudgetAmount = semokGroup.items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        const totalUsedAmount = semokGroup.items.reduce((sum, item) => sum + (budgetUsedMap.get(item.id) ?? 0), 0);
+        const totalRemainAmount = totalBudgetAmount - totalUsedAmount;
+        const usageRate = totalBudgetAmount > 0 ? Math.round((totalUsedAmount / totalBudgetAmount) * 1000) / 10 : 0;
+        return {
+          ...semokGroup,
+          key: `${bimoGroup.bimo}::${semokGroup.semok}`,
+          totalBudgetAmount,
+          totalUsedAmount,
+          totalRemainAmount,
+          usageRate,
+        };
+      });
+
+      const totalBudgetAmount = semokGroups.reduce((sum, semokGroup) => sum + semokGroup.totalBudgetAmount, 0);
+      const totalUsedAmount = semokGroups.reduce((sum, semokGroup) => sum + semokGroup.totalUsedAmount, 0);
+      const totalRemainAmount = totalBudgetAmount - totalUsedAmount;
+      const usageRate = totalBudgetAmount > 0 ? Math.round((totalUsedAmount / totalBudgetAmount) * 1000) / 10 : 0;
+
+      return {
+        ...bimoGroup,
+        semokGroups,
+        totalBudgetAmount,
+        totalUsedAmount,
+        totalRemainAmount,
+        usageRate,
+      };
+    });
+  }, [regionFilteredBudgetItems, budgetUsedMap]);
+
+  const visibleBudgetItemIds = useMemo(() => {
+    const ids: string[] = [];
+    groupedBudgetItems.forEach((bimoGroup) => {
+      if (collapsedBimo[bimoGroup.bimo] ?? true) return;
+
+      bimoGroup.semokGroups.forEach((semokGroup) => {
+        if (collapsedSemok[semokGroup.key] ?? true) return;
+        semokGroup.items.forEach((item) => ids.push(item.id));
+      });
+    });
+    return ids;
+  }, [groupedBudgetItems, collapsedBimo, collapsedSemok]);
+
+  const toggleBimo = (bimo: string) => {
+    setCollapsedBimo((prev) => ({ ...prev, [bimo]: !(prev[bimo] ?? true) }));
+  };
+
+  const toggleSemok = (semokKey: string) => {
+    setCollapsedSemok((prev) => ({ ...prev, [semokKey]: !(prev[semokKey] ?? true) }));
+  };
 
   // 예산 항목 삭제 핸들러
   const handleDeleteBudget = async (id: string) => {
@@ -604,7 +671,7 @@ const Dashboard: React.FC = () => {
 
       {activeTab === 'budget' && (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={regionFilteredBudgetItems.map(b => b.id)} strategy={verticalListSortingStrategy}>
+          <SortableContext items={visibleBudgetItemIds} strategy={verticalListSortingStrategy}>
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <h2 className="text-xl font-bold text-gray-900">{selectedYear}년 예산 현황</h2>
@@ -635,13 +702,13 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
 
-              {regionFilteredBudgetItems.length > 0 ? (
+              {groupedBudgetItems.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-100">
                         <th className="px-2 py-3 w-8"></th>
-                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">예산명</th>
+                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">비목 / 세목 / 세세목</th>
                         <th className="px-3 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">예산액</th>
                         <th className="px-3 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">사용액</th>
                         <th className="px-3 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">잔액</th>
@@ -650,23 +717,85 @@ const Dashboard: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {regionFilteredBudgetItems.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map(item => (
-                        <BudgetRow
-                          key={item.id}
-                          item={item}
-                          editingBudgetId={editingBudgetId}
-                          editingBudgetName={editingBudgetName}
-                          editingBudgetAmount={editingBudgetAmount}
-                          setEditingBudgetName={setEditingBudgetName}
-                          setEditingBudgetAmount={setEditingBudgetAmount}
-                          setEditingBudgetId={setEditingBudgetId}
-                          handleEditBudget={handleEditBudget}
-                          handleSaveBudget={handleSaveBudget}
-                          handleDeleteBudget={handleDeleteBudget}
-                          handleBudgetItemClick={handleBudgetItemClick}
-                          used={getBudgetUsageSum(item.id)}
-                        />
-                      ))}
+                      {groupedBudgetItems.map((bimoGroup) => {
+                        const isBimoCollapsed = collapsedBimo[bimoGroup.bimo] ?? true;
+
+                        return (
+                          <React.Fragment key={bimoGroup.bimo}>
+                            <tr className="bg-slate-100/90 border-y border-slate-200">
+                              <td colSpan={2} className="px-3 py-3">
+                                <button
+                                  type="button"
+                                  className="flex items-center gap-2 text-sm font-semibold text-slate-800 hover:text-blue-700 transition-colors"
+                                  onClick={() => toggleBimo(bimoGroup.bimo)}
+                                >
+                                  {isBimoCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                  <span className="inline-flex items-center rounded-md bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                                    비목
+                                  </span>
+                                  <span>{bimoGroup.bimo}</span>
+                                </button>
+                              </td>
+                              <td className="px-3 py-3 text-right text-sm font-semibold text-gray-900">{bimoGroup.totalBudgetAmount.toLocaleString()}</td>
+                              <td className="px-3 py-3 text-right text-sm font-semibold text-blue-600">{bimoGroup.totalUsedAmount.toLocaleString()}</td>
+                              <td className="px-3 py-3 text-right text-sm font-semibold text-gray-700">{bimoGroup.totalRemainAmount.toLocaleString()}</td>
+                              <td className="px-3 py-3 text-right text-sm font-semibold text-amber-600">{bimoGroup.usageRate}%</td>
+                              <td className="px-3 py-3 text-center text-xs text-gray-500">{bimoGroup.semokGroups.length}개 세목</td>
+                            </tr>
+
+                            {!isBimoCollapsed && bimoGroup.semokGroups.map((semokGroup) => {
+                              const isSemokCollapsed = collapsedSemok[semokGroup.key] ?? true;
+
+                              return (
+                                <React.Fragment key={semokGroup.key}>
+                                  <tr className="bg-blue-50/40 border-b border-blue-100/60">
+                                    <td className="px-2 py-2"></td>
+                                    <td className="px-3 py-2">
+                                      <div className="flex items-center gap-2 pl-6">
+                                        <span className="h-px w-4 shrink-0 bg-blue-300" aria-hidden="true"></span>
+                                        <button
+                                          type="button"
+                                          className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-blue-700 transition-colors"
+                                          onClick={() => toggleSemok(semokGroup.key)}
+                                        >
+                                          {isSemokCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                          <span className="inline-flex items-center rounded-md bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
+                                            세목
+                                          </span>
+                                          <span>{semokGroup.semok}</span>
+                                        </button>
+                                      </div>
+                                    </td>
+                                    <td className="px-3 py-2 text-right text-sm font-medium text-gray-900">{semokGroup.totalBudgetAmount.toLocaleString()}</td>
+                                    <td className="px-3 py-2 text-right text-sm font-medium text-blue-600">{semokGroup.totalUsedAmount.toLocaleString()}</td>
+                                    <td className="px-3 py-2 text-right text-sm text-gray-700">{semokGroup.totalRemainAmount.toLocaleString()}</td>
+                                    <td className="px-3 py-2 text-right text-sm text-amber-600">{semokGroup.usageRate}%</td>
+                                    <td className="px-3 py-2 text-center text-xs text-gray-500">{semokGroup.items.length}개 세세목</td>
+                                  </tr>
+
+                                  {!isSemokCollapsed && semokGroup.items.map((item) => (
+                                    <BudgetRow
+                                      key={item.id}
+                                      item={item}
+                                      editingBudgetId={editingBudgetId}
+                                      editingBudgetName={editingBudgetName}
+                                      editingBudgetAmount={editingBudgetAmount}
+                                      setEditingBudgetName={setEditingBudgetName}
+                                      setEditingBudgetAmount={setEditingBudgetAmount}
+                                      setEditingBudgetId={setEditingBudgetId}
+                                      handleEditBudget={handleEditBudget}
+                                      handleSaveBudget={handleSaveBudget}
+                                      handleDeleteBudget={handleDeleteBudget}
+                                      handleBudgetItemClick={handleBudgetItemClick}
+                                      used={getBudgetUsageSum(item.id)}
+                                    />
+                                  ))}
+                                </React.Fragment>
+                              );
+                            })}
+                          </React.Fragment>
+                        );
+                      })}
                     </tbody>
                     <tfoot>
                       <tr className="bg-gray-50 font-semibold">
@@ -759,7 +888,7 @@ const Dashboard: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowBudgetUsagePopup(false)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-100">
-              <h3 className="text-xl font-bold text-gray-900">{selectedBudgetItem.name} 사용 내역</h3>
+              <h3 className="text-xl font-bold text-gray-900">{getBudgetHierarchyInfo(selectedBudgetItem).detailName} 사용 내역</h3>
             </div>
             <div className="p-6 overflow-y-auto max-h-[60vh]">
               {(() => {
@@ -814,36 +943,45 @@ function BudgetRow({ item, editingBudgetId, editingBudgetName, editingBudgetAmou
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+  const { detailName } = getBudgetHierarchyInfo(item);
   const remain = item.amount - used;
   const rate = item.amount > 0 ? (used / item.amount) * 100 : 0;
 
   return (
-    <tr ref={setNodeRef} style={style} {...attributes} className="hover:bg-gray-50 transition-colors">
+    <tr ref={setNodeRef} style={style} {...attributes} className="hover:bg-slate-50 transition-colors">
       <td className="px-2 py-3 text-center cursor-grab" {...listeners}>
-        <GripVertical className="w-4 h-4 text-gray-300 hover:text-gray-500" />
+        <div className="flex items-center justify-center">
+          <GripVertical className="w-4 h-4 text-gray-300 hover:text-gray-500" />
+        </div>
       </td>
       <td className="px-3 py-3">
-        {editingBudgetId === item.id ? (
-          <input
-            className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500"
-            value={editingBudgetName}
-            onChange={e => setEditingBudgetName(e.target.value)}
-          />
-        ) : (
-          <div className="flex items-center gap-2">
-            <span
-              className="text-sm font-medium text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
-              onClick={() => handleBudgetItemClick(item)}
-            >
-              {item.name || '(이름 없음)'}
-            </span>
-            {item.region && (
-              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${item.region === '남부' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
-                {item.region}
+        <div className="flex items-center gap-2 pl-10">
+          <span className="h-px w-5 shrink-0 bg-slate-300" aria-hidden="true"></span>
+          <span className="inline-flex items-center rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500">
+            세세목
+          </span>
+          {editingBudgetId === item.id ? (
+            <input
+              className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500"
+              value={editingBudgetName}
+              onChange={e => setEditingBudgetName(e.target.value)}
+            />
+          ) : (
+            <div className="flex items-center gap-2">
+              <span
+                className="text-sm font-medium text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+                onClick={() => handleBudgetItemClick(item)}
+              >
+                {detailName || '(이름 없음)'}
               </span>
-            )}
-          </div>
-        )}
+              {item.region && (
+                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${item.region === '남부' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
+                  {item.region}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </td>
       <td className="px-3 py-3 text-right">
         {editingBudgetId === item.id ? (
