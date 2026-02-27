@@ -4,6 +4,7 @@ import { firebaseStorage } from '../utils/firebaseStorage';
 import { Plus, Trash2, Save, X, Search, Download, Calendar, CreditCard, FileText } from 'lucide-react';
 import { downloadBudgetUsageExcel } from '../utils/excel';
 import { AVAILABLE_YEARS, CURRENT_YEAR, getBudgetUsageYear } from '../utils/yearUtils';
+import { buildBudgetHierarchy, getBudgetHierarchyInfo, sortBudgetItemsByOrder } from '../utils/budgetHierarchy';
 
 const BudgetUsagePage: React.FC = () => {
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
@@ -21,6 +22,10 @@ const BudgetUsagePage: React.FC = () => {
   const [addForm, setAddForm] = useState<Partial<BudgetUsage>>({
     budgetItemId: '', description: '', vendor: '', amount: 0, date: '', paymentMethod: '', note: ''
   });
+  const [addBimo, setAddBimo] = useState('');
+  const [addSemok, setAddSemok] = useState('');
+  const [editBimo, setEditBimo] = useState('');
+  const [editSemok, setEditSemok] = useState('');
 
   useEffect(() => {
     const unsubBudgets = firebaseStorage.subscribeToBudgets(setBudgetItems);
@@ -39,6 +44,53 @@ const BudgetUsagePage: React.FC = () => {
     if (regionFilter === '전체') return yearFilteredBudgetItems;
     return yearFilteredBudgetItems.filter(item => item.region === regionFilter);
   }, [yearFilteredBudgetItems, regionFilter]);
+
+  const selectableBudgetItems = useMemo(
+    () => sortBudgetItemsByOrder(regionFilter === '전체' ? yearFilteredBudgetItems : filteredBudgetItems),
+    [regionFilter, yearFilteredBudgetItems, filteredBudgetItems]
+  );
+  const selectableBudgetHierarchy = useMemo(
+    () => buildBudgetHierarchy(selectableBudgetItems),
+    [selectableBudgetItems]
+  );
+  const editableBudgetItems = useMemo(
+    () => sortBudgetItemsByOrder(yearFilteredBudgetItems),
+    [yearFilteredBudgetItems]
+  );
+  const editableBudgetHierarchy = useMemo(
+    () => buildBudgetHierarchy(editableBudgetItems),
+    [editableBudgetItems]
+  );
+
+  const getInitialBudgetSelection = (items: BudgetItem[], preferredBudgetId?: string) => {
+    if (!items.length) {
+      return { budgetItemId: '', bimo: '', semok: '' };
+    }
+
+    const selectedItem = items.find((item) => item.id === preferredBudgetId) ?? items[0];
+    const { bimo, semok } = getBudgetHierarchyInfo(selectedItem);
+    return { budgetItemId: selectedItem.id, bimo, semok };
+  };
+
+  const addSemokOptions = useMemo(() => {
+    const bimoGroup = selectableBudgetHierarchy.find((group) => group.bimo === addBimo);
+    return bimoGroup?.semokGroups ?? [];
+  }, [selectableBudgetHierarchy, addBimo]);
+
+  const addBudgetNameOptions = useMemo(() => {
+    const semokGroup = addSemokOptions.find((group) => group.semok === addSemok);
+    return semokGroup?.items ?? [];
+  }, [addSemokOptions, addSemok]);
+
+  const editSemokOptions = useMemo(() => {
+    const bimoGroup = editableBudgetHierarchy.find((group) => group.bimo === editBimo);
+    return bimoGroup?.semokGroups ?? [];
+  }, [editableBudgetHierarchy, editBimo]);
+
+  const editBudgetNameOptions = useMemo(() => {
+    const semokGroup = editSemokOptions.find((group) => group.semok === editSemok);
+    return semokGroup?.items ?? [];
+  }, [editSemokOptions, editSemok]);
 
   // 연도별로 예산 사용 내역 필터링
   const yearFilteredBudgetUsages = useMemo(() =>
@@ -66,10 +118,14 @@ const BudgetUsagePage: React.FC = () => {
       const term = searchTerm.toLowerCase();
       result = result.filter(u => {
         const budgetItem = budgetItems.find(b => b.id === u.budgetItemId);
+        const budgetHierarchy = budgetItem ? getBudgetHierarchyInfo(budgetItem) : null;
         return (
           u.description?.toLowerCase().includes(term) ||
           u.vendor?.toLowerCase().includes(term) ||
           budgetItem?.name?.toLowerCase().includes(term) ||
+          budgetHierarchy?.detailName.toLowerCase().includes(term) ||
+          budgetHierarchy?.bimo.toLowerCase().includes(term) ||
+          budgetHierarchy?.semok.toLowerCase().includes(term) ||
           u.note?.toLowerCase().includes(term)
         );
       });
@@ -95,24 +151,55 @@ const BudgetUsagePage: React.FC = () => {
   }, [editingId, adding]);
 
   const resetAddForm = () => {
+    const initialSelection = getInitialBudgetSelection(selectableBudgetItems);
+    setAddBimo(initialSelection.bimo);
+    setAddSemok(initialSelection.semok);
     setAddForm({
-      budgetItemId: filteredBudgetItems[0]?.id || '',
+      budgetItemId: initialSelection.budgetItemId,
       description: '', vendor: '', amount: 0, date: '', paymentMethod: '', note: ''
     });
   };
 
   const handleAddUsage = () => {
+    const initialSelection = getInitialBudgetSelection(selectableBudgetItems);
+    setAddBimo(initialSelection.bimo);
+    setAddSemok(initialSelection.semok);
     setAdding(true);
     setAddForm({
-      budgetItemId: filteredBudgetItems[0]?.id || yearFilteredBudgetItems[0]?.id || '',
+      budgetItemId: initialSelection.budgetItemId,
       description: '', vendor: '', amount: 0, date: '', paymentMethod: '', note: ''
     });
   };
 
   const handleEdit = (usage: BudgetUsage) => {
+    const initialSelection = getInitialBudgetSelection(editableBudgetItems, usage.budgetItemId);
+    setEditBimo(initialSelection.bimo);
+    setEditSemok(initialSelection.semok);
     setEditingId(usage.id);
     setEditForm({ ...usage });
   };
+
+  useEffect(() => {
+    if (!adding) return;
+    const initialSelection = getInitialBudgetSelection(selectableBudgetItems, addForm.budgetItemId);
+
+    if (addForm.budgetItemId !== initialSelection.budgetItemId) {
+      setAddForm((prev) => ({ ...prev, budgetItemId: initialSelection.budgetItemId }));
+    }
+    setAddBimo(initialSelection.bimo);
+    setAddSemok(initialSelection.semok);
+  }, [adding, selectableBudgetItems, addForm.budgetItemId]);
+
+  useEffect(() => {
+    if (!editingId) return;
+    const initialSelection = getInitialBudgetSelection(editableBudgetItems, editForm.budgetItemId);
+
+    if (editForm.budgetItemId !== initialSelection.budgetItemId) {
+      setEditForm((prev) => ({ ...prev, budgetItemId: initialSelection.budgetItemId }));
+    }
+    setEditBimo(initialSelection.bimo);
+    setEditSemok(initialSelection.semok);
+  }, [editingId, editableBudgetItems, editForm.budgetItemId]);
 
   const handleSave = async () => {
     if (!editingId) return;
@@ -134,6 +221,10 @@ const BudgetUsagePage: React.FC = () => {
   };
 
   const handleAddSave = async () => {
+    if (!addForm.budgetItemId) {
+      alert('선택 가능한 세세목(예산명)이 없습니다.');
+      return;
+    }
     await firebaseStorage.addBudgetUsage(addForm as Omit<BudgetUsage, 'id'>);
     setAdding(false);
     resetAddForm();
@@ -141,6 +232,62 @@ const BudgetUsagePage: React.FC = () => {
 
   const handleAddChange = (field: keyof BudgetUsage, value: any) => {
     setAddForm(f => ({ ...f, [field]: value }));
+  };
+
+  const handleAddBimoChange = (nextBimo: string) => {
+    const nextBimoGroup = selectableBudgetHierarchy.find((group) => group.bimo === nextBimo);
+    const nextSemokGroup = nextBimoGroup?.semokGroups[0];
+    const nextBudgetItem = nextSemokGroup?.items[0];
+
+    setAddBimo(nextBimo);
+    setAddSemok(nextSemokGroup?.semok ?? '');
+    handleAddChange('budgetItemId', nextBudgetItem?.id ?? '');
+  };
+
+  const handleAddSemokChange = (nextSemok: string) => {
+    const nextSemokGroup = addSemokOptions.find((group) => group.semok === nextSemok);
+    const nextBudgetItem = nextSemokGroup?.items[0];
+
+    setAddSemok(nextSemok);
+    handleAddChange('budgetItemId', nextBudgetItem?.id ?? '');
+  };
+
+  const handleAddBudgetItemChange = (budgetItemId: string) => {
+    const selectedItem = selectableBudgetItems.find((item) => item.id === budgetItemId);
+    if (selectedItem) {
+      const { bimo, semok } = getBudgetHierarchyInfo(selectedItem);
+      setAddBimo(bimo);
+      setAddSemok(semok);
+    }
+    handleAddChange('budgetItemId', budgetItemId);
+  };
+
+  const handleEditBimoChange = (nextBimo: string) => {
+    const nextBimoGroup = editableBudgetHierarchy.find((group) => group.bimo === nextBimo);
+    const nextSemokGroup = nextBimoGroup?.semokGroups[0];
+    const nextBudgetItem = nextSemokGroup?.items[0];
+
+    setEditBimo(nextBimo);
+    setEditSemok(nextSemokGroup?.semok ?? '');
+    handleChange('budgetItemId', nextBudgetItem?.id ?? '');
+  };
+
+  const handleEditSemokChange = (nextSemok: string) => {
+    const nextSemokGroup = editSemokOptions.find((group) => group.semok === nextSemok);
+    const nextBudgetItem = nextSemokGroup?.items[0];
+
+    setEditSemok(nextSemok);
+    handleChange('budgetItemId', nextBudgetItem?.id ?? '');
+  };
+
+  const handleEditBudgetItemChange = (budgetItemId: string) => {
+    const selectedItem = editableBudgetItems.find((item) => item.id === budgetItemId);
+    if (selectedItem) {
+      const { bimo, semok } = getBudgetHierarchyInfo(selectedItem);
+      setEditBimo(bimo);
+      setEditSemok(semok);
+    }
+    handleChange('budgetItemId', budgetItemId);
   };
 
   // 총 집행액 계산
@@ -203,7 +350,7 @@ const BudgetUsagePage: React.FC = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="적요, 채주, 예산명 검색..."
+            placeholder="적요, 채주, 비목/세목/예산명 검색..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -245,14 +392,43 @@ const BudgetUsagePage: React.FC = () => {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">새 내역 추가</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">예산명</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">비목</label>
+              <select
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-blue-500"
+                value={addBimo}
+                onChange={e => handleAddBimoChange(e.target.value)}
+              >
+                {selectableBudgetHierarchy.length === 0 && <option value="">선택 가능한 비목 없음</option>}
+                {selectableBudgetHierarchy.map(group => (
+                  <option key={group.bimo} value={group.bimo}>{group.bimo}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">세목</label>
+              <select
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-blue-500"
+                value={addSemok}
+                onChange={e => handleAddSemokChange(e.target.value)}
+              >
+                {addSemokOptions.length === 0 && <option value="">선택 가능한 세목 없음</option>}
+                {addSemokOptions.map(group => (
+                  <option key={group.semok} value={group.semok}>{group.semok}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">세세목(예산명)</label>
               <select
                 className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-blue-500"
                 value={addForm.budgetItemId}
-                onChange={e => handleAddChange('budgetItemId', e.target.value)}
+                onChange={e => handleAddBudgetItemChange(e.target.value)}
               >
-                {(regionFilter === '전체' ? yearFilteredBudgetItems : filteredBudgetItems).map(item => (
-                  <option key={item.id} value={item.id}>{item.name}{item.region ? ` (${item.region})` : ''}</option>
+                {addBudgetNameOptions.length === 0 && <option value="">선택 가능한 예산명 없음</option>}
+                {addBudgetNameOptions.map(item => (
+                  <option key={item.id} value={item.id}>
+                    {getBudgetHierarchyInfo(item).detailName}{item.region ? ` (${item.region})` : ''}
+                  </option>
                 ))}
               </select>
             </div>
@@ -356,6 +532,7 @@ const BudgetUsagePage: React.FC = () => {
                 {filteredUsages.map(usage => {
                   const isEditing = editingId === usage.id;
                   const budgetItem = budgetItems.find(b => b.id === (isEditing ? editForm.budgetItemId : usage.budgetItemId));
+                  const budgetHierarchy = budgetItem ? getBudgetHierarchyInfo(budgetItem) : null;
 
                   return (
                     <tr
@@ -365,19 +542,53 @@ const BudgetUsagePage: React.FC = () => {
                     >
                       <td className="px-4 py-3">
                         {isEditing ? (
-                          <select
-                            className="w-full px-2 py-1 rounded border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500"
-                            value={editForm.budgetItemId}
-                            onChange={e => handleChange('budgetItemId', e.target.value)}
-                            onClick={e => e.stopPropagation()}
-                          >
-                            {yearFilteredBudgetItems.map(item => (
-                              <option key={item.id} value={item.id}>{item.name}</option>
-                            ))}
-                          </select>
+                          <div className="space-y-1">
+                            <select
+                              className="w-full px-2 py-1 rounded border border-gray-300 text-xs focus:ring-2 focus:ring-blue-500"
+                              value={editBimo}
+                              onChange={e => handleEditBimoChange(e.target.value)}
+                              onClick={e => e.stopPropagation()}
+                            >
+                              {editableBudgetHierarchy.length === 0 && <option value="">비목 없음</option>}
+                              {editableBudgetHierarchy.map(group => (
+                                <option key={group.bimo} value={group.bimo}>{group.bimo}</option>
+                              ))}
+                            </select>
+                            <select
+                              className="w-full px-2 py-1 rounded border border-gray-300 text-xs focus:ring-2 focus:ring-blue-500"
+                              value={editSemok}
+                              onChange={e => handleEditSemokChange(e.target.value)}
+                              onClick={e => e.stopPropagation()}
+                            >
+                              {editSemokOptions.length === 0 && <option value="">세목 없음</option>}
+                              {editSemokOptions.map(group => (
+                                <option key={group.semok} value={group.semok}>{group.semok}</option>
+                              ))}
+                            </select>
+                            <select
+                              className="w-full px-2 py-1 rounded border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500"
+                              value={editForm.budgetItemId}
+                              onChange={e => handleEditBudgetItemChange(e.target.value)}
+                              onClick={e => e.stopPropagation()}
+                            >
+                              {editBudgetNameOptions.length === 0 && <option value="">예산명 없음</option>}
+                              {editBudgetNameOptions.map(item => (
+                                <option key={item.id} value={item.id}>
+                                  {getBudgetHierarchyInfo(item).detailName}{item.region ? ` (${item.region})` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                         ) : (
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-gray-900">{budgetItem?.name || '-'}</span>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium text-gray-900">{budgetHierarchy?.detailName || '-'}</span>
+                              {budgetHierarchy && (
+                                <span className="text-xs text-gray-400">
+                                  {budgetHierarchy.bimo} / {budgetHierarchy.semok}
+                                </span>
+                              )}
+                            </div>
                             {budgetItem?.region && (
                               <span className={`px-1.5 py-0.5 text-xs font-medium rounded ${budgetItem.region === '남부' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
                                 {budgetItem.region}
