@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { BudgetItem, BudgetUsage } from '../types';
 import { firebaseStorage } from '../utils/firebaseStorage';
 import { useFirebaseData } from '../hooks/useFirebaseData';
-import { Plus, Trash2, Save, X, Search, Download, Calendar, CreditCard, FileText } from 'lucide-react';
+import { Plus, Trash2, Save, X, Search, Download, Calendar, FileText, MapPin, Wallet } from 'lucide-react';
 import { downloadBudgetUsageExcel } from '../utils/excel';
 import { AVAILABLE_YEARS, CURRENT_YEAR, getBudgetUsageYear } from '../utils/yearUtils';
 import { buildBudgetHierarchy, getBudgetHierarchyInfo, sortBudgetItemsByOrder } from '../utils/budgetHierarchy';
