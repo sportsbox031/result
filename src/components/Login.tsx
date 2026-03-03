@@ -38,22 +38,12 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen glass-bg p-4">
-      <form onSubmit={handleLogin} className="glass-modal p-6 lg:p-8 rounded-xl w-full max-w-sm">
-        <h2 className="text-xl lg:text-2xl font-bold mb-6 text-center">관리자 로그인</h2>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">아이디</label>
-          <input className="border rounded px-3 py-2 w-full" value={username} onChange={e => setUsername(e.target.value)} autoFocus />
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">비밀번호</label>
-          <input className="border rounded px-3 py-2 w-full" type="password" value={password} onChange={e => setPassword(e.target.value)} />
-        </div>
-        {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
-        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700 transition" disabled={loading}>
-          {loading ? '로그인 중...' : '로그인'}
-        </button>
-        
+    <div className="min-h-screen bg-mesh flex items-center justify-center p-4">
+      {/* 배경 장식 */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-violet-400/20 rounded-full blur-3xl" />
+      </div>
 
       <div className="relative w-full max-w-md animate-scaleIn">
         {/* 로고 영역 */}

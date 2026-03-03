@@ -153,9 +153,9 @@ const DemandRegister: React.FC = () => {
 
       {/* 수기 입력 폼 */}
       {activeTab === 'manual' && (
-        <div className="glass-card rounded-lg p-4 lg:p-8">
-          <form onSubmit={handleManualSubmit} className="space-y-4 lg:space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+        <div className="glass-card p-6 lg:p-8 animate-fadeIn">
+          <form onSubmit={handleManualSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">시/군 *</label>
                 <select
@@ -271,7 +271,8 @@ const DemandRegister: React.FC = () => {
             </div>
           </div>
 
-          <div className="glass-card rounded-lg p-8">
+          {/* 업로드 영역 */}
+          <div className="glass-card p-8">
             <div
               className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all ${
                 isDragOver
@@ -320,43 +321,11 @@ const DemandRegister: React.FC = () => {
 
       {/* 성공 모달 */}
       {showSuccessModal && (
-        <div className="fixed inset-0 glass-overlay flex items-center justify-center z-50 p-4">
-          <div className="glass-modal rounded-lg p-6 lg:p-8 max-w-md w-full">
+        <div className="modal-overlay animate-fadeIn" onClick={() => setShowSuccessModal(false)}>
+          <div className="modal-content w-full max-w-md p-8 animate-scaleIn" onClick={e => e.stopPropagation()}>
             <div className="text-center">
-              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">등록 완료!</h3>
-              <p className="text-gray-600 mb-6">수요처가 성공적으로 등록되었습니다.</p>
-              <button
-                onClick={() => setShowSuccessModal(false)}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                확인
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showUploadSuccessModal && (
-        <div className="fixed inset-0 glass-overlay flex items-center justify-center z-50 p-4">
-          <div className="glass-modal rounded-lg p-6 lg:p-8 max-w-md w-full">
-            <div className="text-center">
-              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">업로드 완료!</h3>
-              <div className="text-gray-600 mb-6">
-                <p className="mb-2">파일 업로드가 완료되었습니다.</p>
-                <div className="bg-gray-50 rounded-lg p-4 text-sm">
-                  <div className="flex justify-between items-center mb-1">
-                    <span>성공:</span>
-                    <span className="font-semibold text-green-600">{uploadResult.success}건</span>
-                  </div>
-                  {uploadResult.error > 0 && (
-                    <div className="flex justify-between items-center">
-                      <span>실패:</span>
-                      <span className="font-semibold text-red-600">{uploadResult.error}건</span>
-                    </div>
-                  )}
-                </div>
+              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-emerald-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">등록 완료!</h3>
               <p className="text-gray-500 mb-6">수요처가 성공적으로 등록되었습니다.</p>
@@ -368,12 +337,30 @@ const DemandRegister: React.FC = () => {
         </div>
       )}
 
-      {showInstructionModal && (
-        <div className="fixed inset-0 glass-overlay flex items-center justify-center z-50 p-4">
-          <div className="glass-modal rounded-lg p-6 lg:p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="mb-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">CSV 파일 저장 방법</h3>
-              <p className="text-gray-600">한글이 깨지지 않게 저장하는 방법을 안내합니다.</p>
+      {/* 업로드 성공 모달 */}
+      {showUploadSuccessModal && (
+        <div className="modal-overlay animate-fadeIn" onClick={() => setShowUploadSuccessModal(false)}>
+          <div className="modal-content w-full max-w-md p-8 animate-scaleIn" onClick={e => e.stopPropagation()}>
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-emerald-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">업로드 완료!</h3>
+              <div className="glass p-4 rounded-xl mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-600">성공</span>
+                  <span className="font-bold text-emerald-600">{uploadResult.success}건</span>
+                </div>
+                {uploadResult.error > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">실패</span>
+                    <span className="font-bold text-rose-600">{uploadResult.error}건</span>
+                  </div>
+                )}
+              </div>
+              <button onClick={() => setShowUploadSuccessModal(false)} className="btn-primary">
+                확인
+              </button>
             </div>
           </div>
         </div>

@@ -66,13 +66,23 @@ export default function ChangePassword({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center glass-overlay p-4">
-      <form onSubmit={handleChange} className="glass-modal p-6 lg:p-8 rounded-xl w-full max-w-sm relative">
-        <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-xl" onClick={onClose}>&times;</button>
-        <h2 className="text-xl font-bold mb-6 text-center">비밀번호 변경</h2>
-        <div className="mb-3">
-          <label className="block text-sm font-medium mb-1">기존 비밀번호</label>
-          <input className="border rounded px-3 py-2 w-full" type="password" value={oldPw} onChange={e => setOldPw(e.target.value)} autoFocus />
+    <div className="modal-overlay">
+      <div className="modal-content max-w-sm">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center">
+              <Lock className="w-5 h-5 text-white" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">비밀번호 변경</h2>
+          </div>
+          <button
+            type="button"
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+            onClick={onClose}
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {msg ? (

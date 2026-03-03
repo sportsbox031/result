@@ -37,10 +37,17 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onPageChange }) 
   };
 
   return (
-    <div className="min-h-screen glass-bg">
+    <div className="min-h-screen bg-mesh">
       {/* 모바일 헤더 */}
-      <div className="lg:hidden mobile-header glass-sidebar border-b border-white/20 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
-        <h1 className="text-lg font-bold text-gray-900 truncate">관리자 대시보드</h1>
+      <div className="lg:hidden glass-strong fixed top-0 left-0 right-0 z-40 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-lg">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+          <h1 className="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+            실적관리
+          </h1>
+        </div>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           className="p-2.5 rounded-xl glass hover:bg-white/80 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center"
@@ -53,15 +60,22 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onPageChange }) 
       {/* 모바일 오버레이 */}
       {isMobileMenuOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 glass-overlay touch-none"
+          className="lg:hidden fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       {/* 데스크톱 사이드바 */}
-      <div className="hidden lg:block fixed inset-y-0 left-0 z-50 w-64 glass-sidebar">
-        <div className="flex h-16 items-center justify-center border-b border-white/20 px-4">
-          <h1 className="text-xl font-bold text-gray-900 truncate">관리자 대시보드</h1>
+      <div className="hidden lg:flex fixed inset-y-0 left-0 z-50 w-72 flex-col glass-sidebar">
+        {/* 로고 영역 */}
+        <div className="flex h-20 items-center gap-3 px-6 border-b border-white/20">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+            <Sparkles className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">실적관리 시스템</h1>
+            <p className="text-xs text-gray-500">Admin Dashboard</p>
+          </div>
         </div>
 
         {/* 네비게이션 */}
@@ -99,10 +113,18 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onPageChange }) 
       </div>
 
       {/* 모바일 사이드바 */}
-      <div className={`lg:hidden fixed inset-y-0 left-0 z-50 w-64 glass-sidebar shadow-lg transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}>
-        <div className="flex h-16 items-center justify-center border-b border-white/20 px-4">
-          <h1 className="text-lg font-bold text-gray-900 truncate">메뉴</h1>
+      <div className={`lg:hidden fixed inset-y-0 left-0 z-50 w-72 flex-col glass-sidebar transform transition-transform duration-300 ease-out ${
+        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        {/* 모바일 로고 */}
+        <div className="flex h-16 items-center gap-3 px-5 border-b border-white/20">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-lg">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-base font-bold text-gray-900">실적관리</h1>
+            <p className="text-xs text-gray-500">Dashboard</p>
+          </div>
         </div>
 
         {/* 모바일 네비게이션 */}

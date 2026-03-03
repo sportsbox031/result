@@ -133,10 +133,10 @@ const DemandList: React.FC = () => {
       </div>
 
       {/* 테이블 */}
-      <div className="glass-card rounded-xl overflow-hidden">
+      <div className="glass-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[800px]">
-            <thead className="bg-white/40">
+          <table className="table-glass">
+            <thead>
               <tr>
                 <th>시/군</th>
                 <th>단체명</th>
@@ -149,8 +149,8 @@ const DemandList: React.FC = () => {
             </thead>
             <tbody>
               {filteredDemands.map((demand) => (
-                <tr key={demand.id} className="hover:bg-white/40 transition-all duration-200">
-                  <td className="px-6 py-4">
+                <tr key={demand.id}>
+                  <td>
                     {editingId === demand.id ? (
                       <select
                         value={editForm.city || ''}

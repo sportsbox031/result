@@ -246,9 +246,9 @@ const PerformanceInput: React.FC = () => {
       </div>
 
       {activeTab === 'manual' && (
-        <div className="glass-card rounded-lg p-4 lg:p-8">
-          <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+        <div className="glass-card p-6 lg:p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div>
                 <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
                   날짜 *
@@ -267,60 +267,66 @@ const PerformanceInput: React.FC = () => {
                 </div>
               </div>
 
-                          <div>
-              <label htmlFor="organizationName" className="block text-sm font-medium text-gray-700 mb-2">
-                단체명 *
-              </label>
-              <div className="relative organization-dropdown">
-                <input
-                  type="text"
-                  placeholder="단체명을 검색하세요..."
-                  value={organizationSearchTerm}
-                  onChange={(e) => {
-                    setOrganizationSearchTerm(e.target.value);
-                    setShowOrganizationDropdown(true);
-                  }}
-                  onFocus={() => setShowOrganizationDropdown(true)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
-                {formData.organizationName && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormData(prev => ({ ...prev, organizationName: '' }));
-                        setOrganizationSearchTerm('');
-                      }}
-                      className="text-gray-400 hover:text-gray-600"
-                    >
-                      ×
-                    </button>
-                  </div>
-                )}
-                
-                {showOrganizationDropdown && (
-                  <div className="absolute z-10 w-full mt-1 glass-modal rounded-lg max-h-60 overflow-y-auto">
-                    {filteredOrganizations.length > 0 ? (
-                      filteredOrganizations.map(name => (
-                        <button
-                          key={name}
-                          type="button"
-                          onClick={() => {
-                            setFormData(prev => ({ ...prev, organizationName: name }));
-                            setOrganizationSearchTerm(name);
-                            setShowOrganizationDropdown(false);
-                          }}
-                          className="w-full px-4 py-2 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
-                        >
-                          {name}
-                        </button>
-                      ))
-                    ) : (
-                      <div className="px-4 py-2 text-gray-500">
-                        검색 결과가 없습니다
-                      </div>
-                    )}
-                  </div>
+              <div>
+                <label htmlFor="organizationName" className="block text-sm font-medium text-gray-700 mb-2">
+                  단체명 *
+                </label>
+                <div className="relative organization-dropdown">
+                  <input
+                    type="text"
+                    placeholder="단체명을 검색하세요..."
+                    value={organizationSearchTerm}
+                    onChange={(e) => {
+                      setOrganizationSearchTerm(e.target.value);
+                      setShowOrganizationDropdown(true);
+                    }}
+                    onFocus={() => setShowOrganizationDropdown(true)}
+                    className="input-glass"
+                  />
+                  {formData.organizationName && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({ ...prev, organizationName: '' }));
+                          setOrganizationSearchTerm('');
+                        }}
+                        className="text-gray-400 hover:text-gray-600 p-1"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+
+                  {showOrganizationDropdown && (
+                    <div className="absolute z-10 w-full mt-2 glass rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                      {filteredOrganizations.length > 0 ? (
+                        filteredOrganizations.map(name => (
+                          <button
+                            key={name}
+                            type="button"
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, organizationName: name }));
+                              setOrganizationSearchTerm(name);
+                              setShowOrganizationDropdown(false);
+                            }}
+                            className="w-full px-4 py-3 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors first:rounded-t-xl last:rounded-b-xl"
+                          >
+                            {name}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-4 py-3 text-gray-500 text-center">
+                          검색 결과가 없습니다
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {organizationNames.length === 0 && (
+                  <p className="text-sm text-amber-600 mt-2">
+                    등록된 단체가 없습니다. 먼저 수요처를 등록해주세요.
+                  </p>
                 )}
               </div>
 
@@ -485,7 +491,7 @@ const PerformanceInput: React.FC = () => {
             </div>
           </div>
 
-          <div className="glass-card rounded-lg p-8">
+          <div className="glass-card p-8">
             <div
               className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-300 ${
                 isDragOver
@@ -540,32 +546,10 @@ const PerformanceInput: React.FC = () => {
 
       {/* 성공 모달 */}
       {showSuccessModal && (
-        <div className="fixed inset-0 glass-overlay flex items-center justify-center z-50 p-4">
-          <div className="glass-modal rounded-lg p-6 lg:p-8 max-w-md w-full">
-            <div className="text-center">
-              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">저장 완료!</h3>
-              <p className="text-gray-600 mb-6">실적 데이터가 성공적으로 저장되었습니다.</p>
-              <button
-                onClick={() => {
-                  setShowSuccessModal(false);
-                  // 모달 닫힐 때도 상태 초기화(혹시 남아있을 수 있으니)
-                  setFormData({
-                    date: new Date().toISOString().split('T')[0],
-                    organizationName: '',
-                    program: '스포츠교실',
-                    maleCount: '',
-                    femaleCount: '',
-                    promotionCount: '',
-                    notes: ''
-                  });
-                  setOrganizationSearchTerm('');
-                  setShowOrganizationDropdown(false);
-                }}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                확인
-              </button>
+        <div className="modal-overlay">
+          <div className="modal-content text-center">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/30">
+              <CheckCircle className="w-10 h-10 text-white" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">저장 완료!</h3>
             <p className="text-gray-600 mb-6">실적 데이터가 성공적으로 저장되었습니다.</p>
@@ -594,32 +578,10 @@ const PerformanceInput: React.FC = () => {
 
       {/* 업로드 완료 모달 */}
       {showUploadSuccessModal && (
-        <div className="fixed inset-0 glass-overlay flex items-center justify-center z-50 p-4">
-          <div className="glass-modal rounded-lg p-6 lg:p-8 max-w-md w-full">
-            <div className="text-center">
-              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">일괄등록 완료!</h3>
-              <div className="text-gray-600 mb-6">
-                <p className="mb-2">실적 데이터 일괄등록이 완료되었습니다.</p>
-                <div className="bg-gray-50 rounded-lg p-4 text-sm">
-                  <div className="flex justify-between items-center mb-1">
-                    <span>성공:</span>
-                    <span className="font-semibold text-green-600">{uploadResult.success}건</span>
-                  </div>
-                  {uploadResult.error > 0 && (
-                    <div className="flex justify-between items-center">
-                      <span>실패:</span>
-                      <span className="font-semibold text-red-600">{uploadResult.error}건</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={() => setShowUploadSuccessModal(false)}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                확인
-              </button>
+        <div className="modal-overlay">
+          <div className="modal-content text-center">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/30">
+              <CheckCircle className="w-10 h-10 text-white" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">일괄등록 완료!</h3>
             <div className="text-gray-600 mb-6">
@@ -649,8 +611,8 @@ const PerformanceInput: React.FC = () => {
 
       {/* 저장 방법 모달 */}
       {showInstructionModal && (
-        <div className="fixed inset-0 glass-overlay flex items-center justify-center z-50 p-4">
-          <div className="glass-modal rounded-lg p-6 lg:p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+        <div className="modal-overlay">
+          <div className="modal-content max-w-2xl max-h-[80vh] overflow-y-auto">
             <div className="mb-6">
               <h3 className="text-xl font-bold text-gray-900 mb-2">실적 데이터 저장 방법</h3>
               <p className="text-gray-600">실적 데이터를 올바르게 저장하는 방법을 안내합니다.</p>

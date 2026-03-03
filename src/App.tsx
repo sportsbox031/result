@@ -96,7 +96,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen glass-bg">
+    <div className="min-h-screen">
       <Layout currentPage={currentPage} onPageChange={setCurrentPage}>
         {/* 상단 액션 버튼 */}
         <div className="flex justify-end gap-2 mb-6">
