@@ -13,11 +13,7 @@ const BudgetUsagePage: React.FC = () => {
   const [editForm, setEditForm] = useState<Partial<BudgetUsage>>({});
   const [regionFilter, setRegionFilter] = useState<'전체' | '남부' | '북부'>('전체');
   const [searchTerm, setSearchTerm] = useState('');
-
-  // 연도 선택 상태
   const [selectedYear, setSelectedYear] = useState<number>(CURRENT_YEAR);
-
-  // 추가 내역 입력 상태
   const [adding, setAdding] = useState(false);
   const [addForm, setAddForm] = useState<Partial<BudgetUsage>>({
     budgetItemId: '', description: '', vendor: '', amount: 0, date: '', paymentMethod: '', note: ''
@@ -27,13 +23,11 @@ const BudgetUsagePage: React.FC = () => {
   const [editBimo, setEditBimo] = useState('');
   const [editSemok, setEditSemok] = useState('');
 
-  // 연도별로 예산 항목 필터링
   const yearFilteredBudgetItems = useMemo(() =>
     budgetItems.filter(item => (item.year ?? 2025) === selectedYear),
     [budgetItems, selectedYear]
   );
 
-  // 지역 필터 적용
   const filteredBudgetItems = useMemo(() => {
     if (regionFilter === '전체') return yearFilteredBudgetItems;
     return yearFilteredBudgetItems.filter(item => item.region === regionFilter);
@@ -88,26 +82,16 @@ const BudgetUsagePage: React.FC = () => {
 
   // 연도별로 예산 사용 내역 필터링
   const yearFilteredBudgetUsages = useMemo(() =>
-    budgetUsages.filter(usage => {
-      if (!usage.date) return false;
-      return getBudgetUsageYear(usage.date) === selectedYear;
-    }),
+    budgetUsages.filter(usage => usage.date && getBudgetUsageYear(usage.date) === selectedYear),
     [budgetUsages, selectedYear]
   );
 
-  // 검색 + 지역 필터 적용된 사용 내역
   const filteredUsages = useMemo(() => {
     let result = yearFilteredBudgetUsages;
-
-    // 지역 필터
     if (regionFilter !== '전체') {
-      const regionBudgetIds = yearFilteredBudgetItems
-        .filter(b => b.region === regionFilter)
-        .map(b => b.id);
+      const regionBudgetIds = yearFilteredBudgetItems.filter(b => b.region === regionFilter).map(b => b.id);
       result = result.filter(u => regionBudgetIds.includes(u.budgetItemId));
     }
-
-    // 검색 필터
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       result = result.filter(u => {
@@ -124,15 +108,12 @@ const BudgetUsagePage: React.FC = () => {
         );
       });
     }
-
-    // 최신순 정렬
     return [...result].sort((a, b) => {
       if (a.date && b.date) return new Date(b.date).getTime() - new Date(a.date).getTime();
       return b.id.localeCompare(a.id);
     });
   }, [yearFilteredBudgetUsages, regionFilter, searchTerm, yearFilteredBudgetItems, budgetItems]);
 
-  // ESC 키로 수정모드 종료
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -288,11 +269,11 @@ const BudgetUsagePage: React.FC = () => {
   const totalAmount = filteredUsages.reduce((sum, u) => sum + Number(u.amount || 0), 0);
 
   return (
-    <div className="max-w-7xl mx-auto">
-      {/* 헤더 */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-1">예산 사용 내역</h1>
-        <p className="text-gray-500">예산 집행 내역을 관리하세요</p>
+    <div className="space-y-6">
+      {/* 페이지 헤더 */}
+      <div>
+        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">예산 사용 내역</h1>
+        <p className="text-gray-500 mt-1">예산 집행 내역을 관리하세요</p>
       </div>
 
       {/* 연도 + 지역 필터 */}
@@ -300,15 +281,13 @@ const BudgetUsagePage: React.FC = () => {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           {/* 연도 선택 */}
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-600">연도:</span>
+            <Calendar className="w-4 h-4 text-gray-400" />
+            <span className="text-sm font-medium text-gray-600">연도</span>
             <div className="flex gap-2">
               {AVAILABLE_YEARS.map(year => (
                 <button
                   key={year}
-                  className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${selectedYear === year
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
+                  className={`btn-glass ${selectedYear === year ? 'active' : ''}`}
                   onClick={() => setSelectedYear(year)}
                 >
                   {year}년
@@ -317,17 +296,17 @@ const BudgetUsagePage: React.FC = () => {
             </div>
           </div>
 
+          <div className="hidden lg:block w-px h-8 bg-gray-200" />
+
           {/* 지역 필터 */}
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-600">지역:</span>
+            <MapPin className="w-4 h-4 text-gray-400" />
+            <span className="text-sm font-medium text-gray-600">지역</span>
             <div className="flex gap-2">
               {(['전체', '남부', '북부'] as const).map(region => (
                 <button
                   key={region}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${regionFilter === region
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
+                  className={`btn-glass ${regionFilter === region ? 'active' : ''}`}
                   onClick={() => setRegionFilter(region)}
                 >
                   {region}
@@ -338,27 +317,24 @@ const BudgetUsagePage: React.FC = () => {
         </div>
       </div>
 
-      {/* 검색 + 버튼 */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      {/* 검색 및 액션 */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
             placeholder="적요, 채주, 비목/세목/예산명 검색..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="input-glass pl-11 w-full"
           />
         </div>
         <div className="flex gap-2">
-          <button
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
-            onClick={handleAddUsage}
-          >
+          <button className="btn-primary flex items-center gap-2" onClick={handleAddUsage}>
             <Plus className="w-4 h-4" /> 내역 추가
           </button>
           <button
-            className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium transition-colors"
+            className="btn-secondary flex items-center gap-2"
             onClick={() => downloadBudgetUsageExcel(filteredUsages, yearFilteredBudgetItems)}
           >
             <Download className="w-4 h-4" /> 엑셀
@@ -370,12 +346,23 @@ const BudgetUsagePage: React.FC = () => {
       <div className="glass-panel rounded-xl p-4 mb-6">
         <div className="flex flex-wrap items-center gap-6">
           <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-gray-400" />
-            <span className="text-sm text-gray-600">총 <strong className="text-gray-900">{filteredUsages.length}</strong>건</span>
+            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+              <FileText className="w-4 h-4 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">총 건수</p>
+              <p className="text-lg font-bold text-gray-900">{filteredUsages.length}건</p>
+            </div>
           </div>
+          <div className="w-px h-10 bg-gray-200" />
           <div className="flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-gray-400" />
-            <span className="text-sm text-gray-600">총 집행액 <strong className="text-blue-600">{totalAmount.toLocaleString()}원</strong></span>
+            <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+              <Wallet className="w-4 h-4 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">총 집행액</p>
+              <p className="text-lg font-bold text-blue-600">{totalAmount.toLocaleString()}원</p>
+            </div>
           </div>
         </div>
       </div>
@@ -414,7 +401,7 @@ const BudgetUsagePage: React.FC = () => {
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">세세목(예산명)</label>
               <select
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-blue-500"
+                className="select-glass w-full"
                 value={addForm.budgetItemId}
                 onChange={e => handleAddBudgetItemChange(e.target.value)}
               >
@@ -427,28 +414,28 @@ const BudgetUsagePage: React.FC = () => {
               </select>
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-gray-500 mb-1">적요</label>
+              <label className="block text-xs font-medium text-gray-500 mb-2">적요</label>
               <input
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-blue-500"
+                className="input-glass"
                 value={addForm.description || ''}
                 onChange={e => handleAddChange('description', e.target.value)}
                 placeholder="내용 입력..."
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">채주</label>
+              <label className="block text-xs font-medium text-gray-500 mb-2">채주</label>
               <input
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-blue-500"
+                className="input-glass"
                 value={addForm.vendor || ''}
                 onChange={e => handleAddChange('vendor', e.target.value)}
                 placeholder="거래처명"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">집행액</label>
+              <label className="block text-xs font-medium text-gray-500 mb-2">집행액</label>
               <input
                 type="text"
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-right focus:ring-2 focus:ring-blue-500"
+                className="input-glass text-right"
                 value={addForm.amount ? Number(addForm.amount).toLocaleString() : ''}
                 onChange={e => {
                   const raw = e.target.value.replace(/,/g, '');
@@ -458,18 +445,18 @@ const BudgetUsagePage: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">집행일자</label>
+              <label className="block text-xs font-medium text-gray-500 mb-2">집행일자</label>
               <input
                 type="date"
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-blue-500"
+                className="input-glass"
                 value={addForm.date || ''}
                 onChange={e => handleAddChange('date', e.target.value)}
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">결제방법</label>
+              <label className="block text-xs font-medium text-gray-500 mb-2">결제방법</label>
               <select
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-blue-500"
+                className="select-glass w-full"
                 value={addForm.paymentMethod || ''}
                 onChange={e => handleAddChange('paymentMethod', e.target.value)}
               >
@@ -479,26 +466,20 @@ const BudgetUsagePage: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">메모</label>
+              <label className="block text-xs font-medium text-gray-500 mb-2">메모</label>
               <input
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-blue-500"
+                className="input-glass"
                 value={addForm.note || ''}
                 onChange={e => handleAddChange('note', e.target.value)}
                 placeholder="비고"
               />
             </div>
           </div>
-          <div className="flex justify-end gap-2 mt-4">
-            <button
-              className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              onClick={() => { setAdding(false); resetAddForm(); }}
-            >
+          <div className="flex justify-end gap-2 mt-6">
+            <button className="btn-secondary" onClick={() => { setAdding(false); resetAddForm(); }}>
               취소
             </button>
-            <button
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-              onClick={handleAddSave}
-            >
+            <button className="btn-primary" onClick={handleAddSave}>
               저장
             </button>
           </div>
@@ -509,7 +490,7 @@ const BudgetUsagePage: React.FC = () => {
       <div className="glass-card rounded-2xl overflow-hidden">
         {filteredUsages.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="table-glass">
               <thead>
                 <tr className="bg-white/40 border-b border-gray-100">
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">예산명</th>
@@ -522,7 +503,7 @@ const BudgetUsagePage: React.FC = () => {
                   <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">작업</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody>
                 {filteredUsages.map(usage => {
                   const isEditing = editingId === usage.id;
                   const budgetItem = budgetItems.find(b => b.id === (isEditing ? editForm.budgetItemId : usage.budgetItemId));
@@ -584,7 +565,7 @@ const BudgetUsagePage: React.FC = () => {
                               )}
                             </div>
                             {budgetItem?.region && (
-                              <span className={`px-1.5 py-0.5 text-xs font-medium rounded ${budgetItem.region === '남부' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
+                              <span className={`badge ${budgetItem.region === '남부' ? 'badge-blue' : 'badge-emerald'}`}>
                                 {budgetItem.region}
                               </span>
                             )}
@@ -594,32 +575,32 @@ const BudgetUsagePage: React.FC = () => {
                       <td className="px-4 py-3">
                         {isEditing ? (
                           <input
-                            className="w-full px-2 py-1 rounded border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500"
+                            className="input-glass text-sm"
                             value={editForm.description || ''}
                             onChange={e => handleChange('description', e.target.value)}
                             onClick={e => e.stopPropagation()}
                           />
                         ) : (
-                          <span className="text-sm text-gray-700">{usage.description || '-'}</span>
+                          <span className="text-gray-700">{usage.description || '-'}</span>
                         )}
                       </td>
                       <td className="px-4 py-3">
                         {isEditing ? (
                           <input
-                            className="w-full px-2 py-1 rounded border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500"
+                            className="input-glass text-sm"
                             value={editForm.vendor || ''}
                             onChange={e => handleChange('vendor', e.target.value)}
                             onClick={e => e.stopPropagation()}
                           />
                         ) : (
-                          <span className="text-sm text-gray-600">{usage.vendor || '-'}</span>
+                          <span className="text-gray-600">{usage.vendor || '-'}</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
                         {isEditing ? (
                           <input
                             type="text"
-                            className="w-24 px-2 py-1 rounded border border-gray-300 text-sm text-right focus:ring-2 focus:ring-blue-500"
+                            className="input-glass text-sm text-right w-28"
                             value={editForm.amount ? Number(editForm.amount).toLocaleString() : ''}
                             onChange={e => {
                               const raw = e.target.value.replace(/,/g, '');
@@ -628,26 +609,26 @@ const BudgetUsagePage: React.FC = () => {
                             onClick={e => e.stopPropagation()}
                           />
                         ) : (
-                          <span className="text-sm font-semibold text-blue-600">{usage.amount.toLocaleString()}원</span>
+                          <span className="font-semibold text-blue-600">{usage.amount.toLocaleString()}원</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
                         {isEditing ? (
                           <input
                             type="date"
-                            className="px-2 py-1 rounded border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500"
+                            className="input-glass text-sm"
                             value={editForm.date || ''}
                             onChange={e => handleChange('date', e.target.value)}
                             onClick={e => e.stopPropagation()}
                           />
                         ) : (
-                          <span className="text-sm text-gray-600">{usage.date || '-'}</span>
+                          <span className="text-gray-600">{usage.date || '-'}</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
                         {isEditing ? (
                           <select
-                            className="px-2 py-1 rounded border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500"
+                            className="select-glass text-sm"
                             value={editForm.paymentMethod || ''}
                             onChange={e => handleChange('paymentMethod', e.target.value)}
                             onClick={e => e.stopPropagation()}
@@ -657,7 +638,7 @@ const BudgetUsagePage: React.FC = () => {
                             <option value="카드결제">카드결제</option>
                           </select>
                         ) : (
-                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${usage.paymentMethod === '카드결제' ? 'bg-purple-50 text-purple-700' : usage.paymentMethod === '계좌입금' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
+                          <span className={`badge ${usage.paymentMethod === '카드결제' ? 'badge-violet' : usage.paymentMethod === '계좌입금' ? 'badge-emerald' : 'badge-gray'}`}>
                             {usage.paymentMethod || '-'}
                           </span>
                         )}
@@ -665,37 +646,25 @@ const BudgetUsagePage: React.FC = () => {
                       <td className="px-4 py-3">
                         {isEditing ? (
                           <input
-                            className="w-full px-2 py-1 rounded border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500"
+                            className="input-glass text-sm"
                             value={editForm.note || ''}
                             onChange={e => handleChange('note', e.target.value)}
                             onClick={e => e.stopPropagation()}
                           />
                         ) : (
-                          <span className="text-sm text-gray-500">{usage.note || '-'}</span>
+                          <span className="text-gray-500 text-sm">{usage.note || '-'}</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
                         {isEditing ? (
                           <div className="flex items-center justify-center gap-1" onClick={e => e.stopPropagation()}>
-                            <button
-                              className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
-                              onClick={handleSave}
-                              title="저장"
-                            >
+                            <button className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" onClick={handleSave} title="저장">
                               <Save className="w-4 h-4" />
                             </button>
-                            <button
-                              className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                              onClick={handleDelete}
-                              title="삭제"
-                            >
+                            <button className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" onClick={handleDelete} title="삭제">
                               <Trash2 className="w-4 h-4" />
                             </button>
-                            <button
-                              className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors"
-                              onClick={() => { setEditingId(null); setEditForm({}); }}
-                              title="취소"
-                            >
+                            <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors" onClick={() => { setEditingId(null); setEditForm({}); }} title="취소">
                               <X className="w-4 h-4" />
                             </button>
                           </div>
@@ -711,7 +680,7 @@ const BudgetUsagePage: React.FC = () => {
           </div>
         ) : (
           <div className="text-center py-16">
-            <Calendar className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <Calendar className="w-16 h-16 mx-auto mb-4 text-gray-300" />
             <p className="text-gray-400">등록된 내역이 없습니다</p>
           </div>
         )}

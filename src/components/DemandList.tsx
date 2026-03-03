@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit2, Trash2, Save, X, Search } from 'lucide-react';
+import { Edit2, Trash2, Save, X, Search, Building2 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { Demand } from '../types';
 import { useFirebaseData } from '../hooks/useFirebaseData';
@@ -43,7 +43,7 @@ const DemandList: React.FC = () => {
       await updateDemand(editingId, editForm);
       setEditingId(null);
       setEditForm({});
-      
+
       addToast({
         type: 'success',
         title: '수정 완료',
@@ -67,7 +67,7 @@ const DemandList: React.FC = () => {
     if (window.confirm(`"${organizationName}"의 수요처 정보를 삭제하시겠습니까?`)) {
       try {
         await deleteDemand(id);
-        
+
         addToast({
           type: 'success',
           title: '삭제 완료',
@@ -88,28 +88,47 @@ const DemandList: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto animate-fadeIn">
+      {/* 헤더 */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
-          수요처 관리
-        </h1>
-        <p className="text-lg text-gray-600">등록된 수요처 정보를 조회, 수정, 삭제할 수 있습니다</p>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
+            <Building2 className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">수요처 관리</h1>
+            <p className="text-gray-500">등록된 수요처 정보를 조회, 수정, 삭제할 수 있습니다</p>
+          </div>
+        </div>
       </div>
 
-      {/* 총 건수 표시 */}
-      <div className="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="text-sm lg:text-base text-gray-600 font-medium bg-gradient-to-r from-blue-50 to-purple-50 px-4 py-2 rounded-lg border border-blue-100">
-          총 {demands.length}건 중 {filteredDemands.length}건 표시
-        </div>
-        <div className="relative max-w-full lg:max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder="수요처 검색..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
-          />
+      {/* 검색 및 요약 */}
+      <div className="glass-card p-4 lg:p-6 mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="stat-icon-violet">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">전체 수요처</p>
+              <p className="text-xl font-bold text-gray-900">{demands.length}건</p>
+            </div>
+            {searchTerm && (
+              <div className="badge-blue ml-2">
+                검색결과 {filteredDemands.length}건
+              </div>
+            )}
+          </div>
+          <div className="relative max-w-full lg:max-w-md flex-1">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="수요처명, 시/군, 담당자 검색..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="input-glass pl-12 w-full"
+            />
+          </div>
         </div>
       </div>
 
@@ -119,16 +138,16 @@ const DemandList: React.FC = () => {
           <table className="w-full min-w-[800px]">
             <thead className="bg-white/40">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">시/군</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">단체명</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">담당자</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">연락처</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 hidden lg:table-cell">이메일</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 hidden lg:table-cell">등록일</th>
-                <th className="px-6 py-4 text-right text-sm font-bold text-gray-700">작업</th>
+                <th>시/군</th>
+                <th>단체명</th>
+                <th>담당자</th>
+                <th>연락처</th>
+                <th className="hidden lg:table-cell">이메일</th>
+                <th className="hidden lg:table-cell">등록일</th>
+                <th className="text-right">작업</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody>
               {filteredDemands.map((demand) => (
                 <tr key={demand.id} className="hover:bg-white/40 transition-all duration-200">
                   <td className="px-6 py-4">
@@ -136,7 +155,7 @@ const DemandList: React.FC = () => {
                       <select
                         value={editForm.city || ''}
                         onChange={(e) => handleInputChange('city', e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                        className="select-glass text-sm py-2"
                       >
                         <option value="">시/군 선택</option>
                         {CITIES.map(city => (
@@ -144,96 +163,94 @@ const DemandList: React.FC = () => {
                         ))}
                       </select>
                     ) : (
-                      <span className="text-sm font-medium text-gray-900 bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
-                        {demand.city}
-                      </span>
+                      <span className="badge-blue">{demand.city}</span>
                     )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td>
                     {editingId === demand.id ? (
                       <input
                         type="text"
                         value={editForm.organizationName || ''}
                         onChange={(e) => handleInputChange('organizationName', e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                        className="input-glass text-sm py-2"
                       />
                     ) : (
-                      <span className="text-sm font-bold text-gray-900">{demand.organizationName}</span>
+                      <span className="font-semibold text-gray-900">{demand.organizationName}</span>
                     )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td>
                     {editingId === demand.id ? (
                       <input
                         type="text"
                         value={editForm.contactPerson || ''}
                         onChange={(e) => handleInputChange('contactPerson', e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                        className="input-glass text-sm py-2"
                       />
                     ) : (
-                      <span className="text-sm font-semibold text-gray-900">{demand.contactPerson}</span>
+                      <span className="text-gray-700">{demand.contactPerson}</span>
                     )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td>
                     {editingId === demand.id ? (
                       <input
                         type="tel"
                         value={editForm.phoneNumber || ''}
                         onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                        className="input-glass text-sm py-2"
                       />
                     ) : (
-                      <span className="text-sm font-mono text-gray-900 bg-gray-100 px-3 py-1 rounded-lg">
+                      <span className="font-mono text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-lg">
                         {demand.phoneNumber}
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 hidden lg:table-cell">
+                  <td className="hidden lg:table-cell">
                     {editingId === demand.id ? (
                       <input
                         type="email"
                         value={editForm.email || ''}
                         onChange={(e) => handleInputChange('email', e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                        className="input-glass text-sm py-2"
                       />
                     ) : (
-                      <span className="text-sm text-gray-600">{demand.email || '-'}</span>
+                      <span className="text-sm text-gray-500">{demand.email || '-'}</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 hidden lg:table-cell">
-                    <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-lg font-mono">
+                  <td className="hidden lg:table-cell">
+                    <span className="text-sm text-gray-500 font-mono">
                       {demand.createdAt.toLocaleDateString('ko-KR')}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="text-right">
                     {editingId === demand.id ? (
-                      <div className="flex items-center justify-end space-x-2">
+                      <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={handleSave}
-                          className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-all duration-200 hover:scale-110"
+                          className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all duration-200"
                           title="저장"
                         >
                           <Save className="w-5 h-5" />
                         </button>
                         <button
                           onClick={handleCancel}
-                          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200 hover:scale-110"
+                          className="p-2 text-gray-500 hover:bg-gray-100 rounded-xl transition-all duration-200"
                           title="취소"
                         >
                           <X className="w-5 h-5" />
                         </button>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-end space-x-2">
+                      <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => handleEdit(demand)}
-                          className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200 hover:scale-110"
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200"
                           title="수정"
                         >
                           <Edit2 className="w-5 h-5" />
                         </button>
                         <button
                           onClick={() => handleDelete(demand.id, demand.organizationName)}
-                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all duration-200 hover:scale-110"
+                          className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-all duration-200"
                           title="삭제"
                         >
                           <Trash2 className="w-5 h-5" />
@@ -248,14 +265,15 @@ const DemandList: React.FC = () => {
         </div>
 
         {filteredDemands.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">🔍</div>
-            <p className="text-lg font-medium text-gray-500">검색 결과가 없습니다</p>
+          <div className="text-center py-16">
+            <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+              <Search className="w-10 h-10 text-gray-300" />
+            </div>
+            <p className="text-lg font-medium text-gray-500 mb-2">검색 결과가 없습니다</p>
+            <p className="text-sm text-gray-400">다른 검색어를 입력해보세요</p>
           </div>
         )}
       </div>
-
-
     </div>
   );
 };

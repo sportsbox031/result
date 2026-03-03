@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Calendar, Filter, Trash2, Edit2, Save, X, Megaphone, Download, MapPin } from 'lucide-react';
+import { Search, Calendar, Filter, Trash2, Edit2, Save, X, Megaphone, Download, MapPin, BarChart3 } from 'lucide-react';
 import { useFirebaseData } from '../hooks/useFirebaseData';
 import { useToast } from '../hooks/useToast';
 import { Performance, FilterState } from '../types';
@@ -15,11 +15,8 @@ const PerformanceList: React.FC = () => {
   const [editForm, setEditForm] = useState<Partial<Performance>>({});
   const [filters, setFilters] = useState<FilterState>({});
   const [searchTerm, setSearchTerm] = useState('');
-
-  // 연도 필터 상태
   const [selectedYear, setSelectedYear] = useState<number | 'all'>(CURRENT_YEAR);
 
-  // 파이어베이스에서 단체명 목록 가져오기
   const organizationNames = Array.from(new Set(demands.map(d => d.organizationName))).sort();
 
   useEffect(() => {
@@ -29,7 +26,6 @@ const PerformanceList: React.FC = () => {
   const applyFilters = () => {
     let filtered = [...performances];
 
-    // 연도 필터
     if (selectedYear !== 'all') {
       filtered = filtered.filter(p => {
         if (!p.date) return false;
@@ -37,7 +33,6 @@ const PerformanceList: React.FC = () => {
       });
     }
 
-    // 날짜 범위 필터
     if (filters.startDate) {
       filtered = filtered.filter(p => p.date && p.date >= filters.startDate!);
     }
@@ -45,22 +40,18 @@ const PerformanceList: React.FC = () => {
       filtered = filtered.filter(p => p.date && p.date <= filters.endDate!);
     }
 
-    // 지역 필터 (남부/북부)
     if (filters.region) {
       filtered = filtered.filter(p => getCityRegion(p.city) === filters.region);
     }
 
-    // 단체명 필터
     if (filters.organizationName) {
       filtered = filtered.filter(p => p.organizationName === filters.organizationName);
     }
 
-    // 프로그램 필터
     if (filters.program) {
       filtered = filtered.filter(p => p.program === filters.program);
     }
 
-    // 검색 필터
     if (searchTerm) {
       filtered = filtered.filter(p =>
         p.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -69,7 +60,6 @@ const PerformanceList: React.FC = () => {
       );
     }
 
-    // 날짜순 정렬 (최신순) - 날짜가 없는 항목은 맨 뒤로
     filtered.sort((a, b) => {
       if (!a.date && !b.date) return 0;
       if (!a.date) return 1;
@@ -128,7 +118,7 @@ const PerformanceList: React.FC = () => {
       });
       setEditingId(null);
       setEditForm({});
-      
+
       addToast({
         type: 'success',
         title: '수정 완료',
@@ -153,7 +143,7 @@ const PerformanceList: React.FC = () => {
     if (window.confirm(`"${organizationName}"의 ${dateStr} 실적 데이터를 삭제하시겠습니까?`)) {
       try {
         await deletePerformance(id);
-        
+
         addToast({
           type: 'success',
           title: '삭제 완료',
@@ -173,7 +163,6 @@ const PerformanceList: React.FC = () => {
     setEditForm(prev => ({ ...prev, [field]: value }));
   };
 
-  // 엑셀 다운로드 함수
   const handleExcelDownload = () => {
     if (filteredPerformances.length === 0) {
       addToast({
@@ -201,34 +190,42 @@ const PerformanceList: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-6 lg:mb-8">
-        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">실적 조회</h1>
-        <p className="text-sm lg:text-base text-gray-600">등록된 실적 데이터를 조회하고 관리하세요</p>
+    <div className="max-w-7xl mx-auto animate-fadeIn">
+      {/* 헤더 */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+            <BarChart3 className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">실적 조회</h1>
+            <p className="text-gray-500">등록된 실적 데이터를 조회하고 관리하세요</p>
+          </div>
+        </div>
       </div>
 
       {/* 필터 섹션 */}
       <div className="glass-card rounded-lg p-4 lg:p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base lg:text-lg font-medium text-gray-900 flex items-center">
-            <Filter className="w-4 h-4 lg:w-5 lg:h-5 mr-2" />
+          <h2 className="text-base lg:text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Filter className="w-5 h-5 text-gray-500" />
             필터
           </h2>
           <button
             onClick={clearFilters}
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium min-h-[44px] px-2"
+            className="btn-glass text-sm"
           >
             전체 초기화
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">연도</label>
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="select-glass"
             >
               <option value="all">전체 연도</option>
               {AVAILABLE_YEARS.map(year => (
@@ -246,7 +243,7 @@ const PerformanceList: React.FC = () => {
                 placeholder="검색어 입력..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 pr-3 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-glass pl-10"
               />
             </div>
           </div>
@@ -258,7 +255,7 @@ const PerformanceList: React.FC = () => {
               <select
                 value={filters.region || ''}
                 onChange={(e) => handleFilterChange('region', e.target.value || undefined)}
-                className="pl-9 pr-3 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+                className="select-glass pl-10"
               >
                 <option value="">전체 지역</option>
                 <option value="남부">남부</option>
@@ -275,7 +272,7 @@ const PerformanceList: React.FC = () => {
                 type="date"
                 value={filters.startDate ? filters.startDate.toISOString().split('T')[0] : ''}
                 onChange={(e) => handleFilterChange('startDate', e.target.value ? new Date(e.target.value) : undefined)}
-                className="pl-9 pr-3 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-glass pl-10"
               />
             </div>
           </div>
@@ -288,7 +285,7 @@ const PerformanceList: React.FC = () => {
                 type="date"
                 value={filters.endDate ? filters.endDate.toISOString().split('T')[0] : ''}
                 onChange={(e) => handleFilterChange('endDate', e.target.value ? new Date(e.target.value) : undefined)}
-                className="pl-9 pr-3 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-glass pl-10"
               />
             </div>
           </div>
@@ -298,7 +295,7 @@ const PerformanceList: React.FC = () => {
             <select
               value={filters.organizationName || ''}
               onChange={(e) => handleFilterChange('organizationName', e.target.value || undefined)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="select-glass"
             >
               <option value="">전체 단체</option>
               {organizationNames.map(name => (
@@ -312,7 +309,7 @@ const PerformanceList: React.FC = () => {
             <select
               value={filters.program || ''}
               onChange={(e) => handleFilterChange('program', e.target.value || undefined)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="select-glass"
             >
               <option value="">전체 프로그램</option>
               <option value="스포츠교실">스포츠교실</option>
@@ -325,15 +322,18 @@ const PerformanceList: React.FC = () => {
 
       {/* 결과 요약 및 엑셀 다운로드 */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
-        <div className="text-sm text-gray-500">
-          총 {performances.length}건 중 {filteredPerformances.length}건 표시
+        <div className="glass px-4 py-2 rounded-xl">
+          <span className="text-sm text-gray-600">
+            총 <span className="font-bold text-gray-900">{performances.length}</span>건 중{' '}
+            <span className="font-bold text-blue-600">{filteredPerformances.length}</span>건 표시
+          </span>
         </div>
         <button
           onClick={handleExcelDownload}
           disabled={filteredPerformances.length === 0}
-          className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+          className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Download className="w-4 h-4 mr-2" />
+          <Download className="w-4 h-4" />
           엑셀 다운로드
         </button>
       </div>
@@ -344,20 +344,20 @@ const PerformanceList: React.FC = () => {
           <table className="w-full min-w-[800px]">
             <thead className="bg-white/40 border-b border-gray-200">
               <tr>
-                <th className="px-2 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-medium text-gray-900 w-20 lg:w-32">날짜</th>
-                <th className="px-2 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-medium text-gray-900 w-24 lg:w-48">단체명</th>
-                <th className="px-2 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-medium text-gray-900 w-16 lg:w-24 hidden lg:table-cell">시/군</th>
-                <th className="px-2 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-medium text-gray-900 w-12 lg:w-16 hidden lg:table-cell">지역</th>
-                <th className="px-2 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-medium text-gray-900 w-16 lg:w-32">프로그램</th>
-                <th className="px-2 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-medium text-gray-900 w-12 lg:w-20">남성</th>
-                <th className="px-2 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-medium text-gray-900 w-12 lg:w-20">여성</th>
-                <th className="px-2 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-medium text-gray-900 w-14 lg:w-20">총 인원</th>
-                <th className="px-2 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-medium text-gray-900 w-16 lg:w-24 hidden lg:table-cell">홍보횟수</th>
-                <th className="px-2 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-medium text-gray-900 w-20 lg:min-w-32">메모</th>
-                <th className="px-2 lg:px-6 py-3 lg:py-4 text-right text-xs lg:text-sm font-medium text-gray-900 w-16 lg:w-24">작업</th>
+                <th>날짜</th>
+                <th>단체명</th>
+                <th className="hidden lg:table-cell">시/군</th>
+                <th className="hidden lg:table-cell">지역</th>
+                <th>프로그램</th>
+                <th>남성</th>
+                <th>여성</th>
+                <th>총 인원</th>
+                <th className="hidden lg:table-cell">홍보</th>
+                <th>메모</th>
+                <th className="text-right">작업</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody>
               {filteredPerformances.map((performance) => (
                 <tr key={performance.id} className="hover:bg-white/40">
                   <td className="px-2 lg:px-6 py-3 lg:py-4 w-20 lg:w-32">
@@ -366,20 +366,20 @@ const PerformanceList: React.FC = () => {
                         type="date"
                         value={editForm.date ? new Date(editForm.date).toISOString().split('T')[0] : ''}
                         onChange={(e) => handleInputChange('date', new Date(e.target.value))}
-                        className="w-full px-1 lg:px-3 py-1 lg:py-2 text-xs lg:text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="input-glass text-sm py-2"
                       />
                     ) : (
-                      <span className="text-xs lg:text-sm text-gray-900">
+                      <span className="text-sm font-mono text-gray-700">
                         {performance.date ? performance.date.toLocaleDateString('ko-KR') : '날짜 없음'}
                       </span>
                     )}
                   </td>
-                  <td className="px-2 lg:px-6 py-3 lg:py-4 w-24 lg:w-48">
+                  <td>
                     {editingId === performance.id ? (
                       <select
                         value={editForm.organizationName || ''}
                         onChange={(e) => handleInputChange('organizationName', e.target.value)}
-                        className="w-full px-1 lg:px-3 py-1 lg:py-2 text-xs lg:text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="select-glass text-sm py-2"
                       >
                         <option value="">단체 선택</option>
                         {organizationNames.map(name => (
@@ -387,134 +387,130 @@ const PerformanceList: React.FC = () => {
                         ))}
                       </select>
                     ) : (
-                      <span className="text-xs lg:text-sm font-medium text-gray-900 truncate block">{performance.organizationName}</span>
+                      <span className="font-medium text-gray-900">{performance.organizationName}</span>
                     )}
                   </td>
-                  <td className="px-2 lg:px-6 py-3 lg:py-4 w-16 lg:w-24 hidden lg:table-cell">
-                    <span className="text-xs lg:text-sm text-gray-600">{performance.city || '-'}</span>
+                  <td className="hidden lg:table-cell">
+                    <span className="text-sm text-gray-600">{performance.city || '-'}</span>
                   </td>
-                  <td className="px-2 lg:px-6 py-3 lg:py-4 w-12 lg:w-16 hidden lg:table-cell">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      getCityRegion(performance.city) === '남부' 
-                        ? 'bg-blue-100 text-blue-800' 
-                        : 'bg-green-100 text-green-800'
-                    }`}>
+                  <td className="hidden lg:table-cell">
+                    <span className={`badge-${getCityRegion(performance.city) === '남부' ? 'blue' : 'green'}`}>
                       {getCityRegion(performance.city)}
                     </span>
                   </td>
-                  <td className="px-2 lg:px-6 py-3 lg:py-4 w-16 lg:w-32">
+                  <td>
                     {editingId === performance.id ? (
                       <select
                         value={editForm.program || performance.program || '스포츠교실'}
                         onChange={(e) => handleInputChange('program', e.target.value)}
-                        className="w-full px-2 lg:px-3 py-1 lg:py-2 text-xs lg:text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="select-glass text-sm py-2"
                       >
                         <option value="스포츠교실">스포츠교실</option>
                         <option value="스포츠체험존">스포츠체험존</option>
                         <option value="스포츠이벤트">스포츠이벤트</option>
                       </select>
                     ) : (
-                      <span className="text-xs lg:text-sm text-purple-600 font-medium">{performance.program || '스포츠교실'}</span>
+                      <span className="badge-violet">{performance.program || '스포츠교실'}</span>
                     )}
                   </td>
-                  <td className="px-2 lg:px-6 py-3 lg:py-4 w-12 lg:w-20">
+                  <td>
                     {editingId === performance.id ? (
                       <input
                         type="number"
                         value={editForm.maleCount || ''}
                         onChange={(e) => handleInputChange('maleCount', parseInt(e.target.value) || 0)}
                         min="0"
-                        className="w-full px-1 lg:px-3 py-1 lg:py-2 text-xs lg:text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="input-glass text-sm py-2 w-20"
                       />
                     ) : (
-                      <span className="text-xs lg:text-sm text-blue-600 font-mono">
+                      <span className="font-mono text-blue-600 font-medium">
                         {(performance.maleCount || 0).toLocaleString()}
                       </span>
                     )}
                   </td>
-                  <td className="px-2 lg:px-6 py-3 lg:py-4 w-12 lg:w-20">
+                  <td>
                     {editingId === performance.id ? (
                       <input
                         type="number"
                         value={editForm.femaleCount || ''}
                         onChange={(e) => handleInputChange('femaleCount', parseInt(e.target.value) || 0)}
                         min="0"
-                        className="w-full px-1 lg:px-3 py-1 lg:py-2 text-xs lg:text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="input-glass text-sm py-2 w-20"
                       />
                     ) : (
-                      <span className="text-xs lg:text-sm text-pink-600 font-mono">
+                      <span className="font-mono text-pink-600 font-medium">
                         {(performance.femaleCount || 0).toLocaleString()}
                       </span>
                     )}
                   </td>
-                  <td className="px-2 lg:px-6 py-3 lg:py-4 w-14 lg:w-20">
-                    <span className="text-xs lg:text-sm text-gray-900 font-bold">
+                  <td>
+                    <span className="font-mono font-bold text-gray-900">
                       {((performance.maleCount || 0) + (performance.femaleCount || 0)).toLocaleString()}
                     </span>
                   </td>
-                  <td className="px-3 lg:px-6 py-3 lg:py-4 w-20 lg:w-24 hidden lg:table-cell">
+                  <td className="hidden lg:table-cell">
                     {editingId === performance.id ? (
                       <input
                         type="number"
                         value={editForm.promotionCount || ''}
                         onChange={(e) => handleInputChange('promotionCount', parseInt(e.target.value) || 0)}
                         min="0"
-                        className="w-full px-2 lg:px-3 py-1 lg:py-2 text-xs lg:text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="input-glass text-sm py-2 w-20"
                       />
                     ) : (
-                      <span className="text-xs lg:text-sm text-orange-600 font-mono flex items-center">
-                        <Megaphone className="w-3 h-3 lg:w-4 lg:h-4 mr-1" />
+                      <span className="text-sm text-orange-600 font-mono flex items-center gap-1">
+                        <Megaphone className="w-3 h-3" />
                         {(performance.promotionCount || 0).toLocaleString()}회
                       </span>
                     )}
                   </td>
-                  <td className="px-2 lg:px-6 py-3 lg:py-4 w-20 lg:min-w-32">
+                  <td>
                     {editingId === performance.id ? (
                       <textarea
                         value={editForm.notes || ''}
                         onChange={(e) => handleInputChange('notes', e.target.value)}
-                        className="w-full px-1 lg:px-3 py-1 lg:py-2 text-xs lg:text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                        className="input-glass text-sm py-2 resize-none"
                         rows={2}
                       />
                     ) : (
-                      <span className="text-xs lg:text-sm text-gray-500 block truncate" title={performance.notes || ''}>
+                      <span className="text-sm text-gray-500 block truncate max-w-[150px]" title={performance.notes || ''}>
                         {performance.notes || '-'}
                       </span>
                     )}
                   </td>
-                  <td className="px-2 lg:px-6 py-3 lg:py-4 text-right w-16 lg:w-24">
+                  <td className="text-right">
                     {editingId === performance.id ? (
-                      <div className="flex flex-col lg:flex-row items-center justify-end space-y-1 lg:space-y-0 lg:space-x-2">
+                      <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={handleSave}
-                          className="p-1 lg:p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors min-w-[32px] min-h-[32px]"
+                          className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors"
                           title="저장"
                         >
-                          <Save className="w-3 h-3 lg:w-4 lg:h-4" />
+                          <Save className="w-4 h-4" />
                         </button>
                         <button
                           onClick={handleCancel}
-                          className="p-1 lg:p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors min-w-[32px] min-h-[32px]"
+                          className="p-2 text-gray-500 hover:bg-gray-100 rounded-xl transition-colors"
                           title="취소"
                         >
-                          <X className="w-3 h-3 lg:w-4 lg:h-4" />
+                          <X className="w-4 h-4" />
                         </button>
                       </div>
                     ) : (
-                      <div className="flex flex-col lg:flex-row items-center justify-end space-y-1 lg:space-y-0 lg:space-x-2">
+                      <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => handleEdit(performance)}
-                          className="p-1 lg:p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors min-w-[32px] min-h-[32px]"
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
                           title="수정"
                         >
-                          <Edit2 className="w-3 h-3 lg:w-4 lg:h-4" />
+                          <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(performance.id, performance.organizationName, performance.date)}
-                          className="p-1 lg:p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors min-w-[32px] min-h-[32px]"
+                          className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
                           title="삭제"
                         >
-                          <Trash2 className="w-3 h-3 lg:w-4 lg:h-4" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     )}
@@ -526,10 +522,14 @@ const PerformanceList: React.FC = () => {
         </div>
 
         {filteredPerformances.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">
+          <div className="text-center py-16">
+            <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+              <Search className="w-10 h-10 text-gray-300" />
+            </div>
+            <p className="text-lg font-medium text-gray-500 mb-2">
               {performances.length === 0 ? '실적 데이터가 없습니다' : '검색 조건에 맞는 데이터가 없습니다'}
             </p>
+            <p className="text-sm text-gray-400">필터를 조정하거나 새로운 실적을 입력해보세요</p>
           </div>
         )}
       </div>

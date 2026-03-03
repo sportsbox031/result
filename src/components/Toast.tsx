@@ -21,11 +21,11 @@ const Toast: React.FC<ToastProps> = ({ toast, onRemove }) => {
   const getIcon = () => {
     switch (type) {
       case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
+        return <CheckCircle className="w-5 h-5 text-emerald-500" />;
       case 'error':
-        return <AlertCircle className="w-5 h-5 text-red-500" />;
+        return <AlertCircle className="w-5 h-5 text-rose-500" />;
       case 'warning':
-        return <AlertTriangle className="w-5 h-5 text-orange-500" />;
+        return <AlertTriangle className="w-5 h-5 text-amber-500" />;
       case 'info':
         return <Info className="w-5 h-5 text-blue-500" />;
       default:
@@ -33,34 +33,34 @@ const Toast: React.FC<ToastProps> = ({ toast, onRemove }) => {
     }
   };
 
-  const getBorderColor = () => {
+  const getStyles = () => {
     switch (type) {
       case 'success':
-        return 'border-l-green-500';
+        return 'border-l-emerald-500 bg-gradient-to-r from-emerald-50/90 to-white/90';
       case 'error':
-        return 'border-l-red-500';
+        return 'border-l-rose-500 bg-gradient-to-r from-rose-50/90 to-white/90';
       case 'warning':
-        return 'border-l-orange-500';
+        return 'border-l-amber-500 bg-gradient-to-r from-amber-50/90 to-white/90';
       case 'info':
-        return 'border-l-blue-500';
+        return 'border-l-blue-500 bg-gradient-to-r from-blue-50/90 to-white/90';
       default:
-        return 'border-l-blue-500';
+        return 'border-l-blue-500 bg-gradient-to-r from-blue-50/90 to-white/90';
     }
   };
 
   return (
     <div className={`glass-modal rounded-lg border-l-4 ${getBorderColor()} p-4 mb-3 max-w-sm lg:max-w-md animate-slide-in mx-4 lg:mx-0`}>
       <div className="flex items-start">
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 mt-0.5">
           {getIcon()}
         </div>
         <div className="ml-3 flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">{title}</p>
-          <p className="text-sm text-gray-500 break-words">{message}</p>
+          <p className="text-sm font-semibold text-gray-900">{title}</p>
+          <p className="text-sm text-gray-600 mt-0.5">{message}</p>
         </div>
         <button
           onClick={() => onRemove(toast.id)}
-          className="ml-4 flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2 -mt-2"
+          className="ml-4 flex-shrink-0 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
           aria-label="알림 닫기"
         >
           <X className="w-4 h-4" />
