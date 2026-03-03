@@ -49,7 +49,7 @@ const Toast: React.FC<ToastProps> = ({ toast, onRemove }) => {
   };
 
   return (
-    <div className={`bg-white rounded-lg shadow-lg border-l-4 ${getBorderColor()} p-4 mb-3 max-w-sm lg:max-w-md animate-slide-in mx-4 lg:mx-0`}>
+    <div className={`glass-modal rounded-lg border-l-4 ${getBorderColor()} p-4 mb-3 max-w-sm lg:max-w-md animate-slide-in mx-4 lg:mx-0`}>
       <div className="flex items-start">
         <div className="flex-shrink-0">
           {getIcon()}

@@ -42,8 +42,8 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
-      <form onSubmit={handleLogin} className="bg-white p-6 lg:p-8 rounded-xl shadow-md w-full max-w-sm">
+    <div className="flex items-center justify-center min-h-screen glass-bg p-4">
+      <form onSubmit={handleLogin} className="glass-modal p-6 lg:p-8 rounded-xl w-full max-w-sm">
         <h2 className="text-xl lg:text-2xl font-bold mb-6 text-center">관리자 로그인</h2>
         <div className="mb-4">
           <label className="block text-sm font-medium mb-1">아이디</label>

@@ -1,6 +1,7 @@
 import { Demand, Performance, ExcelPerformanceData } from '../types';
 import { BudgetUsage, BudgetItem } from '../types';
 import { getCityRegion } from './regions';
+import { getBudgetHierarchyInfo } from './budgetHierarchy';
 
 export const parseExcelData = (csvContent: string): Omit<Demand, 'id' | 'createdAt' | 'updatedAt'>[] => {
   const lines = csvContent.split('\n');
@@ -159,11 +160,14 @@ export const parsePerformanceExcelData = (csvContent: string): Omit<Performance,
 
 // 예산 사용 내역 전체 리스트를 엑셀(CSV)로 다운로드하는 함수
 export const downloadBudgetUsageExcel = (usages: BudgetUsage[], budgetItems: BudgetItem[]) => {
-  let csvContent = '\uFEFF예산명,적요,채주,집행액,집행일자,결제방법,메모\n';
+  let csvContent = '\uFEFF비목,세목,세세목(예산명),적요,채주,집행액,집행일자,결제방법,메모\n';
   usages.forEach(usage => {
-    const budgetName = budgetItems.find(b => b.id === usage.budgetItemId)?.name || '';
+    const budgetItem = budgetItems.find(b => b.id === usage.budgetItemId);
+    const hierarchy = budgetItem ? getBudgetHierarchyInfo(budgetItem) : null;
     const row = [
-      `"${budgetName}"`,
+      `"${hierarchy?.bimo || ''}"`,
+      `"${hierarchy?.semok || ''}"`,
+      `"${hierarchy?.detailName || ''}"`,
       `"${usage.description || ''}"`,
       `"${usage.vendor || ''}"`,
       usage.amount || 0,

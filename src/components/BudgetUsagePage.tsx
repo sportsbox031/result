@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BudgetItem, BudgetUsage } from '../types';
 import { firebaseStorage } from '../utils/firebaseStorage';
+import { useFirebaseData } from '../hooks/useFirebaseData';
 import { Plus, Trash2, Save, X, Search, Download, Calendar, CreditCard, FileText } from 'lucide-react';
 import { downloadBudgetUsageExcel } from '../utils/excel';
 import { AVAILABLE_YEARS, CURRENT_YEAR, getBudgetUsageYear } from '../utils/yearUtils';
 import { buildBudgetHierarchy, getBudgetHierarchyInfo, sortBudgetItemsByOrder } from '../utils/budgetHierarchy';
 
 const BudgetUsagePage: React.FC = () => {
-  const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
-  const [budgetUsages, setBudgetUsages] = useState<BudgetUsage[]>([]);
+  const { budgetItems, budgetUsages } = useFirebaseData();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<BudgetUsage>>({});
   const [regionFilter, setRegionFilter] = useState<'전체' | '남부' | '북부'>('전체');
@@ -26,12 +26,6 @@ const BudgetUsagePage: React.FC = () => {
   const [addSemok, setAddSemok] = useState('');
   const [editBimo, setEditBimo] = useState('');
   const [editSemok, setEditSemok] = useState('');
-
-  useEffect(() => {
-    const unsubBudgets = firebaseStorage.subscribeToBudgets(setBudgetItems);
-    const unsubUsages = firebaseStorage.subscribeToBudgetUsages(setBudgetUsages);
-    return () => { unsubBudgets(); unsubUsages(); };
-  }, []);
 
   // 연도별로 예산 항목 필터링
   const yearFilteredBudgetItems = useMemo(() =>
@@ -302,7 +296,7 @@ const BudgetUsagePage: React.FC = () => {
       </div>
 
       {/* 연도 + 지역 필터 */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
+      <div className="glass-card rounded-2xl p-4 mb-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           {/* 연도 선택 */}
           <div className="flex items-center gap-3">
@@ -373,7 +367,7 @@ const BudgetUsagePage: React.FC = () => {
       </div>
 
       {/* 요약 정보 */}
-      <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 mb-6">
+      <div className="glass-panel rounded-xl p-4 mb-6">
         <div className="flex flex-wrap items-center gap-6">
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4 text-gray-400" />
@@ -388,7 +382,7 @@ const BudgetUsagePage: React.FC = () => {
 
       {/* 추가 폼 */}
       {adding && (
-        <div className="bg-white rounded-2xl shadow-md border-2 border-blue-200 p-6 mb-4">
+        <div className="glass-form rounded-2xl p-6 mb-4">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">새 내역 추가</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
@@ -512,12 +506,12 @@ const BudgetUsagePage: React.FC = () => {
       )}
 
       {/* 내역 테이블 */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="glass-card rounded-2xl overflow-hidden">
         {filteredUsages.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
+                <tr className="bg-white/40 border-b border-gray-100">
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">예산명</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">적요</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">채주</th>
@@ -537,7 +531,7 @@ const BudgetUsagePage: React.FC = () => {
                   return (
                     <tr
                       key={usage.id}
-                      className={`transition-colors ${isEditing ? 'bg-blue-50' : 'hover:bg-gray-50 cursor-pointer'}`}
+                      className={`transition-colors ${isEditing ? 'bg-blue-50' : 'hover:bg-white/40 cursor-pointer'}`}
                       onClick={() => !isEditing && handleEdit(usage)}
                     >
                       <td className="px-4 py-3">

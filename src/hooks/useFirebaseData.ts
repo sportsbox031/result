@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
 import { firebaseStorage } from '../utils/firebaseStorage';
-import { Demand, Performance } from '../types';
+import { Demand, Performance, BudgetItem, BudgetUsage } from '../types';
 
 export const useFirebaseData = () => {
   const [demands, setDemands] = useState<Demand[]>([]);
   const [performances, setPerformances] = useState<Performance[]>([]);
+  const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
+  const [budgetUsages, setBudgetUsages] = useState<BudgetUsage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let unsubscribeDemands: (() => void) | null = null;
     let unsubscribePerformances: (() => void) | null = null;
+    let unsubscribeBudgets: (() => void) | null = null;
+    let unsubscribeBudgetUsages: (() => void) | null = null;
 
     const initializeData = async () => {
       try {
@@ -24,6 +28,14 @@ export const useFirebaseData = () => {
 
         unsubscribePerformances = firebaseStorage.subscribeToPerformances((newPerformances) => {
           setPerformances(newPerformances);
+        });
+
+        unsubscribeBudgets = firebaseStorage.subscribeToBudgets((newBudgetItems) => {
+          setBudgetItems(newBudgetItems);
+        });
+
+        unsubscribeBudgetUsages = firebaseStorage.subscribeToBudgetUsages((newBudgetUsages) => {
+          setBudgetUsages(newBudgetUsages);
         });
 
         setLoading(false);
@@ -40,12 +52,16 @@ export const useFirebaseData = () => {
     return () => {
       if (unsubscribeDemands) unsubscribeDemands();
       if (unsubscribePerformances) unsubscribePerformances();
+      if (unsubscribeBudgets) unsubscribeBudgets();
+      if (unsubscribeBudgetUsages) unsubscribeBudgetUsages();
     };
   }, []);
 
   return {
     demands,
     performances,
+    budgetItems,
+    budgetUsages,
     loading,
     error,
     // Firebase 작업 함수들

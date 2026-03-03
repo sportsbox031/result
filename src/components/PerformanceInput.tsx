@@ -254,7 +254,7 @@ const PerformanceInput: React.FC = () => {
       </div>
 
       {activeTab === 'manual' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-8">
+        <div className="glass-card rounded-lg p-4 lg:p-8">
           <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
               <div>
@@ -307,7 +307,7 @@ const PerformanceInput: React.FC = () => {
                 )}
                 
                 {showOrganizationDropdown && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  <div className="absolute z-10 w-full mt-1 glass-modal rounded-lg max-h-60 overflow-y-auto">
                     {filteredOrganizations.length > 0 ? (
                       filteredOrganizations.map(name => (
                         <button
@@ -495,7 +495,7 @@ const PerformanceInput: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+          <div className="glass-card rounded-lg p-8">
             <div
               className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
                 isDragOver
@@ -548,8 +548,8 @@ const PerformanceInput: React.FC = () => {
 
       {/* 성공 모달 */}
       {showSuccessModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 lg:p-8 max-w-md w-full">
+        <div className="fixed inset-0 glass-overlay flex items-center justify-center z-50 p-4">
+          <div className="glass-modal rounded-lg p-6 lg:p-8 max-w-md w-full">
             <div className="text-center">
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">저장 완료!</h3>
@@ -581,8 +581,8 @@ const PerformanceInput: React.FC = () => {
 
       {/* 업로드 완료 모달 */}
       {showUploadSuccessModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 lg:p-8 max-w-md w-full">
+        <div className="fixed inset-0 glass-overlay flex items-center justify-center z-50 p-4">
+          <div className="glass-modal rounded-lg p-6 lg:p-8 max-w-md w-full">
             <div className="text-center">
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">일괄등록 완료!</h3>
@@ -614,8 +614,8 @@ const PerformanceInput: React.FC = () => {
 
       {/* 저장 방법 모달 */}
       {showInstructionModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 lg:p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 glass-overlay flex items-center justify-center z-50 p-4">
+          <div className="glass-modal rounded-lg p-6 lg:p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
             <div className="mb-6">
               <h3 className="text-xl font-semibold text-gray-900 mb-2">실적 데이터 저장 방법</h3>
               <p className="text-gray-600">실적 데이터를 올바르게 저장하는 방법을 안내합니다.</p>

@@ -93,7 +93,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen glass-bg">
       <Layout currentPage={currentPage} onPageChange={setCurrentPage}>
         <div className="flex flex-col sm:flex-row justify-end gap-2 mb-4">
           <button 

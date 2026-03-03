@@ -208,7 +208,7 @@ const PerformanceList: React.FC = () => {
       </div>
 
       {/* 필터 섹션 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-6 mb-6">
+      <div className="glass-card rounded-lg p-4 lg:p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base lg:text-lg font-medium text-gray-900 flex items-center">
             <Filter className="w-4 h-4 lg:w-5 lg:h-5 mr-2" />
@@ -339,10 +339,10 @@ const PerformanceList: React.FC = () => {
       </div>
 
       {/* 테이블 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="glass-card rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[800px]">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-white/40 border-b border-gray-200">
               <tr>
                 <th className="px-2 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-medium text-gray-900 w-20 lg:w-32">날짜</th>
                 <th className="px-2 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-medium text-gray-900 w-24 lg:w-48">단체명</th>
@@ -359,7 +359,7 @@ const PerformanceList: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredPerformances.map((performance) => (
-                <tr key={performance.id} className="hover:bg-gray-50">
+                <tr key={performance.id} className="hover:bg-white/40">
                   <td className="px-2 lg:px-6 py-3 lg:py-4 w-20 lg:w-32">
                     {editingId === performance.id ? (
                       <input

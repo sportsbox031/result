@@ -12,7 +12,7 @@ import { getCityRegion } from '../utils/regions';
 import { buildBudgetHierarchy, getBudgetHierarchyInfo, sortBudgetItemsByOrder } from '../utils/budgetHierarchy';
 
 const Dashboard: React.FC = () => {
-  const { demands, performances } = useFirebaseData();
+  const { demands, performances, budgetItems, budgetUsages } = useFirebaseData();
   const [stats, setStats] = useState<StatisticsData>({
     totalMale: 0,
     totalFemale: 0,
@@ -24,8 +24,6 @@ const Dashboard: React.FC = () => {
     cityData: []
   });
 
-  const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
-  const [budgetUsages, setBudgetUsages] = useState<BudgetUsage[]>([]);
   const [editingBudgetId, setEditingBudgetId] = useState<string | null>(null);
   const [editingBudgetName, setEditingBudgetName] = useState<string>('');
   const [editingBudgetAmount, setEditingBudgetAmount] = useState<number>(0);
@@ -53,16 +51,6 @@ const Dashboard: React.FC = () => {
 
   // 기간 필터 상태
   const [dateFilter, setDateFilter] = useState<{ startDate?: Date; endDate?: Date }>({});
-
-  // 예산 데이터 실시간 구독
-  useEffect(() => {
-    const unsubBudgets = firebaseStorage.subscribeToBudgets(setBudgetItems);
-    const unsubUsages = firebaseStorage.subscribeToBudgetUsages(setBudgetUsages);
-    return () => {
-      unsubBudgets();
-      unsubUsages();
-    };
-  }, []);
 
   // 연도별 필터가 적용된 실적 데이터
   const yearFilteredPerformances = useMemo(() => {
@@ -323,7 +311,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* 연도 + 지역 필터 */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
+      <div className="glass-card rounded-2xl p-4 mb-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           {/* 연도 선택 */}
           <div className="flex items-center gap-3">
@@ -379,7 +367,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* 기간 필터 */}
-      <div className="bg-gray-50 rounded-2xl border border-gray-100 p-4 mb-6">
+      <div className="glass-panel rounded-2xl p-4 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
@@ -418,7 +406,7 @@ const Dashboard: React.FC = () => {
           onClick={() => setActiveTab('overview')}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'overview'
             ? 'bg-blue-600 text-white shadow-md'
-            : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+            : 'glass-stat text-gray-600 hover:bg-white/40'
           }`}
         >
           <Activity className="w-4 h-4" />
@@ -429,7 +417,7 @@ const Dashboard: React.FC = () => {
           onClick={() => setActiveTab('city')}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'city'
             ? 'bg-blue-600 text-white shadow-md'
-            : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+            : 'glass-stat text-gray-600 hover:bg-white/40'
           }`}
         >
           <BarChart3 className="w-4 h-4" />
@@ -440,7 +428,7 @@ const Dashboard: React.FC = () => {
           onClick={() => setActiveTab('organization')}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'organization'
             ? 'bg-blue-600 text-white shadow-md'
-            : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+            : 'glass-stat text-gray-600 hover:bg-white/40'
           }`}
         >
           <Building2 className="w-4 h-4" />
@@ -451,7 +439,7 @@ const Dashboard: React.FC = () => {
           onClick={() => setActiveTab('budget')}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'budget'
             ? 'bg-blue-600 text-white shadow-md'
-            : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+            : 'glass-stat text-gray-600 hover:bg-white/40'
           }`}
         >
           <PieChart className="w-4 h-4" />
@@ -467,7 +455,7 @@ const Dashboard: React.FC = () => {
             <h3 className="text-lg font-semibold text-gray-800 mb-4">실적 현황</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* 등록 단체수 */}
-              <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-5">
+              <div className="glass-stat rounded-2xl p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-500 mb-1">등록 단체수</p>
@@ -481,7 +469,7 @@ const Dashboard: React.FC = () => {
 
               {/* 총 실적 횟수 */}
               <div
-                className="bg-white rounded-2xl shadow-md border border-gray-100 p-5 cursor-pointer hover:shadow-lg transition-shadow"
+                className="glass-stat rounded-2xl p-5 cursor-pointer hover:shadow-lg transition-shadow"
                 onClick={handleTotalCountClick}
               >
                 <div className="flex items-start justify-between">
@@ -497,7 +485,7 @@ const Dashboard: React.FC = () => {
               </div>
 
               {/* 총 참여 인원 */}
-              <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-5">
+              <div className="glass-stat rounded-2xl p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-500 mb-1">총 참여 인원</p>
@@ -517,7 +505,7 @@ const Dashboard: React.FC = () => {
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">예산 현황</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-5">
+              <div className="glass-stat rounded-2xl p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-500 mb-1">총 예산액</p>
@@ -528,7 +516,7 @@ const Dashboard: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-5">
+              <div className="glass-stat rounded-2xl p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-500 mb-1">집행액</p>
@@ -539,7 +527,7 @@ const Dashboard: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-5">
+              <div className="glass-stat rounded-2xl p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-500 mb-1">잔액</p>
@@ -550,7 +538,7 @@ const Dashboard: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-5">
+              <div className="glass-stat rounded-2xl p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-500 mb-1">집행율</p>
@@ -567,7 +555,7 @@ const Dashboard: React.FC = () => {
       )}
 
       {activeTab === 'city' && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="glass-card rounded-2xl p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-6">시/군별 참여 현황</h2>
           {filteredCityData.length > 0 ? (
             <div className="space-y-3">
@@ -611,7 +599,7 @@ const Dashboard: React.FC = () => {
       )}
 
       {activeTab === 'organization' && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="glass-card rounded-2xl p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <h2 className="text-xl font-bold text-gray-900">수요처별 참여 현황</h2>
             {/* 검색창 */}
@@ -641,7 +629,7 @@ const Dashboard: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {filteredOrganizationData.map((item, index) => (
-                    <tr key={index} className="hover:bg-gray-50 transition-colors">
+                    <tr key={index} className="hover:bg-white/40 transition-colors">
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center justify-center w-7 h-7 text-xs font-bold rounded-full ${index < 3 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
                           {index + 1}
@@ -672,7 +660,7 @@ const Dashboard: React.FC = () => {
       {activeTab === 'budget' && (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={visibleBudgetItemIds} strategy={verticalListSortingStrategy}>
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="glass-card rounded-2xl p-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <h2 className="text-xl font-bold text-gray-900">{selectedYear}년 예산 현황</h2>
                 <div className="flex items-center gap-3">
@@ -798,7 +786,7 @@ const Dashboard: React.FC = () => {
                       })}
                     </tbody>
                     <tfoot>
-                      <tr className="bg-gray-50 font-semibold">
+                      <tr className="bg-white/40 font-semibold">
                         <td colSpan={2} className="px-3 py-3 text-sm text-gray-700">합계</td>
                         <td className="px-3 py-3 text-right text-sm text-gray-900">{totalBudget.toLocaleString()}</td>
                         <td className="px-3 py-3 text-right text-sm text-blue-600">{totalUsed.toLocaleString()}</td>
@@ -822,8 +810,8 @@ const Dashboard: React.FC = () => {
 
       {/* 시군 상세 팝업 */}
       {showPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowPopup(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center glass-overlay p-4" onClick={() => setShowPopup(false)}>
+          <div className="glass-modal rounded-2xl max-w-lg w-full max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-100">
               <h3 className="text-xl font-bold text-gray-900">{selectedCity} 수요처별 현황</h3>
             </div>
@@ -839,7 +827,7 @@ const Dashboard: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {selectedCityOrganizations.map((org, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50">
+                      <tr key={idx} className="hover:bg-white/40">
                         <td className="px-3 py-3 text-sm font-medium text-gray-900">{org.name}</td>
                         <td className="px-3 py-3 text-sm text-right text-gray-600">{org.count}회</td>
                         <td className="px-3 py-3 text-sm text-right font-semibold text-blue-600">{org.total.toLocaleString()}명</td>
@@ -857,14 +845,14 @@ const Dashboard: React.FC = () => {
 
       {/* 프로그램별 팝업 */}
       {showProgramPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowProgramPopup(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center glass-overlay p-4" onClick={() => setShowProgramPopup(false)}>
+          <div className="glass-modal rounded-2xl max-w-md w-full overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-100">
               <h3 className="text-xl font-bold text-gray-900 text-center">프로그램별 실적</h3>
             </div>
             <div className="p-6 space-y-4">
               {['스포츠교실', '스포츠체험존', '스포츠이벤트'].map(prog => (
-                <div key={prog} className="bg-gray-50 rounded-xl p-4 flex items-center justify-between">
+                <div key={prog} className="bg-white/40 rounded-xl p-4 flex items-center justify-between">
                   <span className="font-semibold text-gray-800">{prog}</span>
                   <div className="flex gap-6">
                     <div className="text-right">
@@ -885,8 +873,8 @@ const Dashboard: React.FC = () => {
 
       {/* 예산 사용 내역 팝업 */}
       {showBudgetUsagePopup && selectedBudgetItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowBudgetUsagePopup(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center glass-overlay p-4" onClick={() => setShowBudgetUsagePopup(false)}>
+          <div className="glass-modal rounded-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-100">
               <h3 className="text-xl font-bold text-gray-900">{getBudgetHierarchyInfo(selectedBudgetItem).detailName} 사용 내역</h3>
             </div>
@@ -906,7 +894,7 @@ const Dashboard: React.FC = () => {
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                       {usages.map(usage => (
-                        <tr key={usage.id} className="hover:bg-gray-50">
+                        <tr key={usage.id} className="hover:bg-white/40">
                           <td className="px-3 py-3 text-sm text-gray-900">{usage.description}</td>
                           <td className="px-3 py-3 text-sm text-gray-600">{usage.vendor}</td>
                           <td className="px-3 py-3 text-sm text-right font-semibold text-blue-600">{Number(usage.amount).toLocaleString()}원</td>
@@ -916,7 +904,7 @@ const Dashboard: React.FC = () => {
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr className="bg-gray-50 font-semibold">
+                      <tr className="bg-white/40 font-semibold">
                         <td colSpan={2} className="px-3 py-3 text-sm">총 사용액</td>
                         <td className="px-3 py-3 text-sm text-right text-blue-600">{usages.reduce((sum, u) => sum + Number(u.amount), 0).toLocaleString()}원</td>
                         <td colSpan={2}></td>
@@ -948,7 +936,7 @@ function BudgetRow({ item, editingBudgetId, editingBudgetName, editingBudgetAmou
   const rate = item.amount > 0 ? (used / item.amount) * 100 : 0;
 
   return (
-    <tr ref={setNodeRef} style={style} {...attributes} className="hover:bg-slate-50 transition-colors">
+    <tr ref={setNodeRef} style={style} {...attributes} className="hover:bg-white/40 transition-colors">
       <td className="px-2 py-3 text-center cursor-grab" {...listeners}>
         <div className="flex items-center justify-center">
           <GripVertical className="w-4 h-4 text-gray-300 hover:text-gray-500" />

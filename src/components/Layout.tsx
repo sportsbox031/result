@@ -26,9 +26,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onPageChange }) 
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen glass-bg">
       {/* 모바일 헤더 */}
-      <div className="lg:hidden mobile-header bg-white shadow-sm border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+      <div className="lg:hidden mobile-header glass-sidebar border-b border-white/20 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
         <h1 className="text-lg font-bold text-gray-900 truncate">관리자 대시보드</h1>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -42,15 +42,15 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onPageChange }) 
       {/* 모바일 오버레이 */}
       {isMobileMenuOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-black bg-opacity-50 touch-none"
+          className="lg:hidden fixed inset-0 z-40 glass-overlay touch-none"
           onClick={() => setIsMobileMenuOpen(false)}
           onTouchStart={(e) => e.preventDefault()}
         />
       )}
 
       {/* 데스크톱 사이드바 */}
-      <div className="hidden lg:block fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg">
-        <div className="flex h-16 items-center justify-center border-b border-gray-200 px-4">
+      <div className="hidden lg:block fixed inset-y-0 left-0 z-50 w-64 glass-sidebar">
+        <div className="flex h-16 items-center justify-center border-b border-white/20 px-4">
           <h1 className="text-xl font-bold text-gray-900 truncate">관리자 대시보드</h1>
         </div>
         <nav className="sidebar-nav mt-4 pb-4">
@@ -77,9 +77,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onPageChange }) 
       </div>
 
       {/* 모바일 사이드바 */}
-      <div className={`lg:hidden fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+      <div className={`lg:hidden fixed inset-y-0 left-0 z-50 w-64 glass-sidebar shadow-lg transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}>
-        <div className="flex h-16 items-center justify-center border-b border-gray-200 px-4">
+        <div className="flex h-16 items-center justify-center border-b border-white/20 px-4">
           <h1 className="text-lg font-bold text-gray-900 truncate">메뉴</h1>
         </div>
         <nav className="sidebar-nav mt-4 pb-4">
