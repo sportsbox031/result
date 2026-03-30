@@ -1,5 +1,6 @@
 export interface Demand {
   id: string;
+  year: number;
   city: string;
   organizationName: string;
   contactPerson: string;

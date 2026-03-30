@@ -1,4 +1,5 @@
 import { Demand, Performance } from '../types';
+import { normalizeDemandYear } from './demandYear';
 
 const DEMANDS_KEY = 'demands';
 const PERFORMANCES_KEY = 'performances';
@@ -36,6 +37,7 @@ export const storage = {
     const data = localStorage.getItem(DEMANDS_KEY);
     return data ? JSON.parse(data).map((d: any) => ({
       ...d,
+      year: normalizeDemandYear({ year: d.year, createdAt: new Date(d.createdAt) }),
       createdAt: new Date(d.createdAt),
       updatedAt: new Date(d.updatedAt)
     })) : [];

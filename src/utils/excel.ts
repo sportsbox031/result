@@ -3,7 +3,10 @@ import { BudgetUsage, BudgetItem } from '../types';
 import { getCityRegion } from './regions';
 import { getBudgetHierarchyInfo } from './budgetHierarchy';
 
-export const parseExcelData = (csvContent: string): Omit<Demand, 'id' | 'createdAt' | 'updatedAt'>[] => {
+export const parseExcelData = (
+  csvContent: string,
+  year: number
+): Omit<Demand, 'id' | 'createdAt' | 'updatedAt'>[] => {
   const lines = csvContent.split('\n');
   const data: Omit<Demand, 'id' | 'createdAt' | 'updatedAt'>[] = [];
   
@@ -16,6 +19,7 @@ export const parseExcelData = (csvContent: string): Omit<Demand, 'id' | 'created
     
     if (columns.length >= 4) {
       data.push({
+        year,
         city: columns[0] || '',
         organizationName: columns[1] || '',
         contactPerson: columns[2] || '',

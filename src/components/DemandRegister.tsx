@@ -3,8 +3,11 @@ import { Upload, FileText, Download, Plus, CheckCircle, AlertCircle, Loader2, X 
 import { parseExcelData, downloadTemplate } from '../utils/excel';
 import { useFirebaseData } from '../hooks/useFirebaseData';
 import { useToast } from '../hooks/useToast';
+import { getDefaultDemandYear } from '../utils/demandYear';
+import { buildDemandUploadConfirmation } from '../utils/demandUploadConfirmation';
 
 interface DemandFormData {
+  year: number;
   city: string;
   organizationName: string;
   contactPerson: string;
@@ -19,6 +22,9 @@ const CITIES = [
   '의정부시', '이천시', '파주시', '평택시', '포천시', '하남시', '화성시'
 ];
 
+const DEFAULT_YEAR = getDefaultDemandYear();
+const YEAR_OPTIONS = Array.from({ length: 5 }, (_, index) => DEFAULT_YEAR + 1 - index);
+
 const DemandRegister: React.FC = () => {
   const { addToast } = useToast();
   const { addDemand } = useFirebaseData();
@@ -28,10 +34,13 @@ const DemandRegister: React.FC = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showInstructionModal, setShowInstructionModal] = useState(false);
   const [showUploadSuccessModal, setShowUploadSuccessModal] = useState(false);
+  const [showUploadConfirmModal, setShowUploadConfirmModal] = useState(false);
   const [uploadResult, setUploadResult] = useState<{ success: number; error: number }>({ success: 0, error: 0 });
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [pendingUploadFile, setPendingUploadFile] = useState<File | null>(null);
   const [formData, setFormData] = useState<DemandFormData>({
+    year: DEFAULT_YEAR,
     city: '',
     organizationName: '',
     contactPerson: '',
@@ -41,7 +50,10 @@ const DemandRegister: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'year' ? Number(value) : value
+    }));
   };
 
   const handleManualSubmit = async (e: React.FormEvent) => {
@@ -55,6 +67,7 @@ const DemandRegister: React.FC = () => {
     setIsLoading(true);
     try {
       await addDemand({
+        year: formData.year,
         city: formData.city,
         organizationName: formData.organizationName,
         contactPerson: formData.contactPerson,
@@ -62,7 +75,14 @@ const DemandRegister: React.FC = () => {
         email: formData.email || ''
       });
       setShowSuccessModal(true);
-      setFormData({ city: '', organizationName: '', contactPerson: '', phoneNumber: '', email: '' });
+      setFormData({
+        year: formData.year,
+        city: '',
+        organizationName: '',
+        contactPerson: '',
+        phoneNumber: '',
+        email: ''
+      });
     } catch (error) {
       addToast({ type: 'error', title: '등록 실패', message: '수요처 등록 중 오류가 발생했습니다' });
     } finally {
@@ -76,7 +96,7 @@ const DemandRegister: React.FC = () => {
     reader.onload = async (e) => {
       try {
         const content = e.target?.result as string;
-        const parsedData = parseExcelData(content);
+        const parsedData = parseExcelData(content, formData.year);
 
         if (parsedData.length === 0) {
           addToast({ type: 'warning', title: '데이터 없음', message: '파일에서 유효한 데이터를 찾을 수 없습니다' });
@@ -114,15 +134,36 @@ const DemandRegister: React.FC = () => {
     e.preventDefault();
     setIsDragOver(false);
     const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) handleFileUpload(files[0]);
+    if (files.length > 0) {
+      setPendingUploadFile(files[0]);
+      setShowUploadConfirmModal(true);
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragOver(true); };
   const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setIsDragOver(false); };
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (files && files.length > 0) handleFileUpload(files[0]);
+    if (files && files.length > 0) {
+      setPendingUploadFile(files[0]);
+      setShowUploadConfirmModal(true);
+    }
     e.target.value = '';
+  };
+
+  const handleConfirmUpload = async () => {
+    if (!pendingUploadFile) {
+      return;
+    }
+
+    setShowUploadConfirmModal(false);
+    await handleFileUpload(pendingUploadFile);
+    setPendingUploadFile(null);
+  };
+
+  const handleCancelUpload = () => {
+    setShowUploadConfirmModal(false);
+    setPendingUploadFile(null);
   };
 
   return (
@@ -130,7 +171,7 @@ const DemandRegister: React.FC = () => {
       {/* 헤더 */}
       <div>
         <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">수요처 등록</h1>
-        <p className="text-gray-500 mt-1">수기 입력 또는 CSV 파일로 수요처를 등록하세요</p>
+        <p className="text-gray-500 mt-1">{formData.year}년 수요처를 수기 입력 또는 CSV 파일로 등록하세요</p>
       </div>
 
       {/* 탭 네비게이션 */}
@@ -156,6 +197,20 @@ const DemandRegister: React.FC = () => {
         <div className="glass-card p-6 lg:p-8 animate-fadeIn">
           <form onSubmit={handleManualSubmit} className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">연도 *</label>
+                <select
+                  name="year"
+                  value={formData.year}
+                  onChange={handleInputChange}
+                  className="select-glass w-full"
+                  required
+                >
+                  {YEAR_OPTIONS.map(year => (
+                    <option key={year} value={year}>{year}년</option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">시/군 *</label>
                 <select
@@ -248,8 +303,21 @@ const DemandRegister: React.FC = () => {
               <FileText className="w-5 h-5 text-blue-500 mt-0.5" />
               <div className="flex-1">
                 <h3 className="text-sm font-medium text-gray-900">파일 형식 안내</h3>
+                <div className="mt-3 max-w-xs">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">업로드 연도 선택</label>
+                  <select
+                    name="year"
+                    value={formData.year}
+                    onChange={handleInputChange}
+                    className="select-glass w-full"
+                  >
+                    {YEAR_OPTIONS.map(year => (
+                      <option key={year} value={year}>{year}년</option>
+                    ))}
+                  </select>
+                </div>
                 <p className="text-sm text-gray-600 mt-1">
-                  CSV 파일을 업로드하세요. 열 순서: 시/군, 단체명, 담당자명, 연락처, 이메일(선택)
+                  CSV 파일을 업로드하면 현재 선택된 연도({formData.year}년)로 저장됩니다. 열 순서: 시/군, 단체명, 담당자명, 연락처, 이메일(선택)
                 </p>
                 <div className="flex flex-wrap items-center gap-4 mt-3">
                   <button
@@ -328,7 +396,7 @@ const DemandRegister: React.FC = () => {
                 <CheckCircle className="w-8 h-8 text-emerald-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">등록 완료!</h3>
-              <p className="text-gray-500 mb-6">수요처가 성공적으로 등록되었습니다.</p>
+              <p className="text-gray-500 mb-6">{formData.year}년 수요처가 성공적으로 등록되었습니다.</p>
               <button onClick={() => setShowSuccessModal(false)} className="btn-primary">
                 확인
               </button>
@@ -346,6 +414,7 @@ const DemandRegister: React.FC = () => {
                 <CheckCircle className="w-8 h-8 text-emerald-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">업로드 완료!</h3>
+              <p className="text-sm text-gray-500 mb-4">{formData.year}년 수요처로 저장되었습니다.</p>
               <div className="glass p-4 rounded-xl mb-6">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-gray-600">성공</span>
@@ -361,6 +430,34 @@ const DemandRegister: React.FC = () => {
               <button onClick={() => setShowUploadSuccessModal(false)} className="btn-primary">
                 확인
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 업로드 확인 모달 */}
+      {showUploadConfirmModal && pendingUploadFile && (
+        <div className="modal-overlay animate-fadeIn" onClick={handleCancelUpload}>
+          <div className="modal-content w-full max-w-md p-8 animate-scaleIn" onClick={e => e.stopPropagation()}>
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
+                <Upload className="w-8 h-8 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">업로드 연도 확인</h3>
+              <p className="text-gray-600 mb-3">
+                {buildDemandUploadConfirmation(formData.year, pendingUploadFile.name)}
+              </p>
+              <p className="text-sm text-gray-500 mb-6">
+                선택한 연도에 맞게 저장됩니다. 업로드 전에 연도를 다시 확인해주세요.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={handleCancelUpload} className="btn-glass flex-1">
+                  취소
+                </button>
+                <button onClick={handleConfirmUpload} className="btn-primary flex-1">
+                  계속 진행
+                </button>
+              </div>
             </div>
           </div>
         </div>

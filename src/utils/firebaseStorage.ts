@@ -15,6 +15,7 @@ import {
 import { db } from '../config/firebase';
 import { Demand, Performance, BudgetItem, BudgetUsage } from '../types';
 import { BUDGET_2026_ALL } from '../data/budget2026';
+import { normalizeDemandYear } from './demandYear';
 
 const NORTH_2026_ORDER_START = 20;
 const NORTH_2026_ORDER_END = 29;
@@ -60,18 +61,27 @@ const normalizeBudgetItem = (id: string, data: Record<string, any>): BudgetItem 
   } as BudgetItem;
 };
 
+const normalizeDemand = (id: string, data: Record<string, any>): Demand => {
+  const createdAt = data.createdAt?.toDate?.() || new Date();
+  const updatedAt = data.updatedAt?.toDate?.() || new Date();
+
+  return {
+    id,
+    ...data,
+    year: normalizeDemandYear({ year: data.year, createdAt }),
+    email: data.email || '',
+    createdAt,
+    updatedAt
+  } as Demand;
+};
+
 export const firebaseStorage = {
   // 수요처 관련 작업
   async getDemands(): Promise<Demand[]> {
     try {
       const q = query(collection(db, 'demands'), orderBy('createdAt', 'desc'));
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
-        updatedAt: doc.data().updatedAt?.toDate() || new Date()
-      })) as Demand[];
+      return querySnapshot.docs.map(doc => normalizeDemand(doc.id, doc.data()));
     } catch (error) {
       console.error('수요처 데이터 로드 실패:', error);
       throw error;
@@ -84,6 +94,7 @@ export const firebaseStorage = {
       // email 필드가 undefined인 경우 빈 문자열로 처리
       const demandData = {
         ...demand,
+        year: demand.year,
         email: demand.email || '',
         createdAt: now,
         updatedAt: now
@@ -215,12 +226,7 @@ export const firebaseStorage = {
   subscribeToDemands(callback: (demands: Demand[]) => void): () => void {
     const q = query(collection(db, 'demands'), orderBy('createdAt', 'desc'));
     return onSnapshot(q, (querySnapshot) => {
-      const demands = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
-        updatedAt: doc.data().updatedAt?.toDate() || new Date()
-      })) as Demand[];
+      const demands = querySnapshot.docs.map(doc => normalizeDemand(doc.id, doc.data()));
       callback(demands);
     });
   },

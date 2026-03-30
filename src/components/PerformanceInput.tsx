@@ -3,6 +3,8 @@ import { Calendar, Save, Users, Megaphone, CheckCircle, Upload, FileText, Downlo
 import { useFirebaseData } from '../hooks/useFirebaseData';
 import { useToast } from '../hooks/useToast';
 import { parsePerformanceExcelData, downloadPerformanceTemplate } from '../utils/excel';
+import { getDemandOptionsForPerformanceDate } from '../utils/performanceOrganizations';
+import { getYearFromDate } from '../utils/yearUtils';
 
 interface PerformanceFormData {
   date: string;
@@ -38,13 +40,16 @@ const PerformanceInput: React.FC = () => {
     notes: ''
   });
 
-  const organizationNames = Array.from(new Set(demands.map(d => d.organizationName))).sort();
+  const selectedYear = getYearFromDate(formData.date);
+  const organizationNames = getDemandOptionsForPerformanceDate(demands, formData.date);
 
   const filteredOrganizations = organizationNames.filter(name =>
     name.toLowerCase().includes(organizationSearchTerm.toLowerCase())
   );
 
-  const selectedDemand = demands.find(d => d.organizationName === formData.organizationName);
+  const selectedDemand = demands.find(
+    d => d.organizationName === formData.organizationName && d.year === selectedYear
+  );
   const selectedCity = selectedDemand?.city || '';
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -199,6 +204,22 @@ const PerformanceInput: React.FC = () => {
   };
 
   useEffect(() => {
+    if (!formData.organizationName) {
+      return;
+    }
+
+    const hasSelectedOrganizationInYear = demands.some(
+      (demand) => demand.organizationName === formData.organizationName && demand.year === selectedYear
+    );
+
+    if (!hasSelectedOrganizationInYear) {
+      setFormData(prev => ({ ...prev, organizationName: '' }));
+      setOrganizationSearchTerm('');
+      setShowOrganizationDropdown(false);
+    }
+  }, [demands, formData.date, formData.organizationName, selectedYear]);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
       if (!target.closest('.organization-dropdown')) {
@@ -222,7 +243,7 @@ const PerformanceInput: React.FC = () => {
           </div>
           <div>
             <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">실적 입력</h1>
-            <p className="text-gray-500">수기 입력 또는 CSV 파일로 실적 데이터를 등록하세요</p>
+            <p className="text-gray-500">{selectedYear}년 기준 수요처로 수기 입력하거나 CSV 파일로 실적 데이터를 등록하세요</p>
           </div>
         </div>
       </div>
@@ -325,7 +346,12 @@ const PerformanceInput: React.FC = () => {
                 </div>
                 {organizationNames.length === 0 && (
                   <p className="text-sm text-amber-600 mt-2">
-                    등록된 단체가 없습니다. 먼저 수요처를 등록해주세요.
+                    {selectedYear}년 등록 수요처가 없습니다. 먼저 해당 연도 수요처를 등록해주세요.
+                  </p>
+                )}
+                {organizationNames.length > 0 && (
+                  <p className="text-sm text-gray-500 mt-2">
+                    현재 {selectedYear}년 수요처만 표시됩니다.
                   </p>
                 )}
               </div>

@@ -1,5 +1,9 @@
 import { Performance, Demand } from '../types';
 
+export const countDemandsForYear = (demands: Demand[], year: number): number => {
+  return demands.filter((demand) => demand.year === year).length;
+};
+
 export const calculateStatistics = (performances: Performance[], demands: Demand[] = []) => {
   if (performances.length === 0) {
     return {

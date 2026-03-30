@@ -4,7 +4,7 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from 
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useFirebaseData } from '../hooks/useFirebaseData';
-import { calculateStatistics } from '../utils/statistics';
+import { calculateStatistics, countDemandsForYear } from '../utils/statistics';
 import { StatisticsData, BudgetItem, BudgetUsage } from '../types';
 import { firebaseStorage } from '../utils/firebaseStorage';
 import { AVAILABLE_YEARS, CURRENT_YEAR, getPerformanceYear, getBudgetUsageYear } from '../utils/yearUtils';
@@ -59,6 +59,10 @@ const Dashboard: React.FC = () => {
       return getPerformanceYear(new Date(p.date)) === selectedYear;
     });
   }, [performances, selectedYear]);
+
+  const yearFilteredDemands = useMemo(() => {
+    return demands.filter((demand) => demand.year === selectedYear);
+  }, [demands, selectedYear]);
 
   // 지역 필터 적용
   const regionFilteredPerformances = useMemo(() => {
@@ -135,9 +139,9 @@ const Dashboard: React.FC = () => {
     const calculatedStats = calculateStatistics(filteredPerformances, demands);
     setStats({
       ...calculatedStats,
-      totalOrganizations: demands.length
+      totalOrganizations: countDemandsForYear(yearFilteredDemands, selectedYear)
     });
-  }, [demands, filteredPerformances]);
+  }, [demands, filteredPerformances, selectedYear, yearFilteredDemands]);
 
   // 예산명/예산액 인라인 수정 핸들러
   const handleEditBudget = (item: BudgetItem) => {

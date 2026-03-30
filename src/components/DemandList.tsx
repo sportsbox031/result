@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Edit2, Trash2, Save, X, Search, Building2 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { Demand } from '../types';
 import { useFirebaseData } from '../hooks/useFirebaseData';
+import { getDefaultDemandYear } from '../utils/demandYear';
 
 const CITIES = [
   '가평군', '고양시', '과천시', '광명시', '광주시', '구리시', '군포시', '김포시',
@@ -11,18 +12,29 @@ const CITIES = [
   '의정부시', '이천시', '파주시', '평택시', '포천시', '하남시', '화성시'
 ];
 
+const DEFAULT_YEAR = getDefaultDemandYear();
+
 const DemandList: React.FC = () => {
   const { addToast } = useToast();
   const { demands, updateDemand, deleteDemand } = useFirebaseData();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [editForm, setEditForm] = useState<Partial<Demand>>({});
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>(DEFAULT_YEAR);
 
-  const filteredDemands = demands.filter(demand =>
-    demand.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    demand.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    demand.contactPerson.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const availableYears = Array.from(
+    new Set([DEFAULT_YEAR, ...demands.map((demand) => demand.year)])
+  ).sort((a, b) => b - a);
+
+  const filteredDemands = demands.filter((demand) => {
+    const matchesYear = selectedYear === 'all' || demand.year === selectedYear;
+    const matchesSearch =
+      demand.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      demand.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      demand.contactPerson.toLowerCase().includes(searchTerm.toLowerCase());
+
+    return matchesYear && matchesSearch;
+  });
 
   const handleEdit = (demand: Demand) => {
     setEditingId(demand.id);
@@ -97,7 +109,9 @@ const DemandList: React.FC = () => {
           </div>
           <div>
             <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">수요처 관리</h1>
-            <p className="text-gray-500">등록된 수요처 정보를 조회, 수정, 삭제할 수 있습니다</p>
+            <p className="text-gray-500">
+              {selectedYear === 'all' ? '전체 연도' : `${selectedYear}년`} 수요처 정보를 조회, 수정, 삭제할 수 있습니다
+            </p>
           </div>
         </div>
       </div>
@@ -110,8 +124,10 @@ const DemandList: React.FC = () => {
               <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">전체 수요처</p>
-              <p className="text-xl font-bold text-gray-900">{demands.length}건</p>
+              <p className="text-sm text-gray-500">
+                {selectedYear === 'all' ? '전체 수요처' : `${selectedYear}년 수요처`}
+              </p>
+              <p className="text-xl font-bold text-gray-900">{filteredDemands.length}건</p>
             </div>
             {searchTerm && (
               <div className="badge-blue ml-2">
@@ -119,15 +135,30 @@ const DemandList: React.FC = () => {
               </div>
             )}
           </div>
-          <div className="relative max-w-full lg:max-w-md flex-1">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="수요처명, 시/군, 담당자 검색..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="input-glass pl-12 w-full"
-            />
+          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto lg:min-w-[28rem]">
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+              className="select-glass w-full sm:w-40"
+            >
+              <option value={DEFAULT_YEAR}>{DEFAULT_YEAR}년</option>
+              {availableYears
+                .filter((year) => year !== DEFAULT_YEAR)
+                .map((year) => (
+                  <option key={year} value={year}>{year}년</option>
+                ))}
+              <option value="all">전체 연도</option>
+            </select>
+            <div className="relative max-w-full lg:max-w-md flex-1">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="수요처명, 시/군, 담당자 검색..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="input-glass pl-12 w-full"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -138,6 +169,7 @@ const DemandList: React.FC = () => {
           <table className="table-glass">
             <thead>
               <tr>
+                <th>연도</th>
                 <th>시/군</th>
                 <th>단체명</th>
                 <th>담당자</th>
@@ -150,6 +182,9 @@ const DemandList: React.FC = () => {
             <tbody>
               {filteredDemands.map((demand) => (
                 <tr key={demand.id}>
+                  <td>
+                    <span className="badge-blue">{demand.year}년</span>
+                  </td>
                   <td>
                     {editingId === demand.id ? (
                       <select
