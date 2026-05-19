@@ -136,12 +136,12 @@ const Dashboard: React.FC = () => {
 
   // 통계 계산
   useEffect(() => {
-    const calculatedStats = calculateStatistics(filteredPerformances, demands);
+    const calculatedStats = calculateStatistics(filteredPerformances, yearFilteredDemands);
     setStats({
       ...calculatedStats,
-      totalOrganizations: countDemandsForYear(yearFilteredDemands, selectedYear)
+      totalOrganizations: yearFilteredDemands.length
     });
-  }, [demands, filteredPerformances, selectedYear, yearFilteredDemands]);
+  }, [yearFilteredDemands, filteredPerformances]);
 
   // 예산명/예산액 인라인 수정 핸들러
   const handleEditBudget = (item: BudgetItem) => {

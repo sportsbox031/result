@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Edit2, Trash2, Save, X, Search, Building2 } from 'lucide-react';
+import { Edit2, Trash2, Save, X, Search, Building2, AlertTriangle, Loader2 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { Demand } from '../types';
 import { useFirebaseData } from '../hooks/useFirebaseData';
-import { getDefaultDemandYear } from '../utils/demandYear';
+import { AVAILABLE_YEARS, CURRENT_YEAR } from '../utils/yearUtils';
 
 const CITIES = [
   '가평군', '고양시', '과천시', '광명시', '광주시', '구리시', '군포시', '김포시',
@@ -12,29 +12,25 @@ const CITIES = [
   '의정부시', '이천시', '파주시', '평택시', '포천시', '하남시', '화성시'
 ];
 
-const DEFAULT_YEAR = getDefaultDemandYear();
-
 const DemandList: React.FC = () => {
   const { addToast } = useToast();
   const { demands, updateDemand, deleteDemand } = useFirebaseData();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>(CURRENT_YEAR);
   const [editForm, setEditForm] = useState<Partial<Demand>>({});
-  const [selectedYear, setSelectedYear] = useState<number | 'all'>(DEFAULT_YEAR);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
-  const availableYears = Array.from(
-    new Set([DEFAULT_YEAR, ...demands.map((demand) => demand.year)])
-  ).sort((a, b) => b - a);
+  const yearFilteredDemands = selectedYear === 'all'
+    ? demands
+    : demands.filter(d => (d.year ?? 2025) === selectedYear);
 
-  const filteredDemands = demands.filter((demand) => {
-    const matchesYear = selectedYear === 'all' || demand.year === selectedYear;
-    const matchesSearch =
-      demand.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      demand.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      demand.contactPerson.toLowerCase().includes(searchTerm.toLowerCase());
-
-    return matchesYear && matchesSearch;
-  });
+  const filteredDemands = yearFilteredDemands.filter(demand =>
+    demand.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    demand.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    demand.contactPerson.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleEdit = (demand: Demand) => {
     setEditingId(demand.id);
@@ -96,7 +92,23 @@ const DemandList: React.FC = () => {
   };
 
   const handleInputChange = (field: keyof Demand, value: string) => {
-    setEditForm(prev => ({ ...prev, [field]: value }));
+    setEditForm(prev => ({ ...prev, [field]: field === 'year' ? parseInt(value) : value }));
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedYear === 'all') return;
+    setIsBulkDeleting(true);
+    try {
+      for (const demand of yearFilteredDemands) {
+        await deleteDemand(demand.id);
+      }
+      setShowBulkDeleteModal(false);
+      addToast({ type: 'success', title: '일괄 삭제 완료', message: `${selectedYear}년 수요처 ${yearFilteredDemands.length}건이 삭제되었습니다` });
+    } catch (error) {
+      addToast({ type: 'error', title: '삭제 실패', message: '일괄 삭제 중 오류가 발생했습니다' });
+    } finally {
+      setIsBulkDeleting(false);
+    }
   };
 
   return (
@@ -109,10 +121,45 @@ const DemandList: React.FC = () => {
           </div>
           <div>
             <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">수요처 관리</h1>
-            <p className="text-gray-500">
-              {selectedYear === 'all' ? '전체 연도' : `${selectedYear}년`} 수요처 정보를 조회, 수정, 삭제할 수 있습니다
-            </p>
+            <p className="text-gray-500">등록된 수요처 정보를 조회, 수정, 삭제할 수 있습니다</p>
           </div>
+        </div>
+      </div>
+
+      {/* 연도 필터 */}
+      <div className="glass-card p-4 lg:p-5 mb-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-sm font-medium text-gray-600">연도:</span>
+            <button
+              onClick={() => setSelectedYear('all')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                selectedYear === 'all' ? 'bg-violet-600 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              전체
+            </button>
+            {AVAILABLE_YEARS.map(year => (
+              <button
+                key={year}
+                onClick={() => setSelectedYear(year)}
+                className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                  selectedYear === year ? 'bg-violet-600 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {year}년
+              </button>
+            ))}
+          </div>
+          {selectedYear !== 'all' && yearFilteredDemands.length > 0 && (
+            <button
+              onClick={() => setShowBulkDeleteModal(true)}
+              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all duration-200"
+            >
+              <Trash2 className="w-4 h-4" />
+              {selectedYear}년 일괄 삭제
+            </button>
+          )}
         </div>
       </div>
 
@@ -124,10 +171,8 @@ const DemandList: React.FC = () => {
               <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">
-                {selectedYear === 'all' ? '전체 수요처' : `${selectedYear}년 수요처`}
-              </p>
-              <p className="text-xl font-bold text-gray-900">{filteredDemands.length}건</p>
+              <p className="text-sm text-gray-500">{selectedYear === 'all' ? '전체' : `${selectedYear}년`} 수요처</p>
+              <p className="text-xl font-bold text-gray-900">{yearFilteredDemands.length}건</p>
             </div>
             {searchTerm && (
               <div className="badge-blue ml-2">
@@ -135,30 +180,15 @@ const DemandList: React.FC = () => {
               </div>
             )}
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto lg:min-w-[28rem]">
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-              className="select-glass w-full sm:w-40"
-            >
-              <option value={DEFAULT_YEAR}>{DEFAULT_YEAR}년</option>
-              {availableYears
-                .filter((year) => year !== DEFAULT_YEAR)
-                .map((year) => (
-                  <option key={year} value={year}>{year}년</option>
-                ))}
-              <option value="all">전체 연도</option>
-            </select>
-            <div className="relative max-w-full lg:max-w-md flex-1">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="수요처명, 시/군, 담당자 검색..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="input-glass pl-12 w-full"
-              />
-            </div>
+          <div className="relative max-w-full lg:max-w-md flex-1">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="수요처명, 시/군, 담당자 검색..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="input-glass pl-12 w-full"
+            />
           </div>
         </div>
       </div>
@@ -169,7 +199,7 @@ const DemandList: React.FC = () => {
           <table className="table-glass">
             <thead>
               <tr>
-                <th>연도</th>
+                <th className="hidden lg:table-cell">연도</th>
                 <th>시/군</th>
                 <th>단체명</th>
                 <th>담당자</th>
@@ -182,8 +212,20 @@ const DemandList: React.FC = () => {
             <tbody>
               {filteredDemands.map((demand) => (
                 <tr key={demand.id}>
-                  <td>
-                    <span className="badge-blue">{demand.year}년</span>
+                  <td className="hidden lg:table-cell">
+                    {editingId === demand.id ? (
+                      <select
+                        value={editForm.year ?? CURRENT_YEAR}
+                        onChange={(e) => handleInputChange('year', e.target.value)}
+                        className="select-glass text-sm py-2"
+                      >
+                        {AVAILABLE_YEARS.map(y => (
+                          <option key={y} value={y}>{y}년</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="text-sm font-semibold text-gray-700">{demand.year ?? 2025}년</span>
+                    )}
                   </td>
                   <td>
                     {editingId === demand.id ? (
@@ -309,6 +351,48 @@ const DemandList: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* 일괄 삭제 확인 모달 */}
+      {showBulkDeleteModal && (
+        <div className="modal-overlay animate-fadeIn" onClick={() => !isBulkDeleting && setShowBulkDeleteModal(false)}>
+          <div className="modal-content w-full max-w-md p-8 animate-scaleIn" onClick={e => e.stopPropagation()}>
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-rose-100 flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-rose-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">일괄 삭제 확인</h3>
+              <p className="text-gray-500 mb-2">
+                <span className="font-bold text-gray-900">{selectedYear}년</span> 수요처{' '}
+                <span className="font-bold text-rose-600">{yearFilteredDemands.length}건</span>을 모두 삭제합니다.
+              </p>
+              <p className="text-sm text-rose-500 mb-6">이 작업은 되돌릴 수 없습니다.</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowBulkDeleteModal(false)}
+                  disabled={isBulkDeleting}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={isBulkDeleting}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 text-white font-medium hover:bg-rose-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isBulkDeleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      삭제 중...
+                    </>
+                  ) : (
+                    '삭제'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -4,7 +4,7 @@
 export const CURRENT_YEAR = 2026;
 
 // 사용 가능한 연도 목록
-export const AVAILABLE_YEARS = [2025, 2026];
+export const AVAILABLE_YEARS = [2025, 2026, 2027, 2028, 2029, 2030];
 
 // 과거 연도인지 판별 (현재 연도보다 이전이면 읽기 전용)
 export function isReadOnlyYear(year: number): boolean {

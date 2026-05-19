@@ -3,7 +3,7 @@ import { Upload, FileText, Download, Plus, CheckCircle, AlertCircle, Loader2, X 
 import { parseExcelData, downloadTemplate } from '../utils/excel';
 import { useFirebaseData } from '../hooks/useFirebaseData';
 import { useToast } from '../hooks/useToast';
-import { getDefaultDemandYear } from '../utils/demandYear';
+import { AVAILABLE_YEARS, CURRENT_YEAR } from '../utils/yearUtils';
 import { buildDemandUploadConfirmation } from '../utils/demandUploadConfirmation';
 
 interface DemandFormData {
@@ -22,9 +22,6 @@ const CITIES = [
   '의정부시', '이천시', '파주시', '평택시', '포천시', '하남시', '화성시'
 ];
 
-const DEFAULT_YEAR = getDefaultDemandYear();
-const YEAR_OPTIONS = Array.from({ length: 5 }, (_, index) => DEFAULT_YEAR + 1 - index);
-
 const DemandRegister: React.FC = () => {
   const { addToast } = useToast();
   const { addDemand } = useFirebaseData();
@@ -40,7 +37,7 @@ const DemandRegister: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [pendingUploadFile, setPendingUploadFile] = useState<File | null>(null);
   const [formData, setFormData] = useState<DemandFormData>({
-    year: DEFAULT_YEAR,
+    year: CURRENT_YEAR,
     city: '',
     organizationName: '',
     contactPerson: '',
@@ -50,10 +47,7 @@ const DemandRegister: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'year' ? Number(value) : value
-    }));
+    setFormData(prev => ({ ...prev, [name]: name === 'year' ? Number(value) : value }));
   };
 
   const handleManualSubmit = async (e: React.FormEvent) => {
@@ -152,10 +146,7 @@ const DemandRegister: React.FC = () => {
   };
 
   const handleConfirmUpload = async () => {
-    if (!pendingUploadFile) {
-      return;
-    }
-
+    if (!pendingUploadFile) return;
     setShowUploadConfirmModal(false);
     await handleFileUpload(pendingUploadFile);
     setPendingUploadFile(null);
@@ -206,8 +197,8 @@ const DemandRegister: React.FC = () => {
                   className="select-glass w-full"
                   required
                 >
-                  {YEAR_OPTIONS.map(year => (
-                    <option key={year} value={year}>{year}년</option>
+                  {AVAILABLE_YEARS.map(y => (
+                    <option key={y} value={y}>{y}년</option>
                   ))}
                 </select>
               </div>
@@ -297,25 +288,34 @@ const DemandRegister: React.FC = () => {
       {/* 일괄 업로드 */}
       {activeTab === 'bulk' && (
         <div className="space-y-6 animate-fadeIn">
+          {/* 연도 선택 */}
+          <div className="glass-card p-5">
+            <div className="flex items-center gap-4 flex-wrap">
+              <span className="text-sm font-medium text-gray-700">등록 연도:</span>
+              {AVAILABLE_YEARS.map(y => (
+                <button
+                  key={y}
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, year: y }))}
+                  className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                    formData.year === y
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {y}년
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">선택한 연도({formData.year}년)로 파일 내 모든 수요처가 일괄 등록됩니다.</p>
+          </div>
+
           {/* 안내 */}
           <div className="glass p-5 rounded-2xl border border-blue-200/50 bg-blue-50/30">
             <div className="flex items-start gap-3">
               <FileText className="w-5 h-5 text-blue-500 mt-0.5" />
               <div className="flex-1">
                 <h3 className="text-sm font-medium text-gray-900">파일 형식 안내</h3>
-                <div className="mt-3 max-w-xs">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">업로드 연도 선택</label>
-                  <select
-                    name="year"
-                    value={formData.year}
-                    onChange={handleInputChange}
-                    className="select-glass w-full"
-                  >
-                    {YEAR_OPTIONS.map(year => (
-                      <option key={year} value={year}>{year}년</option>
-                    ))}
-                  </select>
-                </div>
                 <p className="text-sm text-gray-600 mt-1">
                   CSV 파일을 업로드하면 현재 선택된 연도({formData.year}년)로 저장됩니다. 열 순서: 시/군, 단체명, 담당자명, 연락처, 이메일(선택)
                 </p>
