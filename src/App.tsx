@@ -1,24 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import DemandRegister from './components/DemandRegister';
 import DemandList from './components/DemandList';
 import PerformanceInput from './components/PerformanceInput';
 import PerformanceList from './components/PerformanceList';
-import FirebaseSetup from './components/FirebaseSetup';
-import ToastContainer from './components/ToastContainer';
-import { useToast } from './hooks/useToast';
-import { useFirebaseData } from './hooks/useFirebaseData';
-import { Loader2, KeyRound, LogOut } from 'lucide-react';
-import BudgetUsagePage from './components/BudgetUsagePage';
 import Manual from './components/Manual';
 import Login from './components/Login';
 import ChangePassword from './components/ChangePassword';
-import { loadAdminUser } from './utils/storage';
+import BudgetUsagePage from './components/BudgetUsagePage';
+import { useFirebaseData } from './hooks/useFirebaseData';
+import { Loader2, KeyRound, LogOut, AlertTriangle } from 'lucide-react';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
-  const { toasts, addToast, removeToast } = useToast();
   const { loading, error } = useFirebaseData();
   const [loggedIn, setLoggedIn] = useState(false);
   const [showChangePw, setShowChangePw] = useState(false);
@@ -59,9 +54,7 @@ function App() {
       return (
         <div className="glass-card p-8 text-center">
           <div className="w-16 h-16 rounded-full bg-rose-100 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+            <AlertTriangle className="w-8 h-8 text-rose-500" />
           </div>
           <p className="text-lg font-semibold text-gray-900 mb-2">연결 오류</p>
           <p className="text-gray-500 mb-6">{error}</p>
@@ -119,7 +112,6 @@ function App() {
         {renderCurrentPage()}
       </Layout>
 
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
       {showChangePw && <ChangePassword onClose={() => setShowChangePw(false)} />}
     </div>
   );

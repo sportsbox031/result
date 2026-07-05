@@ -1,10 +1,13 @@
 import React, { useState, useRef } from 'react';
-import { Upload, FileText, Download, Plus, CheckCircle, AlertCircle, Loader2, X } from 'lucide-react';
+import { Upload, FileText, Download, Plus, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { parseExcelData, downloadTemplate } from '../utils/excel';
 import { useFirebaseData } from '../hooks/useFirebaseData';
 import { useToast } from '../hooks/useToast';
 import { AVAILABLE_YEARS, CURRENT_YEAR } from '../utils/yearUtils';
 import { buildDemandUploadConfirmation } from '../utils/demandUploadConfirmation';
+import { CITIES } from '../constants';
+import Modal from './common/Modal';
+import SegmentedFilter from './common/SegmentedFilter';
 
 interface DemandFormData {
   year: number;
@@ -14,13 +17,6 @@ interface DemandFormData {
   phoneNumber: string;
   email: string;
 }
-
-const CITIES = [
-  '가평군', '고양시', '과천시', '광명시', '광주시', '구리시', '군포시', '김포시',
-  '남양주시', '동두천시', '부천시', '성남시', '수원시', '시흥시', '안산시', '안성시',
-  '안양시', '양주시', '양평군', '여주시', '연천군', '오산시', '용인시', '의왕시',
-  '의정부시', '이천시', '파주시', '평택시', '포천시', '하남시', '화성시'
-];
 
 const DemandRegister: React.FC = () => {
   const { addToast } = useToast();
@@ -77,7 +73,7 @@ const DemandRegister: React.FC = () => {
         phoneNumber: '',
         email: ''
       });
-    } catch (error) {
+    } catch {
       addToast({ type: 'error', title: '등록 실패', message: '수요처 등록 중 오류가 발생했습니다' });
     } finally {
       setIsLoading(false);
@@ -115,7 +111,7 @@ const DemandRegister: React.FC = () => {
 
         setUploadResult({ success: successCount, error: errorCount });
         setShowUploadSuccessModal(true);
-      } catch (error) {
+      } catch {
         addToast({ type: 'error', title: '업로드 오류', message: '파일 형식을 확인해주세요' });
       } finally {
         setIsUploading(false);
@@ -292,20 +288,11 @@ const DemandRegister: React.FC = () => {
           <div className="glass-card p-5">
             <div className="flex items-center gap-4 flex-wrap">
               <span className="text-sm font-medium text-gray-700">등록 연도:</span>
-              {AVAILABLE_YEARS.map(y => (
-                <button
-                  key={y}
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, year: y }))}
-                  className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                    formData.year === y
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {y}년
-                </button>
-              ))}
+              <SegmentedFilter
+                options={AVAILABLE_YEARS.map(y => ({ value: y, label: `${y}년` }))}
+                value={formData.year}
+                onChange={(y) => setFormData(prev => ({ ...prev, year: y }))}
+              />
             </div>
             <p className="text-xs text-gray-500 mt-2">선택한 연도({formData.year}년)로 파일 내 모든 수요처가 일괄 등록됩니다.</p>
           </div>
@@ -389,129 +376,112 @@ const DemandRegister: React.FC = () => {
 
       {/* 성공 모달 */}
       {showSuccessModal && (
-        <div className="modal-overlay animate-fadeIn" onClick={() => setShowSuccessModal(false)}>
-          <div className="modal-content w-full max-w-md p-8 animate-scaleIn" onClick={e => e.stopPropagation()}>
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-emerald-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">등록 완료!</h3>
-              <p className="text-gray-500 mb-6">{formData.year}년 수요처가 성공적으로 등록되었습니다.</p>
-              <button onClick={() => setShowSuccessModal(false)} className="btn-primary">
-                확인
-              </button>
+        <Modal onClose={() => setShowSuccessModal(false)} size="md">
+          <div className="text-center">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-emerald-600" />
             </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">등록 완료!</h3>
+            <p className="text-gray-500 mb-6">{formData.year}년 수요처가 성공적으로 등록되었습니다.</p>
+            <button onClick={() => setShowSuccessModal(false)} className="btn-primary">
+              확인
+            </button>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* 업로드 성공 모달 */}
       {showUploadSuccessModal && (
-        <div className="modal-overlay animate-fadeIn" onClick={() => setShowUploadSuccessModal(false)}>
-          <div className="modal-content w-full max-w-md p-8 animate-scaleIn" onClick={e => e.stopPropagation()}>
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-emerald-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">업로드 완료!</h3>
-              <p className="text-sm text-gray-500 mb-4">{formData.year}년 수요처로 저장되었습니다.</p>
-              <div className="glass p-4 rounded-xl mb-6">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-600">성공</span>
-                  <span className="font-bold text-emerald-600">{uploadResult.success}건</span>
-                </div>
-                {uploadResult.error > 0 && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">실패</span>
-                    <span className="font-bold text-rose-600">{uploadResult.error}건</span>
-                  </div>
-                )}
-              </div>
-              <button onClick={() => setShowUploadSuccessModal(false)} className="btn-primary">
-                확인
-              </button>
+        <Modal onClose={() => setShowUploadSuccessModal(false)} size="md">
+          <div className="text-center">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-emerald-600" />
             </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">업로드 완료!</h3>
+            <p className="text-sm text-gray-500 mb-4">{formData.year}년 수요처로 저장되었습니다.</p>
+            <div className="glass p-4 rounded-xl mb-6">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-gray-600">성공</span>
+                <span className="font-bold text-emerald-600">{uploadResult.success}건</span>
+              </div>
+              {uploadResult.error > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">실패</span>
+                  <span className="font-bold text-rose-600">{uploadResult.error}건</span>
+                </div>
+              )}
+            </div>
+            <button onClick={() => setShowUploadSuccessModal(false)} className="btn-primary">
+              확인
+            </button>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* 업로드 확인 모달 */}
       {showUploadConfirmModal && pendingUploadFile && (
-        <div className="modal-overlay animate-fadeIn" onClick={handleCancelUpload}>
-          <div className="modal-content w-full max-w-md p-8 animate-scaleIn" onClick={e => e.stopPropagation()}>
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
-                <Upload className="w-8 h-8 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">업로드 연도 확인</h3>
-              <p className="text-gray-600 mb-3">
-                {buildDemandUploadConfirmation(formData.year, pendingUploadFile.name)}
-              </p>
-              <p className="text-sm text-gray-500 mb-6">
-                선택한 연도에 맞게 저장됩니다. 업로드 전에 연도를 다시 확인해주세요.
-              </p>
-              <div className="flex gap-3">
-                <button onClick={handleCancelUpload} className="btn-glass flex-1">
-                  취소
-                </button>
-                <button onClick={handleConfirmUpload} className="btn-primary flex-1">
-                  계속 진행
-                </button>
-              </div>
+        <Modal onClose={handleCancelUpload} size="md">
+          <div className="text-center">
+            <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
+              <Upload className="w-8 h-8 text-blue-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">업로드 연도 확인</h3>
+            <p className="text-gray-600 mb-3">
+              {buildDemandUploadConfirmation(formData.year, pendingUploadFile.name)}
+            </p>
+            <p className="text-sm text-gray-500 mb-6">
+              선택한 연도에 맞게 저장됩니다. 업로드 전에 연도를 다시 확인해주세요.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={handleCancelUpload} className="btn-glass flex-1">
+                취소
+              </button>
+              <button onClick={handleConfirmUpload} className="btn-primary flex-1">
+                계속 진행
+              </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* 저장 방법 안내 모달 */}
       {showInstructionModal && (
-        <div className="modal-overlay animate-fadeIn" onClick={() => setShowInstructionModal(false)}>
-          <div className="modal-content w-full max-w-2xl max-h-[80vh] overflow-hidden animate-scaleIn" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-semibold text-gray-900">CSV 파일 저장 방법</h3>
-                <p className="text-sm text-gray-500 mt-1">한글이 깨지지 않게 저장하는 방법</p>
+        <Modal onClose={() => setShowInstructionModal(false)} title="CSV 파일 저장 방법" size="lg">
+          <div className="space-y-4">
+            <div className="glass p-5 rounded-xl">
+              <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <span className="text-lg">📊</span> Microsoft Excel 사용시
+              </h4>
+              <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
+                <li>템플릿을 다운로드하여 엑셀에서 열기</li>
+                <li>데이터 입력 완료 후 <strong>파일 → 다른 이름으로 저장</strong> 클릭</li>
+                <li>파일 형식에서 <strong>"CSV UTF-8(쉼표로 분리)(*.csv)"</strong> 선택</li>
+                <li>파일명 입력 후 저장</li>
+              </ol>
+              <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                <p className="text-sm text-amber-800">
+                  <strong>주의:</strong> "CSV(쉼표로 분리)" 대신 반드시 <strong>"CSV UTF-8"</strong>을 선택하세요!
+                </p>
               </div>
-              <button onClick={() => setShowInstructionModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
             </div>
-            <div className="p-6 overflow-y-auto max-h-[60vh] space-y-4">
-              <div className="glass p-5 rounded-xl">
-                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <span className="text-lg">📊</span> Microsoft Excel 사용시
-                </h4>
-                <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
-                  <li>템플릿을 다운로드하여 엑셀에서 열기</li>
-                  <li>데이터 입력 완료 후 <strong>파일 → 다른 이름으로 저장</strong> 클릭</li>
-                  <li>파일 형식에서 <strong>"CSV UTF-8(쉼표로 분리)(*.csv)"</strong> 선택</li>
-                  <li>파일명 입력 후 저장</li>
-                </ol>
-                <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                  <p className="text-sm text-amber-800">
-                    <strong>주의:</strong> "CSV(쉼표로 분리)" 대신 반드시 <strong>"CSV UTF-8"</strong>을 선택하세요!
-                  </p>
-                </div>
-              </div>
 
-              <div className="glass p-5 rounded-xl">
-                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <span className="text-lg">📋</span> Google Sheets 사용시
-                </h4>
-                <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
-                  <li>구글 시트에서 데이터 입력</li>
-                  <li><strong>파일 → 다운로드 → 쉼표로 구분된 값(.csv)</strong> 선택</li>
-                  <li>다운로드된 파일을 업로드</li>
-                </ol>
-                <div className="mt-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                  <p className="text-sm text-emerald-800">
-                    구글 시트는 자동으로 UTF-8로 저장되어 한글 문제가 없습니다.
-                  </p>
-                </div>
+            <div className="glass p-5 rounded-xl">
+              <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <span className="text-lg">📋</span> Google Sheets 사용시
+              </h4>
+              <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
+                <li>구글 시트에서 데이터 입력</li>
+                <li><strong>파일 → 다운로드 → 쉼표로 구분된 값(.csv)</strong> 선택</li>
+                <li>다운로드된 파일을 업로드</li>
+              </ol>
+              <div className="mt-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                <p className="text-sm text-emerald-800">
+                  구글 시트는 자동으로 UTF-8로 저장되어 한글 문제가 없습니다.
+                </p>
               </div>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

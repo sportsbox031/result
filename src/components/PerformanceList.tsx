@@ -1,29 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Search, Calendar, Filter, Trash2, Edit2, Save, X, Megaphone, Download, MapPin, BarChart3 } from 'lucide-react';
 import { useFirebaseData } from '../hooks/useFirebaseData';
 import { useToast } from '../hooks/useToast';
 import { Performance, FilterState } from '../types';
 import { downloadPerformanceExcel } from '../utils/excel';
-import { getCityRegion, getAllRegions } from '../utils/regions';
+import { getCityRegion } from '../utils/regions';
 import { AVAILABLE_YEARS, CURRENT_YEAR, getPerformanceYear } from '../utils/yearUtils';
+import { PROGRAMS } from '../constants';
+import RegionBadge from './common/RegionBadge';
 
 const PerformanceList: React.FC = () => {
   const { addToast } = useToast();
   const { performances, demands, updatePerformance, deletePerformance } = useFirebaseData();
-  const [filteredPerformances, setFilteredPerformances] = useState<Performance[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Performance>>({});
   const [filters, setFilters] = useState<FilterState>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedYear, setSelectedYear] = useState<number | 'all'>(CURRENT_YEAR);
 
-  const organizationNames = Array.from(new Set(demands.map(d => d.organizationName))).sort();
+  const organizationNames = useMemo(
+    () => Array.from(new Set(demands.map(d => d.organizationName))).sort(),
+    [demands]
+  );
 
-  useEffect(() => {
-    applyFilters();
-  }, [performances, filters, searchTerm, selectedYear]);
-
-  const applyFilters = () => {
+  // 필터링 (useMemo로 계산 — 이전에는 useEffect + setState로 불필요한 이중 렌더 발생)
+  const filteredPerformances = useMemo(() => {
     let filtered = [...performances];
 
     if (selectedYear !== 'all') {
@@ -53,24 +54,23 @@ const PerformanceList: React.FC = () => {
     }
 
     if (searchTerm) {
+      const term = searchTerm.toLowerCase();
       filtered = filtered.filter(p =>
-        p.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.notes && p.notes.toLowerCase().includes(searchTerm.toLowerCase()))
+        p.organizationName.toLowerCase().includes(term) ||
+        p.city.toLowerCase().includes(term) ||
+        (p.notes && p.notes.toLowerCase().includes(term))
       );
     }
 
-    filtered.sort((a, b) => {
+    return filtered.sort((a, b) => {
       if (!a.date && !b.date) return 0;
       if (!a.date) return 1;
       if (!b.date) return -1;
       return b.date.getTime() - a.date.getTime();
     });
+  }, [performances, filters, searchTerm, selectedYear]);
 
-    setFilteredPerformances(filtered);
-  };
-
-  const handleFilterChange = (field: keyof FilterState, value: any) => {
+  const handleFilterChange = <K extends keyof FilterState>(field: K, value: FilterState[K]) => {
     setFilters(prev => ({ ...prev, [field]: value }));
   };
 
@@ -124,7 +124,7 @@ const PerformanceList: React.FC = () => {
         title: '수정 완료',
         message: '실적 데이터가 성공적으로 수정되었습니다'
       });
-    } catch (error) {
+    } catch {
       addToast({
         type: 'error',
         title: '수정 실패',
@@ -149,7 +149,7 @@ const PerformanceList: React.FC = () => {
           title: '삭제 완료',
           message: '실적 데이터가 성공적으로 삭제되었습니다'
         });
-      } catch (error) {
+      } catch {
         addToast({
           type: 'error',
           title: '삭제 실패',
@@ -159,7 +159,7 @@ const PerformanceList: React.FC = () => {
     }
   };
 
-  const handleInputChange = (field: keyof Performance, value: any) => {
+  const handleInputChange = <K extends keyof Performance>(field: K, value: Performance[K]) => {
     setEditForm(prev => ({ ...prev, [field]: value }));
   };
 
@@ -180,7 +180,7 @@ const PerformanceList: React.FC = () => {
         title: '다운로드 완료',
         message: '실적 데이터가 성공적으로 다운로드되었습니다'
       });
-    } catch (error) {
+    } catch {
       addToast({
         type: 'error',
         title: '다운로드 실패',
@@ -254,7 +254,7 @@ const PerformanceList: React.FC = () => {
               <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <select
                 value={filters.region || ''}
-                onChange={(e) => handleFilterChange('region', e.target.value || undefined)}
+                onChange={(e) => handleFilterChange('region', (e.target.value || undefined) as FilterState['region'])}
                 className="select-glass pl-10"
               >
                 <option value="">전체 지역</option>
@@ -312,9 +312,9 @@ const PerformanceList: React.FC = () => {
               className="select-glass"
             >
               <option value="">전체 프로그램</option>
-              <option value="스포츠교실">스포츠교실</option>
-              <option value="스포츠체험존">스포츠체험존</option>
-              <option value="스포츠이벤트">스포츠이벤트</option>
+              {PROGRAMS.map(program => (
+                <option key={program} value={program}>{program}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -394,20 +394,18 @@ const PerformanceList: React.FC = () => {
                     <span className="text-sm text-gray-600">{performance.city || '-'}</span>
                   </td>
                   <td className="hidden lg:table-cell">
-                    <span className={`badge-${getCityRegion(performance.city) === '남부' ? 'blue' : 'green'}`}>
-                      {getCityRegion(performance.city)}
-                    </span>
+                    <RegionBadge region={getCityRegion(performance.city)} />
                   </td>
                   <td>
                     {editingId === performance.id ? (
                       <select
                         value={editForm.program || performance.program || '스포츠교실'}
-                        onChange={(e) => handleInputChange('program', e.target.value)}
+                        onChange={(e) => handleInputChange('program', e.target.value as Performance['program'])}
                         className="select-glass text-sm py-2"
                       >
-                        <option value="스포츠교실">스포츠교실</option>
-                        <option value="스포츠체험존">스포츠체험존</option>
-                        <option value="스포츠이벤트">스포츠이벤트</option>
+                        {PROGRAMS.map(program => (
+                          <option key={program} value={program}>{program}</option>
+                        ))}
                       </select>
                     ) : (
                       <span className="badge-violet">{performance.program || '스포츠교실'}</span>

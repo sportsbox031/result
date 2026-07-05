@@ -35,12 +35,14 @@ export const storage = {
   // 수요처 관련 작업
   getDemands(): Demand[] {
     const data = localStorage.getItem(DEMANDS_KEY);
-    return data ? JSON.parse(data).map((d: any) => ({
+    if (!data) return [];
+    const parsed = JSON.parse(data) as Array<Omit<Demand, 'createdAt' | 'updatedAt'> & { createdAt: string; updatedAt: string }>;
+    return parsed.map((d) => ({
       ...d,
       year: normalizeDemandYear({ year: d.year, createdAt: new Date(d.createdAt) }),
       createdAt: new Date(d.createdAt),
       updatedAt: new Date(d.updatedAt)
-    })) : [];
+    }));
   },
 
   saveDemands(demands: Demand[]): void {
@@ -78,12 +80,14 @@ export const storage = {
   // 실적 관련 작업
   getPerformances(): Performance[] {
     const data = localStorage.getItem(PERFORMANCES_KEY);
-    return data ? JSON.parse(data).map((p: any) => ({
+    if (!data) return [];
+    const parsed = JSON.parse(data) as Array<Omit<Performance, 'date' | 'createdAt' | 'updatedAt'> & { date: string; createdAt: string; updatedAt: string }>;
+    return parsed.map((p) => ({
       ...p,
       date: new Date(p.date),
       createdAt: new Date(p.createdAt),
       updatedAt: new Date(p.updatedAt)
-    })) : [];
+    }));
   },
 
   savePerformances(performances: Performance[]): void {

@@ -1,14 +1,31 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { BudgetItem, BudgetUsage } from '../types';
 import { firebaseStorage } from '../utils/firebaseStorage';
 import { useFirebaseData } from '../hooks/useFirebaseData';
-import { Plus, Trash2, Save, X, Search, Download, Calendar, FileText, MapPin, Wallet } from 'lucide-react';
+import { useToast } from '../hooks/useToast';
+import { Plus, Trash2, Save, X, Download, Calendar, FileText, MapPin, Wallet } from 'lucide-react';
 import { downloadBudgetUsageExcel } from '../utils/excel';
 import { AVAILABLE_YEARS, CURRENT_YEAR, getBudgetUsageYear } from '../utils/yearUtils';
 import { buildBudgetHierarchy, getBudgetHierarchyInfo, sortBudgetItemsByOrder } from '../utils/budgetHierarchy';
+import { PAYMENT_METHODS } from '../constants';
+import SegmentedFilter from './common/SegmentedFilter';
+import SearchInput from './common/SearchInput';
+import EmptyState from './common/EmptyState';
+import RegionBadge from './common/RegionBadge';
+
+const getInitialBudgetSelection = (items: BudgetItem[], preferredBudgetId?: string) => {
+  if (!items.length) {
+    return { budgetItemId: '', bimo: '', semok: '' };
+  }
+
+  const selectedItem = items.find((item) => item.id === preferredBudgetId) ?? items[0];
+  const { bimo, semok } = getBudgetHierarchyInfo(selectedItem);
+  return { budgetItemId: selectedItem.id, bimo, semok };
+};
 
 const BudgetUsagePage: React.FC = () => {
   const { budgetItems, budgetUsages } = useFirebaseData();
+  const { addToast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<BudgetUsage>>({});
   const [regionFilter, setRegionFilter] = useState<'전체' | '남부' | '북부'>('전체');
@@ -49,16 +66,6 @@ const BudgetUsagePage: React.FC = () => {
     () => buildBudgetHierarchy(editableBudgetItems),
     [editableBudgetItems]
   );
-
-  const getInitialBudgetSelection = (items: BudgetItem[], preferredBudgetId?: string) => {
-    if (!items.length) {
-      return { budgetItemId: '', bimo: '', semok: '' };
-    }
-
-    const selectedItem = items.find((item) => item.id === preferredBudgetId) ?? items[0];
-    const { bimo, semok } = getBudgetHierarchyInfo(selectedItem);
-    return { budgetItemId: selectedItem.id, bimo, semok };
-  };
 
   const addSemokOptions = useMemo(() => {
     const bimoGroup = selectableBudgetHierarchy.find((group) => group.bimo === addBimo);
@@ -114,6 +121,16 @@ const BudgetUsagePage: React.FC = () => {
     });
   }, [yearFilteredBudgetUsages, regionFilter, searchTerm, yearFilteredBudgetItems, budgetItems]);
 
+  const resetAddForm = useCallback(() => {
+    const initialSelection = getInitialBudgetSelection(selectableBudgetItems);
+    setAddBimo(initialSelection.bimo);
+    setAddSemok(initialSelection.semok);
+    setAddForm({
+      budgetItemId: initialSelection.budgetItemId,
+      description: '', vendor: '', amount: 0, date: '', paymentMethod: '', note: ''
+    });
+  }, [selectableBudgetItems]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -123,17 +140,7 @@ const BudgetUsagePage: React.FC = () => {
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [editingId, adding]);
-
-  const resetAddForm = () => {
-    const initialSelection = getInitialBudgetSelection(selectableBudgetItems);
-    setAddBimo(initialSelection.bimo);
-    setAddSemok(initialSelection.semok);
-    setAddForm({
-      budgetItemId: initialSelection.budgetItemId,
-      description: '', vendor: '', amount: 0, date: '', paymentMethod: '', note: ''
-    });
-  };
+  }, [editingId, adding, resetAddForm]);
 
   const handleAddUsage = () => {
     const initialSelection = getInitialBudgetSelection(selectableBudgetItems);
@@ -178,34 +185,52 @@ const BudgetUsagePage: React.FC = () => {
 
   const handleSave = async () => {
     if (!editingId) return;
-    await firebaseStorage.updateBudgetUsage(editingId, editForm);
-    setEditingId(null);
-    setEditForm({});
+    try {
+      await firebaseStorage.updateBudgetUsage(editingId, editForm);
+      setEditingId(null);
+      setEditForm({});
+      addToast({ type: 'success', title: '수정 완료', message: '예산 사용 내역이 수정되었습니다' });
+    } catch (error) {
+      console.error('예산 사용 내역 수정 실패:', error);
+      addToast({ type: 'error', title: '수정 실패', message: '예산 사용 내역 수정 중 오류가 발생했습니다' });
+    }
   };
 
   const handleDelete = async () => {
     if (!editingId) return;
     if (!window.confirm('이 내역을 삭제하시겠습니까?')) return;
-    await firebaseStorage.deleteBudgetUsage(editingId);
-    setEditingId(null);
-    setEditForm({});
+    try {
+      await firebaseStorage.deleteBudgetUsage(editingId);
+      setEditingId(null);
+      setEditForm({});
+      addToast({ type: 'success', title: '삭제 완료', message: '예산 사용 내역이 삭제되었습니다' });
+    } catch (error) {
+      console.error('예산 사용 내역 삭제 실패:', error);
+      addToast({ type: 'error', title: '삭제 실패', message: '예산 사용 내역 삭제 중 오류가 발생했습니다' });
+    }
   };
 
-  const handleChange = (field: keyof BudgetUsage, value: any) => {
+  const handleChange = <K extends keyof BudgetUsage>(field: K, value: BudgetUsage[K]) => {
     setEditForm(f => ({ ...f, [field]: value }));
   };
 
   const handleAddSave = async () => {
     if (!addForm.budgetItemId) {
-      alert('선택 가능한 세세목(예산명)이 없습니다.');
+      addToast({ type: 'warning', title: '입력 오류', message: '선택 가능한 세세목(예산명)이 없습니다' });
       return;
     }
-    await firebaseStorage.addBudgetUsage(addForm as Omit<BudgetUsage, 'id'>);
-    setAdding(false);
-    resetAddForm();
+    try {
+      await firebaseStorage.addBudgetUsage(addForm as Omit<BudgetUsage, 'id'>);
+      setAdding(false);
+      resetAddForm();
+      addToast({ type: 'success', title: '추가 완료', message: '예산 사용 내역이 추가되었습니다' });
+    } catch (error) {
+      console.error('예산 사용 내역 추가 실패:', error);
+      addToast({ type: 'error', title: '추가 실패', message: '예산 사용 내역 추가 중 오류가 발생했습니다' });
+    }
   };
 
-  const handleAddChange = (field: keyof BudgetUsage, value: any) => {
+  const handleAddChange = <K extends keyof BudgetUsage>(field: K, value: BudgetUsage[K]) => {
     setAddForm(f => ({ ...f, [field]: value }));
   };
 
@@ -283,17 +308,11 @@ const BudgetUsagePage: React.FC = () => {
           <div className="flex items-center gap-3">
             <Calendar className="w-4 h-4 text-gray-400" />
             <span className="text-sm font-medium text-gray-600">연도</span>
-            <div className="flex gap-2">
-              {AVAILABLE_YEARS.map(year => (
-                <button
-                  key={year}
-                  className={`btn-glass ${selectedYear === year ? 'active' : ''}`}
-                  onClick={() => setSelectedYear(year)}
-                >
-                  {year}년
-                </button>
-              ))}
-            </div>
+            <SegmentedFilter
+              options={AVAILABLE_YEARS.map(year => ({ value: year, label: `${year}년` }))}
+              value={selectedYear}
+              onChange={setSelectedYear}
+            />
           </div>
 
           <div className="hidden lg:block w-px h-8 bg-gray-200" />
@@ -302,33 +321,23 @@ const BudgetUsagePage: React.FC = () => {
           <div className="flex items-center gap-3">
             <MapPin className="w-4 h-4 text-gray-400" />
             <span className="text-sm font-medium text-gray-600">지역</span>
-            <div className="flex gap-2">
-              {(['전체', '남부', '북부'] as const).map(region => (
-                <button
-                  key={region}
-                  className={`btn-glass ${regionFilter === region ? 'active' : ''}`}
-                  onClick={() => setRegionFilter(region)}
-                >
-                  {region}
-                </button>
-              ))}
-            </div>
+            <SegmentedFilter
+              options={['전체', '남부', '북부'] as const}
+              value={regionFilter}
+              onChange={setRegionFilter}
+            />
           </div>
         </div>
       </div>
 
       {/* 검색 및 액션 */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="적요, 채주, 비목/세목/예산명 검색..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="input-glass pl-11 w-full"
-          />
-        </div>
+        <SearchInput
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="적요, 채주, 비목/세목/예산명 검색..."
+          className="w-full sm:w-80"
+        />
         <div className="flex gap-2">
           <button className="btn-primary flex items-center gap-2" onClick={handleAddUsage}>
             <Plus className="w-4 h-4" /> 내역 추가
@@ -461,8 +470,9 @@ const BudgetUsagePage: React.FC = () => {
                 onChange={e => handleAddChange('paymentMethod', e.target.value)}
               >
                 <option value="">선택</option>
-                <option value="계좌입금">계좌입금</option>
-                <option value="카드결제">카드결제</option>
+                {PAYMENT_METHODS.map(method => (
+                  <option key={method} value={method}>{method}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -564,11 +574,7 @@ const BudgetUsagePage: React.FC = () => {
                                 </span>
                               )}
                             </div>
-                            {budgetItem?.region && (
-                              <span className={`badge ${budgetItem.region === '남부' ? 'badge-blue' : 'badge-emerald'}`}>
-                                {budgetItem.region}
-                              </span>
-                            )}
+                            <RegionBadge region={budgetItem?.region} />
                           </div>
                         )}
                       </td>
@@ -634,8 +640,9 @@ const BudgetUsagePage: React.FC = () => {
                             onClick={e => e.stopPropagation()}
                           >
                             <option value="">선택</option>
-                            <option value="계좌입금">계좌입금</option>
-                            <option value="카드결제">카드결제</option>
+                            {PAYMENT_METHODS.map(method => (
+                              <option key={method} value={method}>{method}</option>
+                            ))}
                           </select>
                         ) : (
                           <span className={`badge ${usage.paymentMethod === '카드결제' ? 'badge-violet' : usage.paymentMethod === '계좌입금' ? 'badge-emerald' : 'badge-gray'}`}>
@@ -679,10 +686,7 @@ const BudgetUsagePage: React.FC = () => {
             </table>
           </div>
         ) : (
-          <div className="text-center py-16">
-            <Calendar className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-            <p className="text-gray-400">등록된 내역이 없습니다</p>
-          </div>
+          <EmptyState icon={Calendar} title="등록된 내역이 없습니다" />
         )}
       </div>
     </div>

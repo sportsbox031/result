@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
-import { Edit2, Trash2, Save, X, Search, Building2, AlertTriangle, Loader2 } from 'lucide-react';
+import { Edit2, Trash2, Save, X, Search, Building2, AlertTriangle, Loader2, Download } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { Demand } from '../types';
 import { useFirebaseData } from '../hooks/useFirebaseData';
 import { AVAILABLE_YEARS, CURRENT_YEAR } from '../utils/yearUtils';
-
-const CITIES = [
-  '가평군', '고양시', '과천시', '광명시', '광주시', '구리시', '군포시', '김포시',
-  '남양주시', '동두천시', '부천시', '성남시', '수원시', '시흥시', '안산시', '안성시',
-  '안양시', '양주시', '양평군', '여주시', '연천군', '오산시', '용인시', '의왕시',
-  '의정부시', '이천시', '파주시', '평택시', '포천시', '하남시', '화성시'
-];
+import { CITIES } from '../constants';
+import { downloadDemandExcel } from '../utils/excel';
+import Modal from './common/Modal';
+import SearchInput from './common/SearchInput';
+import EmptyState from './common/EmptyState';
 
 const DemandList: React.FC = () => {
   const { addToast } = useToast();
@@ -57,7 +55,7 @@ const DemandList: React.FC = () => {
         title: '수정 완료',
         message: '수요처 정보가 성공적으로 수정되었습니다'
       });
-    } catch (error) {
+    } catch {
       addToast({
         type: 'error',
         title: '수정 실패',
@@ -81,7 +79,7 @@ const DemandList: React.FC = () => {
           title: '삭제 완료',
           message: '수요처 정보가 성공적으로 삭제되었습니다'
         });
-      } catch (error) {
+      } catch {
         addToast({
           type: 'error',
           title: '삭제 실패',
@@ -95,6 +93,20 @@ const DemandList: React.FC = () => {
     setEditForm(prev => ({ ...prev, [field]: field === 'year' ? parseInt(value) : value }));
   };
 
+  const handleExcelDownload = () => {
+    if (filteredDemands.length === 0) {
+      addToast({ type: 'warning', title: '다운로드 불가', message: '다운로드할 데이터가 없습니다' });
+      return;
+    }
+    try {
+      downloadDemandExcel(filteredDemands);
+      addToast({ type: 'success', title: '다운로드 완료', message: '수요처 목록이 성공적으로 다운로드되었습니다' });
+    } catch (error) {
+      console.error('수요처 엑셀 다운로드 실패:', error);
+      addToast({ type: 'error', title: '다운로드 실패', message: '엑셀 파일 다운로드 중 오류가 발생했습니다' });
+    }
+  };
+
   const handleBulkDelete = async () => {
     if (selectedYear === 'all') return;
     setIsBulkDeleting(true);
@@ -104,7 +116,7 @@ const DemandList: React.FC = () => {
       }
       setShowBulkDeleteModal(false);
       addToast({ type: 'success', title: '일괄 삭제 완료', message: `${selectedYear}년 수요처 ${yearFilteredDemands.length}건이 삭제되었습니다` });
-    } catch (error) {
+    } catch {
       addToast({ type: 'error', title: '삭제 실패', message: '일괄 삭제 중 오류가 발생했습니다' });
     } finally {
       setIsBulkDeleting(false);
@@ -151,15 +163,25 @@ const DemandList: React.FC = () => {
               </button>
             ))}
           </div>
-          {selectedYear !== 'all' && yearFilteredDemands.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
             <button
-              onClick={() => setShowBulkDeleteModal(true)}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all duration-200"
+              onClick={handleExcelDownload}
+              disabled={filteredDemands.length === 0}
+              className="btn-secondary flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Trash2 className="w-4 h-4" />
-              {selectedYear}년 일괄 삭제
+              <Download className="w-4 h-4" />
+              엑셀 다운로드
             </button>
-          )}
+            {selectedYear !== 'all' && yearFilteredDemands.length > 0 && (
+              <button
+                onClick={() => setShowBulkDeleteModal(true)}
+                className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all duration-200"
+              >
+                <Trash2 className="w-4 h-4" />
+                {selectedYear}년 일괄 삭제
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -180,16 +202,12 @@ const DemandList: React.FC = () => {
               </div>
             )}
           </div>
-          <div className="relative max-w-full lg:max-w-md flex-1">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="수요처명, 시/군, 담당자 검색..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="input-glass pl-12 w-full"
-            />
-          </div>
+          <SearchInput
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="수요처명, 시/군, 담당자 검색..."
+            className="max-w-full lg:max-w-md flex-1"
+          />
         </div>
       </div>
 
@@ -342,20 +360,13 @@ const DemandList: React.FC = () => {
         </div>
 
         {filteredDemands.length === 0 && (
-          <div className="text-center py-16">
-            <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-              <Search className="w-10 h-10 text-gray-300" />
-            </div>
-            <p className="text-lg font-medium text-gray-500 mb-2">검색 결과가 없습니다</p>
-            <p className="text-sm text-gray-400">다른 검색어를 입력해보세요</p>
-          </div>
+          <EmptyState icon={Search} title="검색 결과가 없습니다" description="다른 검색어를 입력해보세요" />
         )}
       </div>
 
       {/* 일괄 삭제 확인 모달 */}
       {showBulkDeleteModal && (
-        <div className="modal-overlay animate-fadeIn" onClick={() => !isBulkDeleting && setShowBulkDeleteModal(false)}>
-          <div className="modal-content w-full max-w-md p-8 animate-scaleIn" onClick={e => e.stopPropagation()}>
+        <Modal onClose={() => setShowBulkDeleteModal(false)} size="md" dismissible={!isBulkDeleting}>
             <div className="text-center">
               <div className="w-16 h-16 rounded-full bg-rose-100 flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle className="w-8 h-8 text-rose-600" />
@@ -390,8 +401,7 @@ const DemandList: React.FC = () => {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

@@ -5,11 +5,13 @@ import { useToast } from '../hooks/useToast';
 import { parsePerformanceExcelData, downloadPerformanceTemplate } from '../utils/excel';
 import { getDemandOptionsForPerformanceDate } from '../utils/performanceOrganizations';
 import { getYearFromDate } from '../utils/yearUtils';
+import { PROGRAMS, Program } from '../constants';
+import Modal from './common/Modal';
 
 interface PerformanceFormData {
   date: string;
   organizationName: string;
-  program: '스포츠교실' | '스포츠체험존' | '스포츠이벤트';
+  program: Program;
   maleCount: string;
   femaleCount: string;
   promotionCount: string;
@@ -114,7 +116,7 @@ const PerformanceInput: React.FC = () => {
       });
       setOrganizationSearchTerm('');
       setShowOrganizationDropdown(false);
-    } catch (error) {
+    } catch {
       addToast({
         type: 'error',
         title: '저장 실패',
@@ -161,7 +163,7 @@ const PerformanceInput: React.FC = () => {
         setUploadResult({ success: successCount, error: errorCount });
         setShowUploadSuccessModal(true);
 
-      } catch (error) {
+      } catch {
         addToast({
           type: 'error',
           title: '업로드 오류',
@@ -368,9 +370,9 @@ const PerformanceInput: React.FC = () => {
                   className="select-glass"
                   required
                 >
-                  <option value="스포츠교실">스포츠교실</option>
-                  <option value="스포츠체험존">스포츠체험존</option>
-                  <option value="스포츠이벤트">스포츠이벤트</option>
+                  {PROGRAMS.map(program => (
+                    <option key={program} value={program}>{program}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -572,40 +574,27 @@ const PerformanceInput: React.FC = () => {
 
       {/* 성공 모달 */}
       {showSuccessModal && (
-        <div className="modal-overlay">
-          <div className="modal-content text-center">
+        <Modal onClose={() => setShowSuccessModal(false)} size="md">
+          <div className="text-center">
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/30">
               <CheckCircle className="w-10 h-10 text-white" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">저장 완료!</h3>
             <p className="text-gray-600 mb-6">실적 데이터가 성공적으로 저장되었습니다.</p>
             <button
-              onClick={() => {
-                setShowSuccessModal(false);
-                setFormData({
-                  date: new Date().toISOString().split('T')[0],
-                  organizationName: '',
-                  program: '스포츠교실',
-                  maleCount: '',
-                  femaleCount: '',
-                  promotionCount: '',
-                  notes: ''
-                });
-                setOrganizationSearchTerm('');
-                setShowOrganizationDropdown(false);
-              }}
+              onClick={() => setShowSuccessModal(false)}
               className="btn-primary"
             >
               확인
             </button>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* 업로드 완료 모달 */}
       {showUploadSuccessModal && (
-        <div className="modal-overlay">
-          <div className="modal-content text-center">
+        <Modal onClose={() => setShowUploadSuccessModal(false)} size="md">
+          <div className="text-center">
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/30">
               <CheckCircle className="w-10 h-10 text-white" />
             </div>
@@ -632,19 +621,13 @@ const PerformanceInput: React.FC = () => {
               확인
             </button>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* 저장 방법 모달 */}
       {showInstructionModal && (
-        <div className="modal-overlay">
-          <div className="modal-content max-w-2xl max-h-[80vh] overflow-y-auto">
-            <div className="mb-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">실적 데이터 저장 방법</h3>
-              <p className="text-gray-600">실적 데이터를 올바르게 저장하는 방법을 안내합니다.</p>
-            </div>
-
-            <div className="space-y-4">
+        <Modal onClose={() => setShowInstructionModal(false)} title="실적 데이터 저장 방법" size="lg">
+          <div className="space-y-4">
               <div className="glass-panel p-4">
                 <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                   <span className="text-lg">📊</span> 수기 입력 방법
@@ -703,16 +686,15 @@ const PerformanceInput: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-end mt-6">
-              <button
-                onClick={() => setShowInstructionModal(false)}
-                className="btn-primary"
-              >
-                확인
-              </button>
-            </div>
+          <div className="flex justify-end mt-6">
+            <button
+              onClick={() => setShowInstructionModal(false)}
+              className="btn-primary"
+            >
+              확인
+            </button>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

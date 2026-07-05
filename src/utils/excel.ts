@@ -1,4 +1,4 @@
-import { Demand, Performance, ExcelPerformanceData } from '../types';
+import { Demand, Performance } from '../types';
 import { BudgetUsage, BudgetItem } from '../types';
 import { getCityRegion } from './regions';
 import { getBudgetHierarchyInfo } from './budgetHierarchy';
@@ -43,6 +43,35 @@ export const downloadTemplate = () => {
   const a = document.createElement('a');
   a.href = url;
   a.download = '수요처_등록_템플릿.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+};
+
+// 수요처 목록을 엑셀(CSV)로 다운로드하는 함수
+export const downloadDemandExcel = (demands: Demand[]) => {
+  let csvContent = '\uFEFF연도,시/군,지역,단체명,담당자명,연락처,이메일,등록일\n';
+
+  demands.forEach(demand => {
+    const row = [
+      demand.year,
+      `"${demand.city}"`,
+      `"${getCityRegion(demand.city)}"`,
+      `"${demand.organizationName.replace(/"/g, '""')}"`,
+      `"${demand.contactPerson.replace(/"/g, '""')}"`,
+      `"${demand.phoneNumber}"`,
+      `"${demand.email || ''}"`,
+      demand.createdAt ? demand.createdAt.toLocaleDateString('ko-KR') : ''
+    ].join(',');
+    csvContent += row + '\n';
+  });
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `수요처_목록_${new Date().toISOString().split('T')[0]}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

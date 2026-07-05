@@ -10,7 +10,8 @@ import {
   onSnapshot,
   Timestamp,
   getDoc,
-  setDoc
+  setDoc,
+  DocumentData
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Demand, Performance, BudgetItem, BudgetUsage } from '../types';
@@ -48,7 +49,7 @@ const normalizeBudgetRegion = (
   return inferredRegion;
 };
 
-const normalizeBudgetItem = (id: string, data: Record<string, any>): BudgetItem => {
+const normalizeBudgetItem = (id: string, data: DocumentData): BudgetItem => {
   const year = data.year ?? 2025;
   const inferredRegion = inferBudgetRegionFromLegacy(data.name, year, data.order);
   const region = normalizeBudgetRegion(data.region, inferredRegion);
@@ -61,7 +62,7 @@ const normalizeBudgetItem = (id: string, data: Record<string, any>): BudgetItem 
   } as BudgetItem;
 };
 
-const normalizeDemand = (id: string, data: Record<string, any>): Demand => {
+const normalizeDemand = (id: string, data: DocumentData): Demand => {
   const createdAt = data.createdAt?.toDate?.() || new Date();
   const updatedAt = data.updatedAt?.toDate?.() || new Date();
 
@@ -192,7 +193,7 @@ export const firebaseStorage = {
         ? updates.notes.toString().trim() 
         : undefined;
       
-      const updateData: any = {
+      const updateData: DocumentData = {
         ...updates,
         updatedAt: Timestamp.now()
       };
