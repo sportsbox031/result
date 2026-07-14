@@ -4,6 +4,7 @@ import { useFirebaseData } from '../hooks/useFirebaseData';
 import { useToast } from '../hooks/useToast';
 import { parsePerformanceExcelData, downloadPerformanceTemplate } from '../utils/excel';
 import { getDemandOptionsForPerformanceDate } from '../utils/performanceOrganizations';
+import { hasDuplicatePerformance } from '../utils/performanceDuplicates';
 import { getYearFromDate } from '../utils/yearUtils';
 import { PROGRAMS, Program } from '../constants';
 import Modal from './common/Modal';
@@ -20,13 +21,15 @@ interface PerformanceFormData {
 
 const PerformanceInput: React.FC = () => {
   const { addToast } = useToast();
-  const { demands, addPerformance } = useFirebaseData();
+  const { demands, performances, addPerformance } = useFirebaseData();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<'manual' | 'bulk'>('manual');
   const [isDragOver, setIsDragOver] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showUploadSuccessModal, setShowUploadSuccessModal] = useState(false);
   const [showInstructionModal, setShowInstructionModal] = useState(false);
+  const [showDuplicateWarningModal, setShowDuplicateWarningModal] = useState(false);
+  const lastWarnedDuplicateRef = useRef('');
   const [uploadResult, setUploadResult] = useState<{ success: number; error: number }>({ success: 0, error: 0 });
   const [organizationSearchTerm, setOrganizationSearchTerm] = useState('');
   const [showOrganizationDropdown, setShowOrganizationDropdown] = useState(false);
@@ -53,6 +56,11 @@ const PerformanceInput: React.FC = () => {
     d => d.organizationName === formData.organizationName && d.year === selectedYear
   );
   const selectedCity = selectedDemand?.city || '';
+  const isDuplicatePerformance = hasDuplicatePerformance(
+    performances,
+    formData.date,
+    formData.organizationName
+  );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -74,6 +82,11 @@ const PerformanceInput: React.FC = () => {
         title: '입력 오류',
         message: '날짜와 단체명은 필수 항목입니다'
       });
+      return;
+    }
+
+    if (isDuplicatePerformance) {
+      setShowDuplicateWarningModal(true);
       return;
     }
 
@@ -220,6 +233,20 @@ const PerformanceInput: React.FC = () => {
       setShowOrganizationDropdown(false);
     }
   }, [demands, formData.date, formData.organizationName, selectedYear]);
+
+  useEffect(() => {
+    const duplicateKey = `${formData.date}|${formData.organizationName.trim()}`;
+
+    if (!formData.date || !formData.organizationName || !isDuplicatePerformance) {
+      lastWarnedDuplicateRef.current = '';
+      return;
+    }
+
+    if (lastWarnedDuplicateRef.current !== duplicateKey) {
+      lastWarnedDuplicateRef.current = duplicateKey;
+      setShowDuplicateWarningModal(true);
+    }
+  }, [formData.date, formData.organizationName, isDuplicatePerformance]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -570,6 +597,28 @@ const PerformanceInput: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 중복 실적 경고 모달 */}
+      {showDuplicateWarningModal && (
+        <Modal onClose={() => setShowDuplicateWarningModal(false)} size="md">
+          <div className="text-center">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-500/30">
+              <AlertCircle className="w-10 h-10 text-white" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">중복 실적 확인</h3>
+            <p className="text-gray-600 mb-6">
+              {formData.date}에 {formData.organizationName} 실적이 이미 등록되어있습니다.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowDuplicateWarningModal(false)}
+              className="btn-primary"
+            >
+              확인
+            </button>
+          </div>
+        </Modal>
       )}
 
       {/* 성공 모달 */}
