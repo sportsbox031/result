@@ -4,7 +4,7 @@ import { useFirebaseData } from '../hooks/useFirebaseData';
 import { useToast } from '../hooks/useToast';
 import { parsePerformanceExcelData, downloadPerformanceTemplate } from '../utils/excel';
 import { getDemandOptionsForPerformanceDate } from '../utils/performanceOrganizations';
-import { hasDuplicatePerformance } from '../utils/performanceDuplicates';
+import { hasDuplicatePerformance, getPerformanceDuplicateKey } from '../utils/performanceDuplicates';
 import { getYearFromDate } from '../utils/yearUtils';
 import { PROGRAMS, Program } from '../constants';
 import Modal from './common/Modal';
@@ -30,7 +30,7 @@ const PerformanceInput: React.FC = () => {
   const [showInstructionModal, setShowInstructionModal] = useState(false);
   const [showDuplicateWarningModal, setShowDuplicateWarningModal] = useState(false);
   const lastWarnedDuplicateRef = useRef('');
-  const [uploadResult, setUploadResult] = useState<{ success: number; error: number }>({ success: 0, error: 0 });
+  const [uploadResult, setUploadResult] = useState<{ success: number; error: number; duplicate: number }>({ success: 0, error: 0, duplicate: 0 });
   const [organizationSearchTerm, setOrganizationSearchTerm] = useState('');
   const [showOrganizationDropdown, setShowOrganizationDropdown] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -159,21 +159,35 @@ const PerformanceInput: React.FC = () => {
 
         let successCount = 0;
         let errorCount = 0;
+        let duplicateCount = 0;
+
+        // 이미 등록된 실적(같은 날짜 + 같은 단체명)과 파일 내 중복 행을 모두 걸러낸다.
+        const registeredKeys = new Set(
+          performances.map(p => getPerformanceDuplicateKey(p.date, p.organizationName))
+        );
 
         for (const performance of parsedData) {
+          if (!performance.date || !performance.organizationName) {
+            errorCount++;
+            continue;
+          }
+
+          const duplicateKey = getPerformanceDuplicateKey(performance.date, performance.organizationName);
+          if (registeredKeys.has(duplicateKey)) {
+            duplicateCount++;
+            continue;
+          }
+
           try {
-            if (performance.date && performance.organizationName) {
-              await addPerformance(performance);
-              successCount++;
-            } else {
-              errorCount++;
-            }
+            await addPerformance(performance);
+            registeredKeys.add(duplicateKey);
+            successCount++;
           } catch {
             errorCount++;
           }
         }
 
-        setUploadResult({ success: successCount, error: errorCount });
+        setUploadResult({ success: successCount, error: errorCount, duplicate: duplicateCount });
         setShowUploadSuccessModal(true);
 
       } catch {
@@ -606,9 +620,11 @@ const PerformanceInput: React.FC = () => {
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-500/30">
               <AlertCircle className="w-10 h-10 text-white" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">중복 실적 확인</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">중복 실적 등록 불가</h3>
             <p className="text-gray-600 mb-6">
-              {formData.date}에 {formData.organizationName} 실적이 이미 등록되어있습니다.
+              {formData.date}에 {formData.organizationName} 실적이 이미 등록되어 있어 저장할 수 없습니다.
+              <br />
+              같은 날짜라도 단체명이 다르면 등록할 수 있습니다.
             </p>
             <button
               type="button"
@@ -655,11 +671,22 @@ const PerformanceInput: React.FC = () => {
                   <span className="text-gray-600">성공:</span>
                   <span className="font-bold text-emerald-600">{uploadResult.success}건</span>
                 </div>
+                {uploadResult.duplicate > 0 && (
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-600">중복 제외:</span>
+                    <span className="font-bold text-amber-600">{uploadResult.duplicate}건</span>
+                  </div>
+                )}
                 {uploadResult.error > 0 && (
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">실패:</span>
                     <span className="font-bold text-rose-600">{uploadResult.error}건</span>
                   </div>
+                )}
+                {uploadResult.duplicate > 0 && (
+                  <p className="text-xs text-gray-500 mt-2 text-left">
+                    같은 날짜에 같은 단체명으로 이미 등록된 실적은 제외되었습니다.
+                  </p>
                 )}
               </div>
             </div>
