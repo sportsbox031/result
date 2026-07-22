@@ -1,0 +1,9 @@
+// 2026-07-22 기준 콘솔에 배포된 규칙과 동일 (전체 허용이므로 performanceKeys 포함 모든 컬렉션 접근 가능)
+// 수정 후 배포: npx firebase-tools deploy --only firestore:rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
