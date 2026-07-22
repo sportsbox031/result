@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Calendar, Save, Users, Megaphone, CheckCircle, Upload, FileText, Download, AlertCircle, Loader2, ClipboardList } from 'lucide-react';
 import { useFirebaseData } from '../hooks/useFirebaseData';
+import { DuplicatePerformanceError } from '../utils/firebaseStorage';
 import { useToast } from '../hooks/useToast';
 import { parsePerformanceExcelData, downloadPerformanceTemplate } from '../utils/excel';
 import { getDemandOptionsForPerformanceDate } from '../utils/performanceOrganizations';
@@ -129,12 +130,16 @@ const PerformanceInput: React.FC = () => {
       });
       setOrganizationSearchTerm('');
       setShowOrganizationDropdown(false);
-    } catch {
-      addToast({
-        type: 'error',
-        title: '저장 실패',
-        message: '실적 데이터 저장 중 오류가 발생했습니다'
-      });
+    } catch (error) {
+      if (error instanceof DuplicatePerformanceError) {
+        setShowDuplicateWarningModal(true);
+      } else {
+        addToast({
+          type: 'error',
+          title: '저장 실패',
+          message: '실적 데이터 저장 중 오류가 발생했습니다'
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -182,8 +187,12 @@ const PerformanceInput: React.FC = () => {
             await addPerformance(performance);
             registeredKeys.add(duplicateKey);
             successCount++;
-          } catch {
-            errorCount++;
+          } catch (error) {
+            if (error instanceof DuplicatePerformanceError) {
+              duplicateCount++;
+            } else {
+              errorCount++;
+            }
           }
         }
 

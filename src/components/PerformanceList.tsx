@@ -4,6 +4,7 @@ import { useFirebaseData } from '../hooks/useFirebaseData';
 import { useToast } from '../hooks/useToast';
 import { Performance, FilterState } from '../types';
 import { downloadPerformanceExcel } from '../utils/excel';
+import { DuplicatePerformanceError } from '../utils/firebaseStorage';
 import { getCityRegion } from '../utils/regions';
 import { AVAILABLE_YEARS, CURRENT_YEAR, getPerformanceYear } from '../utils/yearUtils';
 import { PROGRAMS } from '../constants';
@@ -124,11 +125,13 @@ const PerformanceList: React.FC = () => {
         title: '수정 완료',
         message: '실적 데이터가 성공적으로 수정되었습니다'
       });
-    } catch {
+    } catch (error) {
       addToast({
         type: 'error',
         title: '수정 실패',
-        message: '실적 데이터 수정 중 오류가 발생했습니다'
+        message: error instanceof DuplicatePerformanceError
+          ? '같은 날짜에 같은 단체명의 실적이 이미 등록되어 있습니다'
+          : '실적 데이터 수정 중 오류가 발생했습니다'
       });
     }
   };

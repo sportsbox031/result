@@ -7,7 +7,9 @@ import {
   deleteDoc,
   query,
   orderBy,
+  where,
   onSnapshot,
+  runTransaction,
   Timestamp,
   getDoc,
   setDoc,
@@ -17,6 +19,39 @@ import { db } from '../config/firebase';
 import { Demand, Performance, BudgetItem, BudgetUsage } from '../types';
 import { BUDGET_2026_ALL } from '../data/budget2026';
 import { normalizeDemandYear } from './demandYear';
+import { toDateInputValue } from './performanceDuplicates';
+
+export class DuplicatePerformanceError extends Error {
+  constructor() {
+    super('같은 날짜에 같은 단체명의 실적이 이미 등록되어 있습니다.');
+    this.name = 'DuplicatePerformanceError';
+  }
+}
+
+// 같은 날짜+단체명 조합을 하나의 문서 ID로 고정해 동시 등록도 트랜잭션에서 충돌하게 만든다.
+const getPerformanceKeyId = (date: Date, organizationName: string): string =>
+  encodeURIComponent(`${toDateInputValue(date)}|${organizationName.trim()}`);
+
+// performanceKeys 잠금 문서가 없는 기존 실적까지 커버하는 서버 조회 기반 중복 확인.
+const assertNoServerDuplicate = async (
+  date: Date,
+  organizationName: string,
+  excludeId?: string
+): Promise<void> => {
+  const normalizedName = organizationName.trim();
+  const dateKey = toDateInputValue(date);
+  if (!dateKey || !normalizedName) return;
+
+  const q = query(collection(db, 'performances'), where('organizationName', '==', normalizedName));
+  const snapshot = await getDocs(q);
+  const hasDuplicate = snapshot.docs.some(docSnap => {
+    if (docSnap.id === excludeId) return false;
+    const existingDate = docSnap.data().date?.toDate?.();
+    return existingDate instanceof Date && toDateInputValue(existingDate) === dateKey;
+  });
+
+  if (hasDuplicate) throw new DuplicatePerformanceError();
+};
 
 const NORTH_2026_ORDER_START = 20;
 const NORTH_2026_ORDER_END = 29;
@@ -157,20 +192,37 @@ export const firebaseStorage = {
   async addPerformance(performance: Omit<Performance, 'id' | 'createdAt' | 'updatedAt'>): Promise<Performance> {
     try {
       const now = Timestamp.now();
-      
+
       // notes 필드를 안전하게 처리
-      const safeNotes = performance.notes !== undefined && performance.notes !== null 
-        ? performance.notes.toString().trim() 
+      const safeNotes = performance.notes !== undefined && performance.notes !== null
+        ? performance.notes.toString().trim()
         : '';
-      
-      const docRef = await addDoc(collection(db, 'performances'), {
-        ...performance,
-        notes: safeNotes,
-        date: Timestamp.fromDate(performance.date),
-        createdAt: now,
-        updatedAt: now
+
+      // 잠금 문서가 없는 기존 실적과의 중복은 서버 조회로 차단
+      await assertNoServerDuplicate(performance.date, performance.organizationName);
+
+      const keyRef = doc(db, 'performanceKeys', getPerformanceKeyId(performance.date, performance.organizationName));
+      const docRef = doc(collection(db, 'performances'));
+
+      await runTransaction(db, async (transaction) => {
+        const keySnap = await transaction.get(keyRef);
+        if (keySnap.exists()) throw new DuplicatePerformanceError();
+
+        transaction.set(keyRef, {
+          performanceId: docRef.id,
+          dateKey: toDateInputValue(performance.date),
+          organizationName: performance.organizationName.trim(),
+          createdAt: now
+        });
+        transaction.set(docRef, {
+          ...performance,
+          notes: safeNotes,
+          date: Timestamp.fromDate(performance.date),
+          createdAt: now,
+          updatedAt: now
+        });
       });
-      
+
       return {
         id: docRef.id,
         ...performance,
@@ -187,27 +239,64 @@ export const firebaseStorage = {
   async updatePerformance(id: string, updates: Partial<Performance>): Promise<void> {
     try {
       const docRef = doc(db, 'performances', id);
-      
+
       // notes 필드를 안전하게 처리
-      const safeNotes = updates.notes !== undefined && updates.notes !== null 
-        ? updates.notes.toString().trim() 
+      const safeNotes = updates.notes !== undefined && updates.notes !== null
+        ? updates.notes.toString().trim()
         : undefined;
-      
+
       const updateData: DocumentData = {
         ...updates,
         updatedAt: Timestamp.now()
       };
-      
+
       // notes가 있는 경우에만 추가
       if (safeNotes !== undefined) {
         updateData.notes = safeNotes;
       }
-      
+
       if (updates.date) {
         updateData.date = Timestamp.fromDate(updates.date);
       }
-      
-      await updateDoc(docRef, updateData);
+
+      const currentSnap = await getDoc(docRef);
+      if (!currentSnap.exists()) throw new Error('수정할 실적을 찾을 수 없습니다.');
+
+      const currentData = currentSnap.data();
+      const currentDate = currentData.date?.toDate?.() || new Date();
+      const currentName = (currentData.organizationName || '') as string;
+      const nextDate = updates.date ?? currentDate;
+      const nextName = updates.organizationName ?? currentName;
+      const currentKeyId = getPerformanceKeyId(currentDate, currentName);
+      const nextKeyId = getPerformanceKeyId(nextDate, nextName);
+
+      if (nextKeyId !== currentKeyId) {
+        await assertNoServerDuplicate(nextDate, nextName, id);
+      }
+
+      await runTransaction(db, async (transaction) => {
+        const nextKeyRef = doc(db, 'performanceKeys', nextKeyId);
+        const nextKeySnap = await transaction.get(nextKeyRef);
+        if (nextKeySnap.exists() && nextKeySnap.data().performanceId !== id) {
+          throw new DuplicatePerformanceError();
+        }
+
+        if (nextKeyId !== currentKeyId) {
+          const currentKeyRef = doc(db, 'performanceKeys', currentKeyId);
+          const currentKeySnap = await transaction.get(currentKeyRef);
+          if (currentKeySnap.exists() && currentKeySnap.data().performanceId === id) {
+            transaction.delete(currentKeyRef);
+          }
+        }
+
+        transaction.set(nextKeyRef, {
+          performanceId: id,
+          dateKey: toDateInputValue(nextDate),
+          organizationName: nextName.trim(),
+          createdAt: nextKeySnap.exists() ? nextKeySnap.data().createdAt : Timestamp.now()
+        });
+        transaction.update(docRef, updateData);
+      });
     } catch (error) {
       console.error('실적 수정 실패:', error);
       throw error;
@@ -216,7 +305,28 @@ export const firebaseStorage = {
 
   async deletePerformance(id: string): Promise<void> {
     try {
-      await deleteDoc(doc(db, 'performances', id));
+      const docRef = doc(db, 'performances', id);
+
+      await runTransaction(db, async (transaction) => {
+        const snap = await transaction.get(docRef);
+        if (!snap.exists()) return;
+
+        const data = snap.data();
+        const date = data.date?.toDate?.();
+        const keyId = date instanceof Date
+          ? getPerformanceKeyId(date, (data.organizationName || '') as string)
+          : null;
+
+        if (keyId) {
+          const keyRef = doc(db, 'performanceKeys', keyId);
+          const keySnap = await transaction.get(keyRef);
+          if (keySnap.exists() && keySnap.data().performanceId === id) {
+            transaction.delete(keyRef);
+          }
+        }
+
+        transaction.delete(docRef);
+      });
     } catch (error) {
       console.error('실적 삭제 실패:', error);
       throw error;
