@@ -256,11 +256,14 @@ const PerformanceInput: React.FC = () => {
       return;
     }
 
+    // 저장 중에는 방금 저장한 실적이 구독으로 반영되며 자기 자신과 중복 판정되므로 경고하지 않는다.
+    if (isLoading) return;
+
     if (lastWarnedDuplicateRef.current !== duplicateKey) {
       lastWarnedDuplicateRef.current = duplicateKey;
       setShowDuplicateWarningModal(true);
     }
-  }, [formData.date, formData.organizationName, isDuplicatePerformance]);
+  }, [formData.date, formData.organizationName, isDuplicatePerformance, isLoading]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
