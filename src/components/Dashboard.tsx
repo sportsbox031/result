@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, memo } from 'react';
 import {
   Users, BarChart3, Calendar, Building2, PieChart, Activity, RefreshCw, MapPin,
   Wallet, TrendingDown, Percent, GripVertical, Trash2, ChevronDown, ChevronRight,
@@ -23,6 +23,8 @@ import RegionBadge from './common/RegionBadge';
 import SearchInput from './common/SearchInput';
 import Modal from './common/Modal';
 import MonthlyTrendChart from './MonthlyTrendChart';
+import Pagination from './common/Pagination';
+import { usePagination, PAGE_SIZE_OPTIONS } from '../hooks/usePagination';
 
 type DashboardTab = 'overview' | 'city' | 'organization' | 'budget';
 
@@ -188,16 +190,22 @@ const Dashboard: React.FC = () => {
   }, [groupedBudgetItems, collapsedBimo, collapsedSemok]);
 
   // 전체 예산/사용/잔액/집행율
-  const totalBudget = regionFilteredBudgetItems.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
-  const totalUsed = filteredBudgetUsages
-    .filter(u => regionFilteredBudgetItems.some(b => b.id === u.budgetItemId))
-    .reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
-  const totalRemain = totalBudget - totalUsed;
-  const totalRate = totalBudget > 0 ? Math.round((totalUsed / totalBudget) * 1000) / 10 : 0;
+  const { totalBudget, totalUsed, totalRemain, totalRate } = useMemo(() => {
+    const regionBudgetIds = new Set(regionFilteredBudgetItems.map(b => b.id));
+    const budget = regionFilteredBudgetItems.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+    const used = filteredBudgetUsages
+      .filter(u => regionBudgetIds.has(u.budgetItemId))
+      .reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
+    const remain = budget - used;
+    const rate = budget > 0 ? Math.round((used / budget) * 1000) / 10 : 0;
+    return { totalBudget: budget, totalUsed: used, totalRemain: remain, totalRate: rate };
+  }, [regionFilteredBudgetItems, filteredBudgetUsages]);
 
   // 총 참여 인원 / 홍보 횟수
-  const totalPeople = filteredPerformances.reduce((sum, p) => sum + (p.maleCount || 0) + (p.femaleCount || 0), 0);
-  const totalPromotions = filteredPerformances.reduce((sum, p) => sum + (p.promotionCount || 0), 0);
+  const { totalPeople, totalPromotions } = useMemo(() => ({
+    totalPeople: filteredPerformances.reduce((sum, p) => sum + (p.maleCount || 0) + (p.femaleCount || 0), 0),
+    totalPromotions: filteredPerformances.reduce((sum, p) => sum + (p.promotionCount || 0), 0)
+  }), [filteredPerformances]);
 
   // 시군별 데이터 (지역 필터 적용)
   const filteredCityData = useMemo(() => {
@@ -207,6 +215,11 @@ const Dashboard: React.FC = () => {
       return regionFilter === '경기남부' ? cityRegion === '남부' : cityRegion === '북부';
     });
   }, [stats.cityData, regionFilter]);
+
+  const cityMaxTotal = useMemo(
+    () => Math.max(...filteredCityData.map(d => d.total), 1),
+    [filteredCityData]
+  );
 
   // 수요처별 데이터 (검색 + 지역 필터 적용)
   const filteredOrganizationData = useMemo(() => {
@@ -228,7 +241,26 @@ const Dashboard: React.FC = () => {
     return data;
   }, [stats.organizationData, regionFilter, organizationSearch]);
 
-  const selectedCityOrganizations = stats.organizationData.filter(org => org.city === selectedCity);
+  // 수요처별 현황 테이블도 데이터가 많아지면 렉이 걸리므로 페이지 단위로만 렌더링한다.
+  const {
+    currentPage: organizationPage,
+    setCurrentPage: setOrganizationPage,
+    pageSize: organizationPageSize,
+    setPageSize: setOrganizationPageSize,
+    totalPages: organizationTotalPages,
+    paginatedItems: paginatedOrganizationData,
+    rangeStart: organizationRangeStart,
+    rangeEnd: organizationRangeEnd
+  } = usePagination(filteredOrganizationData);
+
+  useEffect(() => {
+    setOrganizationPage(1);
+  }, [regionFilter, organizationSearch, setOrganizationPage]);
+
+  const selectedCityOrganizations = useMemo(
+    () => stats.organizationData.filter(org => org.city === selectedCity),
+    [stats.organizationData, selectedCity]
+  );
 
   const has2026Budgets = budgetItems.some(b => (b.year ?? 2025) === 2026);
 
@@ -490,7 +522,6 @@ const Dashboard: React.FC = () => {
           {filteredCityData.length > 0 ? (
             <div className="space-y-3">
               {filteredCityData.map((item) => {
-                const maxTotal = Math.max(...filteredCityData.map(d => d.total), 1);
                 return (
                   <div
                     key={item.name}
@@ -506,7 +537,7 @@ const Dashboard: React.FC = () => {
                       <div className="bg-gray-200 rounded-full h-8 overflow-hidden">
                         <div
                           className="bg-gradient-to-r from-blue-500 to-blue-600 h-8 rounded-full flex items-center justify-end pr-3 transition-all duration-500"
-                          style={{ width: `${Math.max((item.total / maxTotal) * 100, 10)}%` }}
+                          style={{ width: `${Math.max((item.total / cityMaxTotal) * 100, 10)}%` }}
                         >
                           <span className="text-xs text-white font-semibold">{item.total.toLocaleString()}명</span>
                         </div>
@@ -529,12 +560,26 @@ const Dashboard: React.FC = () => {
         <div className="glass-card rounded-2xl p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <h2 className="text-xl font-bold text-gray-900">수요처별 참여 현황</h2>
-            <SearchInput
-              value={organizationSearch}
-              onChange={setOrganizationSearch}
-              placeholder="수요처명 또는 시군 검색..."
-              className="w-full sm:w-72"
-            />
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600 whitespace-nowrap">페이지당</label>
+                <select
+                  value={organizationPageSize}
+                  onChange={(e) => setOrganizationPageSize(Number(e.target.value))}
+                  className="select-glass text-sm py-2"
+                >
+                  {PAGE_SIZE_OPTIONS.map(size => (
+                    <option key={size} value={size}>{size}건</option>
+                  ))}
+                </select>
+              </div>
+              <SearchInput
+                value={organizationSearch}
+                onChange={setOrganizationSearch}
+                placeholder="수요처명 또는 시군 검색..."
+                className="w-full sm:w-72"
+              />
+            </div>
           </div>
 
           {filteredOrganizationData.length > 0 ? (
@@ -550,25 +595,36 @@ const Dashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filteredOrganizationData.map((item, index) => (
-                    <tr key={item.name} className="hover:bg-white/40 transition-colors">
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center justify-center w-7 h-7 text-xs font-bold rounded-full ${index < 3 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
-                          {index + 1}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.name}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getCityRegion(item.city) === '남부' ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700'}`}>
-                          {item.city}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-right font-semibold text-gray-700">{item.count}회</td>
-                      <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600">{item.total.toLocaleString()}명</td>
-                    </tr>
-                  ))}
+                  {paginatedOrganizationData.map((item, index) => {
+                    const rank = (organizationPage - 1) * organizationPageSize + index + 1;
+                    return (
+                      <tr key={item.name} className="hover:bg-white/40 transition-colors">
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center justify-center w-7 h-7 text-xs font-bold rounded-full ${rank <= 3 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
+                            {rank}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.name}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getCityRegion(item.city) === '남부' ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700'}`}>
+                            {item.city}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-right font-semibold text-gray-700">{item.count}회</td>
+                        <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600">{item.total.toLocaleString()}명</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
+              <Pagination
+                currentPage={organizationPage}
+                totalPages={organizationTotalPages}
+                totalItems={filteredOrganizationData.length}
+                rangeStart={organizationRangeStart}
+                rangeEnd={organizationRangeEnd}
+                onPageChange={setOrganizationPage}
+              />
             </div>
           ) : (
             <EmptyState icon={Building2} title="데이터가 없습니다" />
@@ -830,7 +886,8 @@ interface BudgetRowProps {
   used: number;
 }
 
-function BudgetRow({
+// 행 단위로 memo 처리 — 다른 세세목을 편집 중이어도 이 행이 리렌더링되지 않도록 한다.
+const BudgetRow = memo(function BudgetRow({
   item, isEditing, editingBudgetName, editingBudgetAmount,
   setEditingBudgetName, setEditingBudgetAmount, onCancelEdit,
   onEdit, onSave, onDelete, onItemClick, used
@@ -915,6 +972,18 @@ function BudgetRow({
       </td>
     </tr>
   );
-}
+}, (prev, next) => {
+  if (prev.item !== next.item) return false;
+  if (prev.isEditing !== next.isEditing) return false;
+  if (prev.used !== next.used) return false;
+  // 편집 중인 행만 입력값 변경에 반응하면 된다 (매 입력마다 다른 행까지 리렌더링되는 것을 방지)
+  if (next.isEditing) {
+    if (prev.editingBudgetName !== next.editingBudgetName) return false;
+    if (prev.editingBudgetAmount !== next.editingBudgetAmount) return false;
+  }
+  return true;
+});
+
+BudgetRow.displayName = 'BudgetRow';
 
 export default Dashboard;

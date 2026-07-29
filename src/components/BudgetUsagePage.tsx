@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { BudgetItem, BudgetUsage } from '../types';
 import { firebaseStorage } from '../utils/firebaseStorage';
 import { useFirebaseData } from '../hooks/useFirebaseData';
@@ -6,12 +6,20 @@ import { useToast } from '../hooks/useToast';
 import { Plus, Trash2, Save, X, Download, Calendar, FileText, MapPin, Wallet } from 'lucide-react';
 import { downloadBudgetUsageExcel } from '../utils/excel';
 import { AVAILABLE_YEARS, CURRENT_YEAR, getBudgetUsageYear } from '../utils/yearUtils';
-import { buildBudgetHierarchy, getBudgetHierarchyInfo, sortBudgetItemsByOrder } from '../utils/budgetHierarchy';
+import {
+  buildBudgetHierarchy,
+  getBudgetHierarchyInfo,
+  sortBudgetItemsByOrder,
+  BudgetBimoGroup,
+  BudgetSemokGroup
+} from '../utils/budgetHierarchy';
 import { PAYMENT_METHODS } from '../constants';
 import SegmentedFilter from './common/SegmentedFilter';
 import SearchInput from './common/SearchInput';
 import EmptyState from './common/EmptyState';
 import RegionBadge from './common/RegionBadge';
+import Pagination from './common/Pagination';
+import { usePagination, PAGE_SIZE_OPTIONS } from '../hooks/usePagination';
 
 const getInitialBudgetSelection = (items: BudgetItem[], preferredBudgetId?: string) => {
   if (!items.length) {
@@ -22,6 +30,231 @@ const getInitialBudgetSelection = (items: BudgetItem[], preferredBudgetId?: stri
   const { bimo, semok } = getBudgetHierarchyInfo(selectedItem);
   return { budgetItemId: selectedItem.id, bimo, semok };
 };
+
+interface BudgetUsageRowProps {
+  usage: BudgetUsage;
+  isEditing: boolean;
+  editForm: Partial<BudgetUsage>;
+  budgetItemsById: Map<string, BudgetItem>;
+  editBimo: string;
+  editSemok: string;
+  editableBudgetHierarchy: BudgetBimoGroup[];
+  editSemokOptions: BudgetSemokGroup[];
+  editBudgetNameOptions: BudgetItem[];
+  onRowClick: (usage: BudgetUsage) => void;
+  onFieldChange: <K extends keyof BudgetUsage>(field: K, value: BudgetUsage[K]) => void;
+  onBimoChange: (bimo: string) => void;
+  onSemokChange: (semok: string) => void;
+  onBudgetItemChange: (budgetItemId: string) => void;
+  onSave: () => void;
+  onDelete: () => void;
+  onCancel: () => void;
+}
+
+// 행 단위로 memo 처리 — 다른 행을 수정 중이어도 이 행이 리렌더링되지 않도록 한다.
+const BudgetUsageRow: React.FC<BudgetUsageRowProps> = memo(({
+  usage,
+  isEditing,
+  editForm,
+  budgetItemsById,
+  editBimo,
+  editSemok,
+  editableBudgetHierarchy,
+  editSemokOptions,
+  editBudgetNameOptions,
+  onRowClick,
+  onFieldChange,
+  onBimoChange,
+  onSemokChange,
+  onBudgetItemChange,
+  onSave,
+  onDelete,
+  onCancel
+}) => {
+  const budgetItem = budgetItemsById.get(isEditing ? (editForm.budgetItemId || '') : usage.budgetItemId);
+  const budgetHierarchy = useMemo(
+    () => (budgetItem ? getBudgetHierarchyInfo(budgetItem) : null),
+    [budgetItem]
+  );
+
+  return (
+    <tr
+      className={`transition-colors ${isEditing ? 'bg-blue-50' : 'hover:bg-white/40 cursor-pointer'}`}
+      onClick={() => !isEditing && onRowClick(usage)}
+    >
+      <td className="px-4 py-3">
+        {isEditing ? (
+          <div className="space-y-1">
+            <select
+              className="w-full px-2 py-1 rounded border border-gray-300 text-xs focus:ring-2 focus:ring-blue-500"
+              value={editBimo}
+              onChange={e => onBimoChange(e.target.value)}
+              onClick={e => e.stopPropagation()}
+            >
+              {editableBudgetHierarchy.length === 0 && <option value="">비목 없음</option>}
+              {editableBudgetHierarchy.map(group => (
+                <option key={group.bimo} value={group.bimo}>{group.bimo}</option>
+              ))}
+            </select>
+            <select
+              className="w-full px-2 py-1 rounded border border-gray-300 text-xs focus:ring-2 focus:ring-blue-500"
+              value={editSemok}
+              onChange={e => onSemokChange(e.target.value)}
+              onClick={e => e.stopPropagation()}
+            >
+              {editSemokOptions.length === 0 && <option value="">세목 없음</option>}
+              {editSemokOptions.map(group => (
+                <option key={group.semok} value={group.semok}>{group.semok}</option>
+              ))}
+            </select>
+            <select
+              className="w-full px-2 py-1 rounded border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500"
+              value={editForm.budgetItemId}
+              onChange={e => onBudgetItemChange(e.target.value)}
+              onClick={e => e.stopPropagation()}
+            >
+              {editBudgetNameOptions.length === 0 && <option value="">예산명 없음</option>}
+              {editBudgetNameOptions.map(item => (
+                <option key={item.id} value={item.id}>
+                  {getBudgetHierarchyInfo(item).detailName}{item.region ? ` (${item.region})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-gray-900">{budgetHierarchy?.detailName || '-'}</span>
+              {budgetHierarchy && (
+                <span className="text-xs text-gray-400">
+                  {budgetHierarchy.bimo} / {budgetHierarchy.semok}
+                </span>
+              )}
+            </div>
+            <RegionBadge region={budgetItem?.region} />
+          </div>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        {isEditing ? (
+          <input
+            className="input-glass text-sm"
+            value={editForm.description || ''}
+            onChange={e => onFieldChange('description', e.target.value)}
+            onClick={e => e.stopPropagation()}
+          />
+        ) : (
+          <span className="text-gray-700">{usage.description || '-'}</span>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        {isEditing ? (
+          <input
+            className="input-glass text-sm"
+            value={editForm.vendor || ''}
+            onChange={e => onFieldChange('vendor', e.target.value)}
+            onClick={e => e.stopPropagation()}
+          />
+        ) : (
+          <span className="text-gray-600">{usage.vendor || '-'}</span>
+        )}
+      </td>
+      <td className="px-4 py-3 text-right">
+        {isEditing ? (
+          <input
+            type="text"
+            className="input-glass text-sm text-right w-28"
+            value={editForm.amount ? Number(editForm.amount).toLocaleString() : ''}
+            onChange={e => {
+              const raw = e.target.value.replace(/,/g, '');
+              if (!isNaN(Number(raw))) onFieldChange('amount', Number(raw));
+            }}
+            onClick={e => e.stopPropagation()}
+          />
+        ) : (
+          <span className="font-semibold text-blue-600">{usage.amount.toLocaleString()}원</span>
+        )}
+      </td>
+      <td className="px-4 py-3 text-center">
+        {isEditing ? (
+          <input
+            type="date"
+            className="input-glass text-sm"
+            value={editForm.date || ''}
+            onChange={e => onFieldChange('date', e.target.value)}
+            onClick={e => e.stopPropagation()}
+          />
+        ) : (
+          <span className="text-gray-600">{usage.date || '-'}</span>
+        )}
+      </td>
+      <td className="px-4 py-3 text-center">
+        {isEditing ? (
+          <select
+            className="select-glass text-sm"
+            value={editForm.paymentMethod || ''}
+            onChange={e => onFieldChange('paymentMethod', e.target.value)}
+            onClick={e => e.stopPropagation()}
+          >
+            <option value="">선택</option>
+            {PAYMENT_METHODS.map(method => (
+              <option key={method} value={method}>{method}</option>
+            ))}
+          </select>
+        ) : (
+          <span className={`badge ${usage.paymentMethod === '카드결제' ? 'badge-violet' : usage.paymentMethod === '계좌입금' ? 'badge-emerald' : 'badge-gray'}`}>
+            {usage.paymentMethod || '-'}
+          </span>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        {isEditing ? (
+          <input
+            className="input-glass text-sm"
+            value={editForm.note || ''}
+            onChange={e => onFieldChange('note', e.target.value)}
+            onClick={e => e.stopPropagation()}
+          />
+        ) : (
+          <span className="text-gray-500 text-sm">{usage.note || '-'}</span>
+        )}
+      </td>
+      <td className="px-4 py-3 text-center">
+        {isEditing ? (
+          <div className="flex items-center justify-center gap-1" onClick={e => e.stopPropagation()}>
+            <button className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" onClick={onSave} title="저장">
+              <Save className="w-4 h-4" />
+            </button>
+            <button className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" onClick={onDelete} title="삭제">
+              <Trash2 className="w-4 h-4" />
+            </button>
+            <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors" onClick={onCancel} title="취소">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <span className="text-xs text-gray-400">클릭하여 수정</span>
+        )}
+      </td>
+    </tr>
+  );
+}, (prev, next) => {
+  if (prev.usage !== next.usage) return false;
+  if (prev.isEditing !== next.isEditing) return false;
+  if (prev.budgetItemsById !== next.budgetItemsById) return false;
+  // 편집 중인 행만 편집 관련 값 변경에 반응하면 된다 (매 입력마다 다른 행까지 리렌더링되는 것을 방지)
+  if (next.isEditing) {
+    if (prev.editForm !== next.editForm) return false;
+    if (prev.editBimo !== next.editBimo) return false;
+    if (prev.editSemok !== next.editSemok) return false;
+    if (prev.editableBudgetHierarchy !== next.editableBudgetHierarchy) return false;
+    if (prev.editSemokOptions !== next.editSemokOptions) return false;
+    if (prev.editBudgetNameOptions !== next.editBudgetNameOptions) return false;
+  }
+  return true;
+});
+
+BudgetUsageRow.displayName = 'BudgetUsageRow';
 
 const BudgetUsagePage: React.FC = () => {
   const { budgetItems, budgetUsages } = useFirebaseData();
@@ -120,6 +353,28 @@ const BudgetUsagePage: React.FC = () => {
       return b.id.localeCompare(a.id);
     });
   }, [yearFilteredBudgetUsages, regionFilter, searchTerm, yearFilteredBudgetItems, budgetItems]);
+
+  const budgetItemsById = useMemo(
+    () => new Map(budgetItems.map(item => [item.id, item])),
+    [budgetItems]
+  );
+
+  // 화면에는 필터링된 결과 중 현재 페이지 분량만 렌더링한다.
+  // (전체를 한 번에 테이블로 그리면 데이터가 많을 때 렉이 발생한다)
+  const {
+    currentPage,
+    setCurrentPage,
+    pageSize,
+    setPageSize,
+    totalPages,
+    paginatedItems: paginatedUsages,
+    rangeStart,
+    rangeEnd
+  } = usePagination(filteredUsages);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedYear, regionFilter, searchTerm, setCurrentPage]);
 
   const resetAddForm = useCallback(() => {
     const initialSelection = getInitialBudgetSelection(selectableBudgetItems);
@@ -338,7 +593,19 @@ const BudgetUsagePage: React.FC = () => {
           placeholder="적요, 채주, 비목/세목/예산명 검색..."
           className="w-full sm:w-80"
         />
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600 whitespace-nowrap">페이지당</label>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="select-glass text-sm py-2"
+            >
+              {PAGE_SIZE_OPTIONS.map(size => (
+                <option key={size} value={size}>{size}건</option>
+              ))}
+            </select>
+          </div>
           <button className="btn-primary flex items-center gap-2" onClick={handleAddUsage}>
             <Plus className="w-4 h-4" /> 내역 추가
           </button>
@@ -514,180 +781,43 @@ const BudgetUsagePage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsages.map(usage => {
-                  const isEditing = editingId === usage.id;
-                  const budgetItem = budgetItems.find(b => b.id === (isEditing ? editForm.budgetItemId : usage.budgetItemId));
-                  const budgetHierarchy = budgetItem ? getBudgetHierarchyInfo(budgetItem) : null;
-
-                  return (
-                    <tr
-                      key={usage.id}
-                      className={`transition-colors ${isEditing ? 'bg-blue-50' : 'hover:bg-white/40 cursor-pointer'}`}
-                      onClick={() => !isEditing && handleEdit(usage)}
-                    >
-                      <td className="px-4 py-3">
-                        {isEditing ? (
-                          <div className="space-y-1">
-                            <select
-                              className="w-full px-2 py-1 rounded border border-gray-300 text-xs focus:ring-2 focus:ring-blue-500"
-                              value={editBimo}
-                              onChange={e => handleEditBimoChange(e.target.value)}
-                              onClick={e => e.stopPropagation()}
-                            >
-                              {editableBudgetHierarchy.length === 0 && <option value="">비목 없음</option>}
-                              {editableBudgetHierarchy.map(group => (
-                                <option key={group.bimo} value={group.bimo}>{group.bimo}</option>
-                              ))}
-                            </select>
-                            <select
-                              className="w-full px-2 py-1 rounded border border-gray-300 text-xs focus:ring-2 focus:ring-blue-500"
-                              value={editSemok}
-                              onChange={e => handleEditSemokChange(e.target.value)}
-                              onClick={e => e.stopPropagation()}
-                            >
-                              {editSemokOptions.length === 0 && <option value="">세목 없음</option>}
-                              {editSemokOptions.map(group => (
-                                <option key={group.semok} value={group.semok}>{group.semok}</option>
-                              ))}
-                            </select>
-                            <select
-                              className="w-full px-2 py-1 rounded border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500"
-                              value={editForm.budgetItemId}
-                              onChange={e => handleEditBudgetItemChange(e.target.value)}
-                              onClick={e => e.stopPropagation()}
-                            >
-                              {editBudgetNameOptions.length === 0 && <option value="">예산명 없음</option>}
-                              {editBudgetNameOptions.map(item => (
-                                <option key={item.id} value={item.id}>
-                                  {getBudgetHierarchyInfo(item).detailName}{item.region ? ` (${item.region})` : ''}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium text-gray-900">{budgetHierarchy?.detailName || '-'}</span>
-                              {budgetHierarchy && (
-                                <span className="text-xs text-gray-400">
-                                  {budgetHierarchy.bimo} / {budgetHierarchy.semok}
-                                </span>
-                              )}
-                            </div>
-                            <RegionBadge region={budgetItem?.region} />
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        {isEditing ? (
-                          <input
-                            className="input-glass text-sm"
-                            value={editForm.description || ''}
-                            onChange={e => handleChange('description', e.target.value)}
-                            onClick={e => e.stopPropagation()}
-                          />
-                        ) : (
-                          <span className="text-gray-700">{usage.description || '-'}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        {isEditing ? (
-                          <input
-                            className="input-glass text-sm"
-                            value={editForm.vendor || ''}
-                            onChange={e => handleChange('vendor', e.target.value)}
-                            onClick={e => e.stopPropagation()}
-                          />
-                        ) : (
-                          <span className="text-gray-600">{usage.vendor || '-'}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            className="input-glass text-sm text-right w-28"
-                            value={editForm.amount ? Number(editForm.amount).toLocaleString() : ''}
-                            onChange={e => {
-                              const raw = e.target.value.replace(/,/g, '');
-                              if (!isNaN(Number(raw))) handleChange('amount', Number(raw));
-                            }}
-                            onClick={e => e.stopPropagation()}
-                          />
-                        ) : (
-                          <span className="font-semibold text-blue-600">{usage.amount.toLocaleString()}원</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {isEditing ? (
-                          <input
-                            type="date"
-                            className="input-glass text-sm"
-                            value={editForm.date || ''}
-                            onChange={e => handleChange('date', e.target.value)}
-                            onClick={e => e.stopPropagation()}
-                          />
-                        ) : (
-                          <span className="text-gray-600">{usage.date || '-'}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {isEditing ? (
-                          <select
-                            className="select-glass text-sm"
-                            value={editForm.paymentMethod || ''}
-                            onChange={e => handleChange('paymentMethod', e.target.value)}
-                            onClick={e => e.stopPropagation()}
-                          >
-                            <option value="">선택</option>
-                            {PAYMENT_METHODS.map(method => (
-                              <option key={method} value={method}>{method}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <span className={`badge ${usage.paymentMethod === '카드결제' ? 'badge-violet' : usage.paymentMethod === '계좌입금' ? 'badge-emerald' : 'badge-gray'}`}>
-                            {usage.paymentMethod || '-'}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        {isEditing ? (
-                          <input
-                            className="input-glass text-sm"
-                            value={editForm.note || ''}
-                            onChange={e => handleChange('note', e.target.value)}
-                            onClick={e => e.stopPropagation()}
-                          />
-                        ) : (
-                          <span className="text-gray-500 text-sm">{usage.note || '-'}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {isEditing ? (
-                          <div className="flex items-center justify-center gap-1" onClick={e => e.stopPropagation()}>
-                            <button className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" onClick={handleSave} title="저장">
-                              <Save className="w-4 h-4" />
-                            </button>
-                            <button className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" onClick={handleDelete} title="삭제">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                            <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors" onClick={() => { setEditingId(null); setEditForm({}); }} title="취소">
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-400">클릭하여 수정</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {paginatedUsages.map(usage => (
+                  <BudgetUsageRow
+                    key={usage.id}
+                    usage={usage}
+                    isEditing={editingId === usage.id}
+                    editForm={editForm}
+                    budgetItemsById={budgetItemsById}
+                    editBimo={editBimo}
+                    editSemok={editSemok}
+                    editableBudgetHierarchy={editableBudgetHierarchy}
+                    editSemokOptions={editSemokOptions}
+                    editBudgetNameOptions={editBudgetNameOptions}
+                    onRowClick={handleEdit}
+                    onFieldChange={handleChange}
+                    onBimoChange={handleEditBimoChange}
+                    onSemokChange={handleEditSemokChange}
+                    onBudgetItemChange={handleEditBudgetItemChange}
+                    onSave={handleSave}
+                    onDelete={handleDelete}
+                    onCancel={() => { setEditingId(null); setEditForm({}); }}
+                  />
+                ))}
               </tbody>
             </table>
           </div>
         ) : (
           <EmptyState icon={Calendar} title="등록된 내역이 없습니다" />
         )}
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredUsages.length}
+          rangeStart={rangeStart}
+          rangeEnd={rangeEnd}
+          onPageChange={setCurrentPage}
+        />
       </div>
     </div>
   );

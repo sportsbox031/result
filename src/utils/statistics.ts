@@ -25,6 +25,14 @@ export const calculateStatistics = (performances: Performance[], demands: Demand
   const uniqueOrganizations = new Set(performances.map(p => p.organizationName));
   const totalOrganizations = uniqueOrganizations.size;
 
+  // 단체명으로 수요처를 반복 탐색(O(n*m))하지 않도록 한 번만 맵으로 만들어 둔다.
+  const demandByOrganizationName = new Map<string, Demand>();
+  demands.forEach(d => {
+    if (!demandByOrganizationName.has(d.organizationName)) {
+      demandByOrganizationName.set(d.organizationName, d);
+    }
+  });
+
   // 최근 12개월 데이터
   const now = new Date();
   const monthlyData = [];
@@ -52,7 +60,7 @@ export const calculateStatistics = (performances: Performance[], demands: Demand
   const orgMap = new Map<string, { total: number; count: number; city: string }>();
   performances.forEach(p => {
     const existing = orgMap.get(p.organizationName) || { total: 0, count: 0, city: '' };
-    const demand = demands.find(d => d.organizationName === p.organizationName);
+    const demand = demandByOrganizationName.get(p.organizationName);
     orgMap.set(p.organizationName, {
       total: existing.total + (p.maleCount || 0) + (p.femaleCount || 0),
       count: existing.count + 1,
@@ -85,7 +93,7 @@ export const calculateStatistics = (performances: Performance[], demands: Demand
   });
   
   performances.forEach(p => {
-    const demand = demands.find(d => d.organizationName === p.organizationName);
+    const demand = demandByOrganizationName.get(p.organizationName);
     if (demand && cityMap.has(demand.city)) {
       const existing = cityMap.get(demand.city)!;
       cityMap.set(demand.city, {
