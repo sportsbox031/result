@@ -4,7 +4,7 @@ import { useFirebaseData } from '../hooks/useFirebaseData';
 import { DuplicatePerformanceError } from '../utils/firebaseStorage';
 import { useToast } from '../hooks/useToast';
 import { parsePerformanceExcelData, downloadPerformanceTemplate } from '../utils/excel';
-import { getDemandOptionsForPerformanceDate } from '../utils/performanceOrganizations';
+import { getDemandOptionsForPerformanceDate, findDemandForPerformance } from '../utils/performanceOrganizations';
 import { hasDuplicatePerformance, getPerformanceDuplicateKey } from '../utils/performanceDuplicates';
 import { getYearFromDate } from '../utils/yearUtils';
 import { PROGRAMS, Program } from '../constants';
@@ -31,7 +31,9 @@ const PerformanceInput: React.FC = () => {
   const [showInstructionModal, setShowInstructionModal] = useState(false);
   const [showDuplicateWarningModal, setShowDuplicateWarningModal] = useState(false);
   const lastWarnedDuplicateRef = useRef('');
-  const [uploadResult, setUploadResult] = useState<{ success: number; error: number; duplicate: number }>({ success: 0, error: 0, duplicate: 0 });
+  const [uploadResult, setUploadResult] = useState<{ success: number; error: number; duplicate: number; unmatched: number; unmatchedOrganizations: string[] }>({
+    success: 0, error: 0, duplicate: 0, unmatched: 0, unmatchedOrganizations: []
+  });
   const [organizationSearchTerm, setOrganizationSearchTerm] = useState('');
   const [showOrganizationDropdown, setShowOrganizationDropdown] = useState(false);
   const [highlightedOrgIndex, setHighlightedOrgIndex] = useState(-1);
@@ -54,9 +56,7 @@ const PerformanceInput: React.FC = () => {
     name.toLowerCase().includes(organizationSearchTerm.toLowerCase())
   );
 
-  const selectedDemand = demands.find(
-    d => d.organizationName === formData.organizationName && d.year === selectedYear
-  );
+  const selectedDemand = findDemandForPerformance(demands, formData.organizationName, selectedYear);
   const selectedCity = selectedDemand?.city || '';
   const isDuplicatePerformance = hasDuplicatePerformance(
     performances,
@@ -196,6 +196,8 @@ const PerformanceInput: React.FC = () => {
         let successCount = 0;
         let errorCount = 0;
         let duplicateCount = 0;
+        let unmatchedCount = 0;
+        const unmatchedOrganizationNames = new Set<string>();
 
         // 이미 등록된 실적(같은 날짜 + 같은 단체명)과 파일 내 중복 행을 모두 걸러낸다.
         const registeredKeys = new Set(
@@ -208,14 +210,28 @@ const PerformanceInput: React.FC = () => {
             continue;
           }
 
-          const duplicateKey = getPerformanceDuplicateKey(performance.date, performance.organizationName);
+          // 단체명이 그 해 수요처관리에 등록되어 있는지 확인하고, 시/군은 CSV 값 대신
+          // 등록된 수요처 정보를 사용한다 (수기 입력과 동일한 매칭 규칙).
+          const matchedDemand = findDemandForPerformance(
+            demands,
+            performance.organizationName,
+            getYearFromDate(performance.date)
+          );
+          if (!matchedDemand) {
+            unmatchedCount++;
+            unmatchedOrganizationNames.add(performance.organizationName);
+            continue;
+          }
+          const matchedPerformance = { ...performance, city: matchedDemand.city };
+
+          const duplicateKey = getPerformanceDuplicateKey(matchedPerformance.date, matchedPerformance.organizationName);
           if (registeredKeys.has(duplicateKey)) {
             duplicateCount++;
             continue;
           }
 
           try {
-            await addPerformance(performance);
+            await addPerformance(matchedPerformance);
             registeredKeys.add(duplicateKey);
             successCount++;
           } catch (error) {
@@ -227,7 +243,13 @@ const PerformanceInput: React.FC = () => {
           }
         }
 
-        setUploadResult({ success: successCount, error: errorCount, duplicate: duplicateCount });
+        setUploadResult({
+          success: successCount,
+          error: errorCount,
+          duplicate: duplicateCount,
+          unmatched: unmatchedCount,
+          unmatchedOrganizations: Array.from(unmatchedOrganizationNames)
+        });
         setShowUploadSuccessModal(true);
 
       } catch {
@@ -599,9 +621,14 @@ const PerformanceInput: React.FC = () => {
                 <p className="text-sm text-gray-600 mb-3">
                   CSV 파일을 업로드하세요. 열 순서: 날짜, 단체명, 시군, 프로그램, 남성, 여성, 홍보횟수, 메모
                 </p>
-                <div className="glass p-3 rounded-xl bg-amber-50/50 border border-amber-200 mb-4">
+                <div className="glass p-3 rounded-xl bg-amber-50/50 border border-amber-200 mb-2">
                   <p className="text-sm text-amber-800">
                     <strong>중요:</strong> 날짜는 YYYY-MM-DD 형식으로 입력하세요 (예: 2024-01-15)
+                  </p>
+                </div>
+                <div className="glass p-3 rounded-xl bg-amber-50/50 border border-amber-200 mb-4">
+                  <p className="text-sm text-amber-800">
+                    <strong>중요:</strong> 단체명은 해당 날짜의 연도 기준으로 수요처관리에 등록된 이름과 정확히 일치해야 합니다. 일치하지 않으면 해당 행은 등록되지 않습니다. 시/군은 CSV 값과 무관하게 수요처관리에 등록된 정보로 자동 반영됩니다.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-3">
@@ -741,6 +768,12 @@ const PerformanceInput: React.FC = () => {
                     <span className="font-bold text-amber-600">{uploadResult.duplicate}건</span>
                   </div>
                 )}
+                {uploadResult.unmatched > 0 && (
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-600">미등록 단체 제외:</span>
+                    <span className="font-bold text-orange-600">{uploadResult.unmatched}건</span>
+                  </div>
+                )}
                 {uploadResult.error > 0 && (
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">실패:</span>
@@ -750,6 +783,14 @@ const PerformanceInput: React.FC = () => {
                 {uploadResult.duplicate > 0 && (
                   <p className="text-xs text-gray-500 mt-2 text-left">
                     같은 날짜에 같은 단체명으로 이미 등록된 실적은 제외되었습니다.
+                  </p>
+                )}
+                {uploadResult.unmatched > 0 && (
+                  <p className="text-xs text-gray-500 mt-2 text-left">
+                    해당 연도 수요처관리에 등록되지 않은 단체명은 제외되었습니다: {uploadResult.unmatchedOrganizations.slice(0, 5).join(', ')}
+                    {uploadResult.unmatchedOrganizations.length > 5 ? ` 외 ${uploadResult.unmatchedOrganizations.length - 5}건` : ''}
+                    <br />
+                    수요처관리에서 먼저 단체를 등록한 뒤 다시 업로드해주세요.
                   </p>
                 )}
               </div>
@@ -799,6 +840,20 @@ const PerformanceInput: React.FC = () => {
                     <strong>주의:</strong> "CSV(쉼표로 분리)" 대신 반드시 <strong>"CSV UTF-8"</strong>을 선택하세요!
                   </p>
                 </div>
+              </div>
+
+              <div className="glass-panel p-4">
+                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <span className="text-lg">🏢</span> 단체명 매칭
+                </h4>
+                <p className="text-sm text-gray-700 mb-2">
+                  단체명은 날짜의 연도 기준으로 <strong>수요처관리에 등록된 이름과 정확히 동일</strong>해야 합니다.
+                </p>
+                <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                  <li>일치하지 않는 단체명은 업로드에서 제외되고, 결과 화면에서 제외된 단체명을 확인할 수 있습니다.</li>
+                  <li>시/군은 CSV에 적은 값과 무관하게 수요처관리에 등록된 정보로 자동 반영됩니다.</li>
+                  <li>먼저 <strong>수요처관리</strong>에서 해당 연도에 단체를 등록한 뒤 업로드해주세요.</li>
+                </ul>
               </div>
 
               <div className="glass-panel p-4">

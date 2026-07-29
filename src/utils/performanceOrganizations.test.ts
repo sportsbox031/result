@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Demand } from '../types';
-import { getDemandOptionsForPerformanceDate } from './performanceOrganizations';
+import { getDemandOptionsForPerformanceDate, findDemandForPerformance } from './performanceOrganizations';
 
 const demands: Demand[] = [
   {
@@ -60,5 +60,25 @@ describe('getDemandOptionsForPerformanceDate', () => {
     const options = getDemandOptionsForPerformanceDate(demands, '');
 
     expect(options).toEqual(['올해 단체', '작년 단체', '중복 단체']);
+  });
+});
+
+describe('findDemandForPerformance', () => {
+  it('matches a demand by organization name and year', () => {
+    const demand = findDemandForPerformance(demands, '올해 단체', 2026);
+
+    expect(demand?.id).toBe('2');
+  });
+
+  it('does not match the same organization name registered in a different year', () => {
+    const demand = findDemandForPerformance(demands, '작년 단체', 2026);
+
+    expect(demand).toBeUndefined();
+  });
+
+  it('returns undefined for an organization name not registered at all', () => {
+    const demand = findDemandForPerformance(demands, '미등록 단체', 2026);
+
+    expect(demand).toBeUndefined();
   });
 });

@@ -12,6 +12,15 @@ export const getDemandOptionsForPerformanceDate = (
   return Array.from(new Set(scopedDemands.map((demand) => demand.organizationName))).sort();
 };
 
+// 실적의 단체명 + 연도가 그 해 등록된 수요처와 정확히 일치하는지 찾는다.
+// 수기 입력에서 단체명 선택 시 쓰는 것과 동일한 매칭 규칙 (단체명 + 연도 일치).
+export const findDemandForPerformance = (
+  demands: Demand[],
+  organizationName: string,
+  year: number
+): Demand | undefined =>
+  demands.find((demand) => demand.organizationName === organizationName && demand.year === year);
+
 export type OrganizationPhoneLookup = (organizationName: string, year?: number) => string;
 
 // 단체명(+연도)으로 수요처 연락처를 찾는 조회 함수를 만든다.
