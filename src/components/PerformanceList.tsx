@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Search, Calendar, Filter, Trash2, Edit2, Save, X, Megaphone, Download, MapPin, BarChart3 } from 'lucide-react';
+import React, { useState, useMemo, useCallback, useEffect, memo } from 'react';
+import { Search, Calendar, Filter, Trash2, Edit2, Save, X, Megaphone, Download, MapPin, BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useFirebaseData } from '../hooks/useFirebaseData';
 import { useToast } from '../hooks/useToast';
 import { Performance, FilterState } from '../types';
@@ -10,6 +10,216 @@ import { AVAILABLE_YEARS, CURRENT_YEAR, getPerformanceYear } from '../utils/year
 import { PROGRAMS } from '../constants';
 import RegionBadge from './common/RegionBadge';
 
+const PAGE_SIZE_OPTIONS = [20, 30, 50, 100] as const;
+
+interface PerformanceRowProps {
+  performance: Performance;
+  isEditing: boolean;
+  editForm: Partial<Performance>;
+  organizationNames: string[];
+  onEdit: (performance: Performance) => void;
+  onDelete: (id: string, organizationName: string, date?: Date) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  onInputChange: <K extends keyof Performance>(field: K, value: Performance[K]) => void;
+}
+
+// 행 단위로 memo 처리 — 다른 행을 수정 중이어도 이 행이 리렌더링되지 않도록 한다.
+const PerformanceRow: React.FC<PerformanceRowProps> = memo(({
+  performance,
+  isEditing,
+  editForm,
+  organizationNames,
+  onEdit,
+  onDelete,
+  onSave,
+  onCancel,
+  onInputChange
+}) => {
+  return (
+    <tr>
+      <td>
+        {isEditing ? (
+          <input
+            type="date"
+            value={editForm.date ? new Date(editForm.date).toISOString().split('T')[0] : ''}
+            onChange={(e) => onInputChange('date', new Date(e.target.value))}
+            className="input-glass text-sm py-2"
+          />
+        ) : (
+          <span className="text-sm font-mono text-gray-700">
+            {performance.date ? performance.date.toLocaleDateString('ko-KR') : '날짜 없음'}
+          </span>
+        )}
+      </td>
+      <td>
+        {isEditing ? (
+          <select
+            value={editForm.organizationName || ''}
+            onChange={(e) => onInputChange('organizationName', e.target.value)}
+            className="select-glass text-sm py-2"
+          >
+            <option value="">단체 선택</option>
+            {organizationNames.map(name => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+        ) : (
+          <span className="font-medium text-gray-900">{performance.organizationName}</span>
+        )}
+      </td>
+      <td className="hidden lg:table-cell">
+        <span className="text-sm text-gray-600">{performance.city || '-'}</span>
+      </td>
+      <td className="hidden lg:table-cell">
+        <RegionBadge region={getCityRegion(performance.city)} />
+      </td>
+      <td>
+        {isEditing ? (
+          <select
+            value={editForm.program || performance.program || '스포츠교실'}
+            onChange={(e) => onInputChange('program', e.target.value as Performance['program'])}
+            className="select-glass text-sm py-2"
+          >
+            {PROGRAMS.map(program => (
+              <option key={program} value={program}>{program}</option>
+            ))}
+          </select>
+        ) : (
+          <span className="badge-violet">{performance.program || '스포츠교실'}</span>
+        )}
+      </td>
+      <td>
+        {isEditing ? (
+          <input
+            type="number"
+            value={editForm.maleCount || ''}
+            onChange={(e) => onInputChange('maleCount', parseInt(e.target.value) || 0)}
+            min="0"
+            className="input-glass text-sm py-2 w-20"
+          />
+        ) : (
+          <span className="font-mono text-blue-600 font-medium">
+            {(performance.maleCount || 0).toLocaleString()}
+          </span>
+        )}
+      </td>
+      <td>
+        {isEditing ? (
+          <input
+            type="number"
+            value={editForm.femaleCount || ''}
+            onChange={(e) => onInputChange('femaleCount', parseInt(e.target.value) || 0)}
+            min="0"
+            className="input-glass text-sm py-2 w-20"
+          />
+        ) : (
+          <span className="font-mono text-pink-600 font-medium">
+            {(performance.femaleCount || 0).toLocaleString()}
+          </span>
+        )}
+      </td>
+      <td>
+        <span className="font-mono font-bold text-gray-900">
+          {((performance.maleCount || 0) + (performance.femaleCount || 0)).toLocaleString()}
+        </span>
+      </td>
+      <td className="hidden lg:table-cell">
+        {isEditing ? (
+          <input
+            type="number"
+            value={editForm.promotionCount || ''}
+            onChange={(e) => onInputChange('promotionCount', parseInt(e.target.value) || 0)}
+            min="0"
+            className="input-glass text-sm py-2 w-20"
+          />
+        ) : (
+          <span className="text-sm text-orange-600 font-mono flex items-center gap-1">
+            <Megaphone className="w-3 h-3" />
+            {(performance.promotionCount || 0).toLocaleString()}회
+          </span>
+        )}
+      </td>
+      <td>
+        {isEditing ? (
+          <textarea
+            value={editForm.notes || ''}
+            onChange={(e) => onInputChange('notes', e.target.value)}
+            className="input-glass text-sm py-2 resize-none"
+            rows={2}
+          />
+        ) : (
+          <span className="text-sm text-gray-500 block truncate max-w-[150px]" title={performance.notes || ''}>
+            {performance.notes || '-'}
+          </span>
+        )}
+      </td>
+      <td className="text-right">
+        {isEditing ? (
+          <div className="flex items-center justify-end gap-1">
+            <button
+              onClick={onSave}
+              className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors"
+              title="저장"
+            >
+              <Save className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onCancel}
+              className="p-2 text-gray-500 hover:bg-gray-100 rounded-xl transition-colors"
+              title="취소"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-end gap-1">
+            <button
+              onClick={() => onEdit(performance)}
+              className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
+              title="수정"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => onDelete(performance.id, performance.organizationName, performance.date)}
+              className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+              title="삭제"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </td>
+    </tr>
+  );
+}, (prev, next) => {
+  if (prev.performance !== next.performance) return false;
+  if (prev.isEditing !== next.isEditing) return false;
+  if (prev.organizationNames !== next.organizationNames) return false;
+  // 편집 중인 행만 editForm 변경에 반응하면 된다 (매 입력마다 다른 행까지 리렌더링되는 것을 방지)
+  if (next.isEditing && prev.editForm !== next.editForm) return false;
+  return true;
+});
+
+PerformanceRow.displayName = 'PerformanceRow';
+
+// 페이지 번호 목록 생성 (현재 페이지 주변 + 처음/끝, 나머지는 '...' 로 축약)
+const getPageNumbers = (currentPage: number, totalPages: number): (number | 'ellipsis')[] => {
+  const delta = 1;
+  const pages: (number | 'ellipsis')[] = [];
+  const start = Math.max(2, currentPage - delta);
+  const end = Math.min(totalPages - 1, currentPage + delta);
+
+  pages.push(1);
+  if (start > 2) pages.push('ellipsis');
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (end < totalPages - 1) pages.push('ellipsis');
+  if (totalPages > 1) pages.push(totalPages);
+
+  return pages;
+};
+
 const PerformanceList: React.FC = () => {
   const { addToast } = useToast();
   const { performances, demands, updatePerformance, deletePerformance } = useFirebaseData();
@@ -18,6 +228,8 @@ const PerformanceList: React.FC = () => {
   const [filters, setFilters] = useState<FilterState>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedYear, setSelectedYear] = useState<number | 'all'>(CURRENT_YEAR);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(30);
 
   const organizationNames = useMemo(
     () => Array.from(new Set(demands.map(d => d.organizationName))).sort(),
@@ -71,6 +283,25 @@ const PerformanceList: React.FC = () => {
     });
   }, [performances, filters, searchTerm, selectedYear]);
 
+  // 화면에는 필터링된 결과 중 현재 페이지 분량만 렌더링한다.
+  // (전체를 한 번에 테이블로 그리면 데이터가 많을 때 렉이 발생한다)
+  const totalPages = Math.max(1, Math.ceil(filteredPerformances.length / pageSize));
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, searchTerm, selectedYear, pageSize]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const paginatedPerformances = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredPerformances.slice(start, start + pageSize);
+  }, [filteredPerformances, currentPage, pageSize]);
+
   const handleFilterChange = <K extends keyof FilterState>(field: K, value: FilterState[K]) => {
     setFilters(prev => ({ ...prev, [field]: value }));
   };
@@ -79,17 +310,18 @@ const PerformanceList: React.FC = () => {
     setFilters({});
     setSearchTerm('');
     setSelectedYear(CURRENT_YEAR);
+    setCurrentPage(1);
   };
 
-  const handleEdit = (performance: Performance) => {
+  const handleEdit = useCallback((performance: Performance) => {
     setEditingId(performance.id);
     setEditForm({
       ...performance,
       date: performance.date
     });
-  };
+  }, []);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!editingId || !editForm.date || !editForm.organizationName) {
       addToast({
         type: 'error',
@@ -134,14 +366,14 @@ const PerformanceList: React.FC = () => {
           : '실적 데이터 수정 중 오류가 발생했습니다'
       });
     }
-  };
+  }, [editingId, editForm, updatePerformance, addToast]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     setEditingId(null);
     setEditForm({});
-  };
+  }, []);
 
-  const handleDelete = async (id: string, organizationName: string, date?: Date) => {
+  const handleDelete = useCallback(async (id: string, organizationName: string, date?: Date) => {
     const dateStr = date ? date.toLocaleDateString('ko-KR') : '날짜 없음';
     if (window.confirm(`"${organizationName}"의 ${dateStr} 실적 데이터를 삭제하시겠습니까?`)) {
       try {
@@ -160,11 +392,11 @@ const PerformanceList: React.FC = () => {
         });
       }
     }
-  };
+  }, [deletePerformance, addToast]);
 
-  const handleInputChange = <K extends keyof Performance>(field: K, value: Performance[K]) => {
+  const handleInputChange = useCallback(<K extends keyof Performance>(field: K, value: Performance[K]) => {
     setEditForm(prev => ({ ...prev, [field]: value }));
-  };
+  }, []);
 
   const handleExcelDownload = () => {
     if (filteredPerformances.length === 0) {
@@ -191,6 +423,11 @@ const PerformanceList: React.FC = () => {
       });
     }
   };
+
+  const pageNumbers = useMemo(() => getPageNumbers(currentPage, totalPages), [currentPage, totalPages]);
+
+  const rangeStart = filteredPerformances.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(currentPage * pageSize, filteredPerformances.length);
 
   return (
     <div className="max-w-7xl mx-auto animate-fadeIn">
@@ -323,13 +560,27 @@ const PerformanceList: React.FC = () => {
         </div>
       </div>
 
-      {/* 결과 요약 및 엑셀 다운로드 */}
+      {/* 결과 요약, 페이지당 표시 개수, 엑셀 다운로드 */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
-        <div className="glass px-4 py-2 rounded-xl">
-          <span className="text-sm text-gray-600">
-            총 <span className="font-bold text-gray-900">{performances.length}</span>건 중{' '}
-            <span className="font-bold text-blue-600">{filteredPerformances.length}</span>건 표시
-          </span>
+        <div className="flex items-center gap-3">
+          <div className="glass px-4 py-2 rounded-xl">
+            <span className="text-sm text-gray-600">
+              총 <span className="font-bold text-gray-900">{performances.length}</span>건 중{' '}
+              <span className="font-bold text-blue-600">{filteredPerformances.length}</span>건 표시
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600 whitespace-nowrap">페이지당</label>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="select-glass text-sm py-2"
+            >
+              {PAGE_SIZE_OPTIONS.map(size => (
+                <option key={size} value={size}>{size}건</option>
+              ))}
+            </select>
+          </div>
         </div>
         <button
           onClick={handleExcelDownload}
@@ -361,162 +612,19 @@ const PerformanceList: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredPerformances.map((performance) => (
-                <tr key={performance.id}>
-                  <td>
-                    {editingId === performance.id ? (
-                      <input
-                        type="date"
-                        value={editForm.date ? new Date(editForm.date).toISOString().split('T')[0] : ''}
-                        onChange={(e) => handleInputChange('date', new Date(e.target.value))}
-                        className="input-glass text-sm py-2"
-                      />
-                    ) : (
-                      <span className="text-sm font-mono text-gray-700">
-                        {performance.date ? performance.date.toLocaleDateString('ko-KR') : '날짜 없음'}
-                      </span>
-                    )}
-                  </td>
-                  <td>
-                    {editingId === performance.id ? (
-                      <select
-                        value={editForm.organizationName || ''}
-                        onChange={(e) => handleInputChange('organizationName', e.target.value)}
-                        className="select-glass text-sm py-2"
-                      >
-                        <option value="">단체 선택</option>
-                        {organizationNames.map(name => (
-                          <option key={name} value={name}>{name}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span className="font-medium text-gray-900">{performance.organizationName}</span>
-                    )}
-                  </td>
-                  <td className="hidden lg:table-cell">
-                    <span className="text-sm text-gray-600">{performance.city || '-'}</span>
-                  </td>
-                  <td className="hidden lg:table-cell">
-                    <RegionBadge region={getCityRegion(performance.city)} />
-                  </td>
-                  <td>
-                    {editingId === performance.id ? (
-                      <select
-                        value={editForm.program || performance.program || '스포츠교실'}
-                        onChange={(e) => handleInputChange('program', e.target.value as Performance['program'])}
-                        className="select-glass text-sm py-2"
-                      >
-                        {PROGRAMS.map(program => (
-                          <option key={program} value={program}>{program}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span className="badge-violet">{performance.program || '스포츠교실'}</span>
-                    )}
-                  </td>
-                  <td>
-                    {editingId === performance.id ? (
-                      <input
-                        type="number"
-                        value={editForm.maleCount || ''}
-                        onChange={(e) => handleInputChange('maleCount', parseInt(e.target.value) || 0)}
-                        min="0"
-                        className="input-glass text-sm py-2 w-20"
-                      />
-                    ) : (
-                      <span className="font-mono text-blue-600 font-medium">
-                        {(performance.maleCount || 0).toLocaleString()}
-                      </span>
-                    )}
-                  </td>
-                  <td>
-                    {editingId === performance.id ? (
-                      <input
-                        type="number"
-                        value={editForm.femaleCount || ''}
-                        onChange={(e) => handleInputChange('femaleCount', parseInt(e.target.value) || 0)}
-                        min="0"
-                        className="input-glass text-sm py-2 w-20"
-                      />
-                    ) : (
-                      <span className="font-mono text-pink-600 font-medium">
-                        {(performance.femaleCount || 0).toLocaleString()}
-                      </span>
-                    )}
-                  </td>
-                  <td>
-                    <span className="font-mono font-bold text-gray-900">
-                      {((performance.maleCount || 0) + (performance.femaleCount || 0)).toLocaleString()}
-                    </span>
-                  </td>
-                  <td className="hidden lg:table-cell">
-                    {editingId === performance.id ? (
-                      <input
-                        type="number"
-                        value={editForm.promotionCount || ''}
-                        onChange={(e) => handleInputChange('promotionCount', parseInt(e.target.value) || 0)}
-                        min="0"
-                        className="input-glass text-sm py-2 w-20"
-                      />
-                    ) : (
-                      <span className="text-sm text-orange-600 font-mono flex items-center gap-1">
-                        <Megaphone className="w-3 h-3" />
-                        {(performance.promotionCount || 0).toLocaleString()}회
-                      </span>
-                    )}
-                  </td>
-                  <td>
-                    {editingId === performance.id ? (
-                      <textarea
-                        value={editForm.notes || ''}
-                        onChange={(e) => handleInputChange('notes', e.target.value)}
-                        className="input-glass text-sm py-2 resize-none"
-                        rows={2}
-                      />
-                    ) : (
-                      <span className="text-sm text-gray-500 block truncate max-w-[150px]" title={performance.notes || ''}>
-                        {performance.notes || '-'}
-                      </span>
-                    )}
-                  </td>
-                  <td className="text-right">
-                    {editingId === performance.id ? (
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={handleSave}
-                          className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors"
-                          title="저장"
-                        >
-                          <Save className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={handleCancel}
-                          className="p-2 text-gray-500 hover:bg-gray-100 rounded-xl transition-colors"
-                          title="취소"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => handleEdit(performance)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
-                          title="수정"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(performance.id, performance.organizationName, performance.date)}
-                          className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
-                          title="삭제"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
+              {paginatedPerformances.map((performance) => (
+                <PerformanceRow
+                  key={performance.id}
+                  performance={performance}
+                  isEditing={editingId === performance.id}
+                  editForm={editForm}
+                  organizationNames={organizationNames}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onSave={handleSave}
+                  onCancel={handleCancel}
+                  onInputChange={handleInputChange}
+                />
               ))}
             </tbody>
           </table>
@@ -531,6 +639,49 @@ const PerformanceList: React.FC = () => {
               {performances.length === 0 ? '실적 데이터가 없습니다' : '검색 조건에 맞는 데이터가 없습니다'}
             </p>
             <p className="text-sm text-gray-400">필터를 조정하거나 새로운 실적을 입력해보세요</p>
+          </div>
+        )}
+
+        {filteredPerformances.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-4 border-t border-gray-100">
+            <span className="text-sm text-gray-500">
+              {rangeStart.toLocaleString()}–{rangeEnd.toLocaleString()} / {filteredPerformances.length.toLocaleString()}건
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                title="이전 페이지"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              {pageNumbers.map((page, idx) =>
+                page === 'ellipsis' ? (
+                  <span key={`ellipsis-${idx}`} className="px-2 text-gray-400 text-sm">...</span>
+                ) : (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`min-w-[2.25rem] h-9 px-2 rounded-xl text-sm font-medium transition-colors ${
+                      page === currentPage
+                        ? 'bg-emerald-600 text-white shadow shadow-emerald-500/30'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              )}
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                title="다음 페이지"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
       </div>
