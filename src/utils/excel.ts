@@ -79,9 +79,12 @@ export const downloadDemandExcel = (demands: Demand[]) => {
 };
 
 // 실적 데이터를 엑셀로 다운로드하는 함수
-export const downloadPerformanceExcel = (performances: Performance[]) => {
+// contactPhoneNumber: 화면에는 표시하지 않고 다운로드 시에만 단체명 옆에 노출하는 연락처
+export const downloadPerformanceExcel = (
+  performances: (Performance & { contactPhoneNumber?: string })[]
+) => {
   // CSV 헤더 (UTF-8 BOM 포함)
-  let csvContent = '\uFEFF날짜,단체명,시군,지역,프로그램,남성,여성,총인원,홍보횟수,메모\n';
+  let csvContent = '\uFEFF날짜,단체명,연락처,시군,지역,프로그램,남성,여성,총인원,홍보횟수,메모\n';
   
   // 데이터 행 추가
   performances.forEach(performance => {
@@ -94,6 +97,7 @@ export const downloadPerformanceExcel = (performances: Performance[]) => {
     const row = [
       date,
       `"${performance.organizationName}"`,
+      `"${performance.contactPhoneNumber || ''}"`,
       `"${performance.city || ''}"`,
       `"${region}"`,
       `"${performance.program || '스포츠교실'}"`,
@@ -103,7 +107,7 @@ export const downloadPerformanceExcel = (performances: Performance[]) => {
       performance.promotionCount || 0,
       `"${notes.replace(/"/g, '""')}"` // 따옴표 이스케이프
     ].join(',');
-    
+
     csvContent += row + '\n';
   });
   

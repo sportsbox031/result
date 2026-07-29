@@ -9,6 +9,7 @@ import { getCityRegion } from '../utils/regions';
 import { AVAILABLE_YEARS, CURRENT_YEAR, getPerformanceYear } from '../utils/yearUtils';
 import { PROGRAMS } from '../constants';
 import RegionBadge from './common/RegionBadge';
+import { buildOrganizationPhoneLookup } from '../utils/performanceOrganizations';
 
 const PAGE_SIZE_OPTIONS = [20, 30, 50, 100] as const;
 
@@ -17,6 +18,7 @@ interface PerformanceRowProps {
   isEditing: boolean;
   editForm: Partial<Performance>;
   organizationNames: string[];
+  phoneNumber: string;
   onEdit: (performance: Performance) => void;
   onDelete: (id: string, organizationName: string, date?: Date) => void;
   onSave: () => void;
@@ -30,6 +32,7 @@ const PerformanceRow: React.FC<PerformanceRowProps> = memo(({
   isEditing,
   editForm,
   organizationNames,
+  phoneNumber,
   onEdit,
   onDelete,
   onSave,
@@ -65,7 +68,12 @@ const PerformanceRow: React.FC<PerformanceRowProps> = memo(({
             ))}
           </select>
         ) : (
-          <span className="font-medium text-gray-900">{performance.organizationName}</span>
+          <span
+            className={`font-medium text-gray-900 ${phoneNumber ? 'cursor-help underline decoration-dotted decoration-gray-300 underline-offset-4' : ''}`}
+            title={phoneNumber ? `연락처: ${phoneNumber}` : undefined}
+          >
+            {performance.organizationName}
+          </span>
         )}
       </td>
       <td className="hidden lg:table-cell">
@@ -199,6 +207,7 @@ const PerformanceRow: React.FC<PerformanceRowProps> = memo(({
   if (prev.organizationNames !== next.organizationNames) return false;
   // 편집 중인 행만 editForm 변경에 반응하면 된다 (매 입력마다 다른 행까지 리렌더링되는 것을 방지)
   if (next.isEditing && prev.editForm !== next.editForm) return false;
+  if (prev.phoneNumber !== next.phoneNumber) return false;
   return true;
 });
 
@@ -235,6 +244,8 @@ const PerformanceList: React.FC = () => {
     () => Array.from(new Set(demands.map(d => d.organizationName))).sort(),
     [demands]
   );
+
+  const getPhoneNumber = useMemo(() => buildOrganizationPhoneLookup(demands), [demands]);
 
   // 필터링 (useMemo로 계산 — 이전에는 useEffect + setState로 불필요한 이중 렌더 발생)
   const filteredPerformances = useMemo(() => {
@@ -409,7 +420,14 @@ const PerformanceList: React.FC = () => {
     }
 
     try {
-      downloadPerformanceExcel(filteredPerformances);
+      const performancesWithContact = filteredPerformances.map(performance => ({
+        ...performance,
+        contactPhoneNumber: getPhoneNumber(
+          performance.organizationName,
+          performance.date ? getPerformanceYear(performance.date) : undefined
+        )
+      }));
+      downloadPerformanceExcel(performancesWithContact);
       addToast({
         type: 'success',
         title: '다운로드 완료',
@@ -619,6 +637,10 @@ const PerformanceList: React.FC = () => {
                   isEditing={editingId === performance.id}
                   editForm={editForm}
                   organizationNames={organizationNames}
+                  phoneNumber={getPhoneNumber(
+                    performance.organizationName,
+                    performance.date ? getPerformanceYear(performance.date) : undefined
+                  )}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                   onSave={handleSave}
