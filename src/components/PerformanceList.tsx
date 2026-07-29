@@ -10,6 +10,7 @@ import { AVAILABLE_YEARS, CURRENT_YEAR, getPerformanceYear } from '../utils/year
 import { PROGRAMS } from '../constants';
 import RegionBadge from './common/RegionBadge';
 import { buildOrganizationPhoneLookup } from '../utils/performanceOrganizations';
+import { formatPhoneNumber } from '../utils/phone';
 
 const PAGE_SIZE_OPTIONS = [20, 30, 50, 100] as const;
 
@@ -70,7 +71,7 @@ const PerformanceRow: React.FC<PerformanceRowProps> = memo(({
         ) : (
           <span
             className={`font-medium text-gray-900 ${phoneNumber ? 'cursor-help underline decoration-dotted decoration-gray-300 underline-offset-4' : ''}`}
-            title={phoneNumber ? `연락처: ${phoneNumber}` : undefined}
+            title={phoneNumber ? `연락처: ${formatPhoneNumber(phoneNumber)}` : undefined}
           >
             {performance.organizationName}
           </span>

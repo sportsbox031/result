@@ -2,6 +2,7 @@ import { Demand, Performance } from '../types';
 import { BudgetUsage, BudgetItem } from '../types';
 import { getCityRegion } from './regions';
 import { getBudgetHierarchyInfo } from './budgetHierarchy';
+import { formatPhoneNumber } from './phone';
 
 export const parseExcelData = (
   csvContent: string,
@@ -60,7 +61,7 @@ export const downloadDemandExcel = (demands: Demand[]) => {
       `"${getCityRegion(demand.city)}"`,
       `"${demand.organizationName.replace(/"/g, '""')}"`,
       `"${demand.contactPerson.replace(/"/g, '""')}"`,
-      `"${demand.phoneNumber}"`,
+      `"${formatPhoneNumber(demand.phoneNumber)}"`,
       `"${demand.email || ''}"`,
       demand.createdAt ? demand.createdAt.toLocaleDateString('ko-KR') : ''
     ].join(',');
@@ -97,7 +98,7 @@ export const downloadPerformanceExcel = (
     const row = [
       date,
       `"${performance.organizationName}"`,
-      `"${performance.contactPhoneNumber || ''}"`,
+      `"${formatPhoneNumber(performance.contactPhoneNumber)}"`,
       `"${performance.city || ''}"`,
       `"${region}"`,
       `"${performance.program || '스포츠교실'}"`,
