@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useCallback, useEffect, memo } from 'react';
-import { Search, Calendar, Filter, Trash2, Edit2, Save, X, Megaphone, Download, MapPin, BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Calendar, Filter, Trash2, Edit2, Save, X, Megaphone, Download, MapPin, BarChart3, ChevronLeft, ChevronRight, UserCheck } from 'lucide-react';
 import { useFirebaseData } from '../hooks/useFirebaseData';
 import { useToast } from '../hooks/useToast';
 import { Performance, FilterState } from '../types';
-import { downloadPerformanceExcel } from '../utils/excel';
+import { downloadPerformanceExcel, downloadSatisfactionSurveyExcel } from '../utils/excel';
 import { DuplicatePerformanceError } from '../utils/firebaseStorage';
 import { getCityRegion } from '../utils/regions';
 import { AVAILABLE_YEARS, CURRENT_YEAR, getPerformanceYear } from '../utils/yearUtils';
@@ -443,6 +443,50 @@ const PerformanceList: React.FC = () => {
     }
   };
 
+  // 현재 필터(연도 등) 기준으로 참여 단체명 중복을 제거한 만족도 확인용 리스트를 다운로드한다.
+  const handleSatisfactionExcelDownload = () => {
+    if (filteredPerformances.length === 0) {
+      addToast({
+        type: 'warning',
+        title: '다운로드 불가',
+        message: '다운로드할 데이터가 없습니다'
+      });
+      return;
+    }
+
+    try {
+      const seenOrganizations = new Set<string>();
+      const uniqueOrganizations = filteredPerformances.reduce<{ organizationName: string; contactPhoneNumber: string }[]>(
+        (result, performance) => {
+          if (seenOrganizations.has(performance.organizationName)) return result;
+          seenOrganizations.add(performance.organizationName);
+          result.push({
+            organizationName: performance.organizationName,
+            contactPhoneNumber: getPhoneNumber(
+              performance.organizationName,
+              performance.date ? getPerformanceYear(performance.date) : undefined
+            )
+          });
+          return result;
+        },
+        []
+      ).sort((a, b) => a.organizationName.localeCompare(b.organizationName, 'ko'));
+
+      downloadSatisfactionSurveyExcel(uniqueOrganizations);
+      addToast({
+        type: 'success',
+        title: '다운로드 완료',
+        message: '만족도 확인용 단체 리스트가 성공적으로 다운로드되었습니다'
+      });
+    } catch {
+      addToast({
+        type: 'error',
+        title: '다운로드 실패',
+        message: '엑셀 파일 다운로드 중 오류가 발생했습니다'
+      });
+    }
+  };
+
   const pageNumbers = useMemo(() => getPageNumbers(currentPage, totalPages), [currentPage, totalPages]);
 
   const rangeStart = filteredPerformances.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
@@ -601,14 +645,25 @@ const PerformanceList: React.FC = () => {
             </select>
           </div>
         </div>
-        <button
-          onClick={handleExcelDownload}
-          disabled={filteredPerformances.length === 0}
-          className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Download className="w-4 h-4" />
-          엑셀 다운로드
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExcelDownload}
+            disabled={filteredPerformances.length === 0}
+            className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download className="w-4 h-4" />
+            엑셀 다운로드
+          </button>
+          <button
+            onClick={handleSatisfactionExcelDownload}
+            disabled={filteredPerformances.length === 0}
+            className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+            title="현재 필터 기준 참여 단체명과 연락처를 중복 없이 다운로드합니다"
+          >
+            <UserCheck className="w-4 h-4" />
+            만족도확인용 다운로드
+          </button>
+        </div>
       </div>
 
       {/* 테이블 */}

@@ -124,6 +124,31 @@ export const downloadPerformanceExcel = (
   window.URL.revokeObjectURL(url);
 };
 
+// 만족도 확인용: 중복을 제거한 참여 단체명 + 연락처 목록을 엑셀로 다운로드하는 함수
+export const downloadSatisfactionSurveyExcel = (
+  organizations: { organizationName: string; contactPhoneNumber?: string }[]
+) => {
+  let csvContent = '﻿단체명,연락처\n';
+
+  organizations.forEach(org => {
+    const row = [
+      `"${org.organizationName.replace(/"/g, '""')}"`,
+      `"${formatPhoneNumber(org.contactPhoneNumber)}"`
+    ].join(',');
+    csvContent += row + '\n';
+  });
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `만족도확인_단체리스트_${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+};
+
 // 실적 업로드용 템플릿 다운로드
 export const downloadPerformanceTemplate = () => {
   // UTF-8 BOM을 추가하여 한글 인코딩 문제 해결
