@@ -85,7 +85,7 @@ export const downloadPerformanceExcel = (
   performances: (Performance & { contactPhoneNumber?: string })[]
 ) => {
   // CSV 헤더 (UTF-8 BOM 포함)
-  let csvContent = '\uFEFF날짜,단체명,연락처,시군,지역,프로그램,남성,여성,총인원,홍보횟수,메모\n';
+  let csvContent = '\uFEFF날짜,연락처,단체명,시군,지역,프로그램,남성,여성,총인원,홍보횟수,메모\n';
   
   // 데이터 행 추가
   performances.forEach(performance => {
@@ -97,8 +97,8 @@ export const downloadPerformanceExcel = (
     // CSV 형식으로 데이터 추가 (쉼표와 따옴표 처리)
     const row = [
       date,
-      `"${performance.organizationName}"`,
       `"${formatPhoneNumber(performance.contactPhoneNumber)}"`,
+      `"${performance.organizationName}"`,
       `"${performance.city || ''}"`,
       `"${region}"`,
       `"${performance.program || '스포츠교실'}"`,

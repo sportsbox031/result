@@ -34,6 +34,7 @@ const PerformanceInput: React.FC = () => {
   const [uploadResult, setUploadResult] = useState<{ success: number; error: number; duplicate: number }>({ success: 0, error: 0, duplicate: 0 });
   const [organizationSearchTerm, setOrganizationSearchTerm] = useState('');
   const [showOrganizationDropdown, setShowOrganizationDropdown] = useState(false);
+  const [highlightedOrgIndex, setHighlightedOrgIndex] = useState(-1);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState<PerformanceFormData>({
@@ -66,6 +67,36 @@ const PerformanceInput: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectOrganization = (name: string) => {
+    setFormData(prev => ({ ...prev, organizationName: name }));
+    setOrganizationSearchTerm(name);
+    setShowOrganizationDropdown(false);
+    setHighlightedOrgIndex(-1);
+  };
+
+  // 단체명 검색창에서 방향키로 항목을 탐색하고 엔터로 선택할 수 있게 한다.
+  const handleOrganizationKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showOrganizationDropdown || filteredOrganizations.length === 0) {
+      if (e.key === 'ArrowDown') setShowOrganizationDropdown(true);
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedOrgIndex(prev => (prev + 1) % filteredOrganizations.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedOrgIndex(prev => (prev - 1 + filteredOrganizations.length) % filteredOrganizations.length);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (highlightedOrgIndex >= 0 && highlightedOrgIndex < filteredOrganizations.length) {
+        handleSelectOrganization(filteredOrganizations[highlightedOrgIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      setShowOrganizationDropdown(false);
+    }
   };
 
   const getTotalCount = () => {
@@ -242,6 +273,10 @@ const PerformanceInput: React.FC = () => {
   };
 
   useEffect(() => {
+    setHighlightedOrgIndex(-1);
+  }, [organizationSearchTerm, showOrganizationDropdown]);
+
+  useEffect(() => {
     if (!formData.organizationName) {
       return;
     }
@@ -287,6 +322,22 @@ const PerformanceInput: React.FC = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // 저장 완료 모달: 3초 후 자동으로 닫히고, 엔터 키로도 바로 닫을 수 있다.
+  useEffect(() => {
+    if (!showSuccessModal) return;
+
+    const timer = setTimeout(() => setShowSuccessModal(false), 3000);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') setShowSuccessModal(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showSuccessModal]);
 
   return (
     <div className="max-w-4xl mx-auto animate-fadeIn">
@@ -357,6 +408,7 @@ const PerformanceInput: React.FC = () => {
                       setShowOrganizationDropdown(true);
                     }}
                     onFocus={() => setShowOrganizationDropdown(true)}
+                    onKeyDown={handleOrganizationKeyDown}
                     className="input-glass"
                   />
                   {formData.organizationName && (
@@ -377,16 +429,16 @@ const PerformanceInput: React.FC = () => {
                   {showOrganizationDropdown && (
                     <div className="absolute z-10 w-full mt-2 glass rounded-xl shadow-xl max-h-60 overflow-y-auto">
                       {filteredOrganizations.length > 0 ? (
-                        filteredOrganizations.map(name => (
+                        filteredOrganizations.map((name, idx) => (
                           <button
                             key={name}
+                            ref={idx === highlightedOrgIndex ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
                             type="button"
-                            onClick={() => {
-                              setFormData(prev => ({ ...prev, organizationName: name }));
-                              setOrganizationSearchTerm(name);
-                              setShowOrganizationDropdown(false);
-                            }}
-                            className="w-full px-4 py-3 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors first:rounded-t-xl last:rounded-b-xl"
+                            onClick={() => handleSelectOrganization(name)}
+                            onMouseEnter={() => setHighlightedOrgIndex(idx)}
+                            className={`w-full px-4 py-3 text-left focus:outline-none transition-colors first:rounded-t-xl last:rounded-b-xl ${
+                              idx === highlightedOrgIndex ? 'bg-blue-100' : 'hover:bg-blue-50 focus:bg-blue-50'
+                            }`}
                           >
                             {name}
                           </button>
