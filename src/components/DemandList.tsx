@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState, useCallback, useEffect, memo } from 'react';
 import { Edit2, Trash2, Save, X, Search, Building2, AlertTriangle, Loader2, Download } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { Demand } from '../types';
@@ -9,6 +9,167 @@ import { downloadDemandExcel } from '../utils/excel';
 import Modal from './common/Modal';
 import SearchInput from './common/SearchInput';
 import EmptyState from './common/EmptyState';
+import Pagination from './common/Pagination';
+import { usePagination, PAGE_SIZE_OPTIONS } from '../hooks/usePagination';
+
+interface DemandRowProps {
+  demand: Demand;
+  isEditing: boolean;
+  editForm: Partial<Demand>;
+  onEdit: (demand: Demand) => void;
+  onDelete: (id: string, organizationName: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  onInputChange: (field: keyof Demand, value: string) => void;
+}
+
+// 행 단위로 memo 처리 — 다른 행을 수정 중이어도 이 행이 리렌더링되지 않도록 한다.
+const DemandRow: React.FC<DemandRowProps> = memo(({
+  demand,
+  isEditing,
+  editForm,
+  onEdit,
+  onDelete,
+  onSave,
+  onCancel,
+  onInputChange
+}) => {
+  return (
+    <tr>
+      <td className="hidden lg:table-cell">
+        {isEditing ? (
+          <select
+            value={editForm.year ?? CURRENT_YEAR}
+            onChange={(e) => onInputChange('year', e.target.value)}
+            className="select-glass text-sm py-2"
+          >
+            {AVAILABLE_YEARS.map(y => (
+              <option key={y} value={y}>{y}년</option>
+            ))}
+          </select>
+        ) : (
+          <span className="text-sm font-semibold text-gray-700">{demand.year ?? 2025}년</span>
+        )}
+      </td>
+      <td>
+        {isEditing ? (
+          <select
+            value={editForm.city || ''}
+            onChange={(e) => onInputChange('city', e.target.value)}
+            className="select-glass text-sm py-2"
+          >
+            <option value="">시/군 선택</option>
+            {CITIES.map(city => (
+              <option key={city} value={city}>{city}</option>
+            ))}
+          </select>
+        ) : (
+          <span className="badge-blue">{demand.city}</span>
+        )}
+      </td>
+      <td>
+        {isEditing ? (
+          <input
+            type="text"
+            value={editForm.organizationName || ''}
+            onChange={(e) => onInputChange('organizationName', e.target.value)}
+            className="input-glass text-sm py-2"
+          />
+        ) : (
+          <span className="font-semibold text-gray-900">{demand.organizationName}</span>
+        )}
+      </td>
+      <td>
+        {isEditing ? (
+          <input
+            type="text"
+            value={editForm.contactPerson || ''}
+            onChange={(e) => onInputChange('contactPerson', e.target.value)}
+            className="input-glass text-sm py-2"
+          />
+        ) : (
+          <span className="text-gray-700">{demand.contactPerson}</span>
+        )}
+      </td>
+      <td>
+        {isEditing ? (
+          <input
+            type="tel"
+            value={editForm.phoneNumber || ''}
+            onChange={(e) => onInputChange('phoneNumber', e.target.value)}
+            className="input-glass text-sm py-2"
+          />
+        ) : (
+          <span className="font-mono text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-lg">
+            {demand.phoneNumber}
+          </span>
+        )}
+      </td>
+      <td className="hidden lg:table-cell">
+        {isEditing ? (
+          <input
+            type="email"
+            value={editForm.email || ''}
+            onChange={(e) => onInputChange('email', e.target.value)}
+            className="input-glass text-sm py-2"
+          />
+        ) : (
+          <span className="text-sm text-gray-500">{demand.email || '-'}</span>
+        )}
+      </td>
+      <td className="hidden lg:table-cell">
+        <span className="text-sm text-gray-500 font-mono">
+          {demand.createdAt.toLocaleDateString('ko-KR')}
+        </span>
+      </td>
+      <td className="text-right">
+        {isEditing ? (
+          <div className="flex items-center justify-end gap-1">
+            <button
+              onClick={onSave}
+              className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all duration-200"
+              title="저장"
+            >
+              <Save className="w-5 h-5" />
+            </button>
+            <button
+              onClick={onCancel}
+              className="p-2 text-gray-500 hover:bg-gray-100 rounded-xl transition-all duration-200"
+              title="취소"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-end gap-1">
+            <button
+              onClick={() => onEdit(demand)}
+              className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200"
+              title="수정"
+            >
+              <Edit2 className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => onDelete(demand.id, demand.organizationName)}
+              className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-all duration-200"
+              title="삭제"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+      </td>
+    </tr>
+  );
+}, (prev, next) => {
+  if (prev.demand !== next.demand) return false;
+  if (prev.isEditing !== next.isEditing) return false;
+  // 편집 중인 행만 editForm 변경에 반응하면 된다 (매 입력마다 다른 행까지 리렌더링되는 것을 방지)
+  if (next.isEditing && prev.editForm !== next.editForm) return false;
+  return true;
+});
+
+DemandRow.displayName = 'DemandRow';
 
 const DemandList: React.FC = () => {
   const { addToast } = useToast();
@@ -20,22 +181,43 @@ const DemandList: React.FC = () => {
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
-  const yearFilteredDemands = selectedYear === 'all'
-    ? demands
-    : demands.filter(d => (d.year ?? 2025) === selectedYear);
-
-  const filteredDemands = yearFilteredDemands.filter(demand =>
-    demand.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    demand.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    demand.contactPerson.toLowerCase().includes(searchTerm.toLowerCase())
+  const yearFilteredDemands = useMemo(
+    () => (selectedYear === 'all' ? demands : demands.filter(d => (d.year ?? 2025) === selectedYear)),
+    [demands, selectedYear]
   );
 
-  const handleEdit = (demand: Demand) => {
+  const filteredDemands = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    return yearFilteredDemands.filter(demand =>
+      demand.organizationName.toLowerCase().includes(term) ||
+      demand.city.toLowerCase().includes(term) ||
+      demand.contactPerson.toLowerCase().includes(term)
+    );
+  }, [yearFilteredDemands, searchTerm]);
+
+  // 화면에는 필터링된 결과 중 현재 페이지 분량만 렌더링한다.
+  // (전체를 한 번에 테이블로 그리면 데이터가 많을 때 렉이 발생한다)
+  const {
+    currentPage,
+    setCurrentPage,
+    pageSize,
+    setPageSize,
+    totalPages,
+    paginatedItems: paginatedDemands,
+    rangeStart,
+    rangeEnd
+  } = usePagination(filteredDemands);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedYear, searchTerm, setCurrentPage]);
+
+  const handleEdit = useCallback((demand: Demand) => {
     setEditingId(demand.id);
     setEditForm(demand);
-  };
+  }, []);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!editingId || !editForm.city || !editForm.organizationName || !editForm.contactPerson || !editForm.phoneNumber) {
       addToast({
         type: 'error',
@@ -62,14 +244,14 @@ const DemandList: React.FC = () => {
         message: '수요처 정보 수정 중 오류가 발생했습니다'
       });
     }
-  };
+  }, [editingId, editForm, updateDemand, addToast]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     setEditingId(null);
     setEditForm({});
-  };
+  }, []);
 
-  const handleDelete = async (id: string, organizationName: string) => {
+  const handleDelete = useCallback(async (id: string, organizationName: string) => {
     if (window.confirm(`"${organizationName}"의 수요처 정보를 삭제하시겠습니까?`)) {
       try {
         await deleteDemand(id);
@@ -87,11 +269,11 @@ const DemandList: React.FC = () => {
         });
       }
     }
-  };
+  }, [deleteDemand, addToast]);
 
-  const handleInputChange = (field: keyof Demand, value: string) => {
+  const handleInputChange = useCallback((field: keyof Demand, value: string) => {
     setEditForm(prev => ({ ...prev, [field]: field === 'year' ? parseInt(value) : value }));
-  };
+  }, []);
 
   const handleExcelDownload = () => {
     if (filteredDemands.length === 0) {
@@ -164,6 +346,18 @@ const DemandList: React.FC = () => {
             ))}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600 whitespace-nowrap">페이지당</label>
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="select-glass text-sm py-2"
+              >
+                {PAGE_SIZE_OPTIONS.map(size => (
+                  <option key={size} value={size}>{size}건</option>
+                ))}
+              </select>
+            </div>
             <button
               onClick={handleExcelDownload}
               disabled={filteredDemands.length === 0}
@@ -228,132 +422,18 @@ const DemandList: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredDemands.map((demand) => (
-                <tr key={demand.id}>
-                  <td className="hidden lg:table-cell">
-                    {editingId === demand.id ? (
-                      <select
-                        value={editForm.year ?? CURRENT_YEAR}
-                        onChange={(e) => handleInputChange('year', e.target.value)}
-                        className="select-glass text-sm py-2"
-                      >
-                        {AVAILABLE_YEARS.map(y => (
-                          <option key={y} value={y}>{y}년</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span className="text-sm font-semibold text-gray-700">{demand.year ?? 2025}년</span>
-                    )}
-                  </td>
-                  <td>
-                    {editingId === demand.id ? (
-                      <select
-                        value={editForm.city || ''}
-                        onChange={(e) => handleInputChange('city', e.target.value)}
-                        className="select-glass text-sm py-2"
-                      >
-                        <option value="">시/군 선택</option>
-                        {CITIES.map(city => (
-                          <option key={city} value={city}>{city}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span className="badge-blue">{demand.city}</span>
-                    )}
-                  </td>
-                  <td>
-                    {editingId === demand.id ? (
-                      <input
-                        type="text"
-                        value={editForm.organizationName || ''}
-                        onChange={(e) => handleInputChange('organizationName', e.target.value)}
-                        className="input-glass text-sm py-2"
-                      />
-                    ) : (
-                      <span className="font-semibold text-gray-900">{demand.organizationName}</span>
-                    )}
-                  </td>
-                  <td>
-                    {editingId === demand.id ? (
-                      <input
-                        type="text"
-                        value={editForm.contactPerson || ''}
-                        onChange={(e) => handleInputChange('contactPerson', e.target.value)}
-                        className="input-glass text-sm py-2"
-                      />
-                    ) : (
-                      <span className="text-gray-700">{demand.contactPerson}</span>
-                    )}
-                  </td>
-                  <td>
-                    {editingId === demand.id ? (
-                      <input
-                        type="tel"
-                        value={editForm.phoneNumber || ''}
-                        onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                        className="input-glass text-sm py-2"
-                      />
-                    ) : (
-                      <span className="font-mono text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-lg">
-                        {demand.phoneNumber}
-                      </span>
-                    )}
-                  </td>
-                  <td className="hidden lg:table-cell">
-                    {editingId === demand.id ? (
-                      <input
-                        type="email"
-                        value={editForm.email || ''}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                        className="input-glass text-sm py-2"
-                      />
-                    ) : (
-                      <span className="text-sm text-gray-500">{demand.email || '-'}</span>
-                    )}
-                  </td>
-                  <td className="hidden lg:table-cell">
-                    <span className="text-sm text-gray-500 font-mono">
-                      {demand.createdAt.toLocaleDateString('ko-KR')}
-                    </span>
-                  </td>
-                  <td className="text-right">
-                    {editingId === demand.id ? (
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={handleSave}
-                          className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all duration-200"
-                          title="저장"
-                        >
-                          <Save className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={handleCancel}
-                          className="p-2 text-gray-500 hover:bg-gray-100 rounded-xl transition-all duration-200"
-                          title="취소"
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => handleEdit(demand)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200"
-                          title="수정"
-                        >
-                          <Edit2 className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(demand.id, demand.organizationName)}
-                          className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-all duration-200"
-                          title="삭제"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
+              {paginatedDemands.map((demand) => (
+                <DemandRow
+                  key={demand.id}
+                  demand={demand}
+                  isEditing={editingId === demand.id}
+                  editForm={editForm}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onSave={handleSave}
+                  onCancel={handleCancel}
+                  onInputChange={handleInputChange}
+                />
               ))}
             </tbody>
           </table>
@@ -362,6 +442,15 @@ const DemandList: React.FC = () => {
         {filteredDemands.length === 0 && (
           <EmptyState icon={Search} title="검색 결과가 없습니다" description="다른 검색어를 입력해보세요" />
         )}
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredDemands.length}
+          rangeStart={rangeStart}
+          rangeEnd={rangeEnd}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* 일괄 삭제 확인 모달 */}

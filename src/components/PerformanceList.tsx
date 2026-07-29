@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect, memo } from 'react';
-import { Search, Calendar, Filter, Trash2, Edit2, Save, X, Megaphone, Download, MapPin, BarChart3, ChevronLeft, ChevronRight, UserCheck } from 'lucide-react';
+import { Search, Calendar, Filter, Trash2, Edit2, Save, X, Megaphone, Download, MapPin, BarChart3, UserCheck } from 'lucide-react';
 import { useFirebaseData } from '../hooks/useFirebaseData';
 import { useToast } from '../hooks/useToast';
 import { Performance, FilterState } from '../types';
@@ -11,8 +11,8 @@ import { PROGRAMS } from '../constants';
 import RegionBadge from './common/RegionBadge';
 import { buildOrganizationPhoneLookup } from '../utils/performanceOrganizations';
 import { formatPhoneNumber } from '../utils/phone';
-
-const PAGE_SIZE_OPTIONS = [20, 30, 50, 100] as const;
+import { usePagination, PAGE_SIZE_OPTIONS } from '../hooks/usePagination';
+import Pagination from './common/Pagination';
 
 interface PerformanceRowProps {
   performance: Performance;
@@ -214,22 +214,6 @@ const PerformanceRow: React.FC<PerformanceRowProps> = memo(({
 
 PerformanceRow.displayName = 'PerformanceRow';
 
-// 페이지 번호 목록 생성 (현재 페이지 주변 + 처음/끝, 나머지는 '...' 로 축약)
-const getPageNumbers = (currentPage: number, totalPages: number): (number | 'ellipsis')[] => {
-  const delta = 1;
-  const pages: (number | 'ellipsis')[] = [];
-  const start = Math.max(2, currentPage - delta);
-  const end = Math.min(totalPages - 1, currentPage + delta);
-
-  pages.push(1);
-  if (start > 2) pages.push('ellipsis');
-  for (let i = start; i <= end; i++) pages.push(i);
-  if (end < totalPages - 1) pages.push('ellipsis');
-  if (totalPages > 1) pages.push(totalPages);
-
-  return pages;
-};
-
 const PerformanceList: React.FC = () => {
   const { addToast } = useToast();
   const { performances, demands, updatePerformance, deletePerformance } = useFirebaseData();
@@ -238,8 +222,6 @@ const PerformanceList: React.FC = () => {
   const [filters, setFilters] = useState<FilterState>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedYear, setSelectedYear] = useState<number | 'all'>(CURRENT_YEAR);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState<number>(30);
 
   const organizationNames = useMemo(
     () => Array.from(new Set(demands.map(d => d.organizationName))).sort(),
@@ -297,22 +279,20 @@ const PerformanceList: React.FC = () => {
 
   // 화면에는 필터링된 결과 중 현재 페이지 분량만 렌더링한다.
   // (전체를 한 번에 테이블로 그리면 데이터가 많을 때 렉이 발생한다)
-  const totalPages = Math.max(1, Math.ceil(filteredPerformances.length / pageSize));
+  const {
+    currentPage,
+    setCurrentPage,
+    pageSize,
+    setPageSize,
+    totalPages,
+    paginatedItems: paginatedPerformances,
+    rangeStart,
+    rangeEnd
+  } = usePagination(filteredPerformances);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters, searchTerm, selectedYear, pageSize]);
-
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  const paginatedPerformances = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredPerformances.slice(start, start + pageSize);
-  }, [filteredPerformances, currentPage, pageSize]);
+  }, [filters, searchTerm, selectedYear, setCurrentPage]);
 
   const handleFilterChange = <K extends keyof FilterState>(field: K, value: FilterState[K]) => {
     setFilters(prev => ({ ...prev, [field]: value }));
@@ -486,11 +466,6 @@ const PerformanceList: React.FC = () => {
       });
     }
   };
-
-  const pageNumbers = useMemo(() => getPageNumbers(currentPage, totalPages), [currentPage, totalPages]);
-
-  const rangeStart = filteredPerformances.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const rangeEnd = Math.min(currentPage * pageSize, filteredPerformances.length);
 
   return (
     <div className="max-w-7xl mx-auto animate-fadeIn">
@@ -720,48 +695,14 @@ const PerformanceList: React.FC = () => {
           </div>
         )}
 
-        {filteredPerformances.length > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-4 border-t border-gray-100">
-            <span className="text-sm text-gray-500">
-              {rangeStart.toLocaleString()}–{rangeEnd.toLocaleString()} / {filteredPerformances.length.toLocaleString()}건
-            </span>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                title="이전 페이지"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              {pageNumbers.map((page, idx) =>
-                page === 'ellipsis' ? (
-                  <span key={`ellipsis-${idx}`} className="px-2 text-gray-400 text-sm">...</span>
-                ) : (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`min-w-[2.25rem] h-9 px-2 rounded-xl text-sm font-medium transition-colors ${
-                      page === currentPage
-                        ? 'bg-emerald-600 text-white shadow shadow-emerald-500/30'
-                        : 'text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                )
-              )}
-              <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                title="다음 페이지"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredPerformances.length}
+          rangeStart={rangeStart}
+          rangeEnd={rangeEnd}
+          onPageChange={setCurrentPage}
+        />
       </div>
     </div>
   );
