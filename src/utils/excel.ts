@@ -128,12 +128,12 @@ export const downloadPerformanceExcel = (
 export const downloadSatisfactionSurveyExcel = (
   organizations: { organizationName: string; contactPhoneNumber?: string }[]
 ) => {
-  let csvContent = '﻿단체명,연락처\n';
+  let csvContent = '﻿연락처,단체명\n';
 
   organizations.forEach(org => {
     const row = [
-      `"${org.organizationName.replace(/"/g, '""')}"`,
-      `"${formatPhoneNumber(org.contactPhoneNumber)}"`
+      `"${formatPhoneNumber(org.contactPhoneNumber)}"`,
+      `"${org.organizationName.replace(/"/g, '""')}"`
     ].join(',');
     csvContent += row + '\n';
   });
